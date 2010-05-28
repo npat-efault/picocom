@@ -94,7 +94,7 @@ struct {
 	.nolock = 0,
 #endif
 	.escape = '\x01',
-	.send_cmd = "ascii_xfr -s -v -l10",
+	.send_cmd = "sz -vv",
 	.receive_cmd = "rz -vv"
 };
 
