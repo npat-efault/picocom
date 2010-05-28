@@ -669,7 +669,7 @@ term_set_baudrate (int fd, int baudrate)
 /***************************************************************************/
 
 int
-term_set_parity (int fd, enum parity_e parity)
+term_set_parity (int fd, enum parity_e parity) 
 {
 	int rval, i;
 	struct termios *tiop;
@@ -688,13 +688,14 @@ term_set_parity (int fd, enum parity_e parity)
 
 		switch (parity) {
 		case P_EVEN:
-			tiop->c_cflag = (tiop->c_cflag & ~(PARENB | PARODD)) | PARENB;
+			tiop->c_cflag &= ~PARODD;
+			tiop->c_cflag |= PARENB;
 			break;
 		case P_ODD:
-			tiop->c_cflag = (tiop->c_cflag & ~(PARENB | PARODD)) | PARODD;
+			tiop->c_cflag |= PARENB | PARODD;
 			break;
 		case P_NONE:
-			tiop->c_cflag = (tiop->c_cflag & ~(PARENB | PARODD));
+			tiop->c_cflag &= ~(PARENB | PARODD); 
 			break;
 		default:
 			term_errno = TERM_EPARITY;
