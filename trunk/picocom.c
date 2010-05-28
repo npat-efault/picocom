@@ -304,8 +304,13 @@ baud_up (int baud)
 		baud = 57600;
 	else	
 		baud = baud * 2;
+#ifndef HIGH_BAUD
 	if ( baud > 115200 )
 		baud = 115200;
+#else
+	if ( baud > 921600 )
+		baud = 921600;
+#endif
 
 	return baud;
 }
@@ -313,8 +318,13 @@ baud_up (int baud)
 int
 baud_down (int baud)
 {
+#ifndef HIGH_BAUD
 	if ( baud > 115200 )
 		baud = 115200;
+#else
+	if ( baud > 921600 )
+		baud = 921600;
+#endif
 	else if ( baud == 57600 )
 		baud = 38400;
 	else

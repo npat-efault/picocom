@@ -2,7 +2,8 @@
 VERSION=1.5
 
 # CC = gcc
-CPPFLAGS=-DVERSION_STR=\"$(VERSION)\" -DUUCP_LOCK_DIR=\"/var/lock\"
+CPPFLAGS=-DVERSION_STR=\"$(VERSION)\" -DUUCP_LOCK_DIR=\"/var/lock\" \
+         -DHIGH_BAUD
 CFLAGS = -Wall -g
 
 # LD = gcc

@@ -627,9 +627,17 @@ term_set_baudrate (int fd, int baudrate)
 		case 115200:
 			spd = B115200;
 			break;
+#ifdef HIGH_BAUD
 		case 230400:
 			spd = B230400;
 			break;
+		case 460800:
+			spd = B460800;
+			break;
+		case 921600:
+			spd = B921600;
+			break;
+#endif
 		default:
 			term_errno = TERM_EBAUD;
 			rval = -1;
