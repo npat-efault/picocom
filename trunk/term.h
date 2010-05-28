@@ -10,17 +10,17 @@
  *
  * After the library is initialized one or more file-descriptors, can
  * be added to (and latter removed from) the list managed by the
- * library (framework). These file descriptos must be opened on
+ * library (framework). These file descriptors must be opened on
  * terminal devices. For every fd, the original settings of the
  * associated terminal device are saved by the library. These settings
  * are restored when the fd is removed from the framework, or at
- * porgram termination [by means of an atexit(3) handler installed by
+ * program termination [by means of an atexit(3) handler installed by
  * the library], or at user request. The library maintains three
  * structures for every fd in the framework: The original settings
- * structure ("origtermios"), keeping the setings of the terminal
+ * structure ("origtermios"), keeping the settings of the terminal
  * device when the respective filedes was added to the framework. The
  * current settings structure ("currtermios"), keeping the current
- * setings of the associated terminal device; and the next settings
+ * settings of the associated terminal device; and the next settings
  * structure ("nexttermios") which keeps settings to be applied to the
  * associated terminal device at a latter time, upon user request.
  * The "term_set_*" functions can be used to modify the device
