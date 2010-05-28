@@ -1,5 +1,5 @@
 <?xml version="1.0" standalone='no'?>
-<!DOCTYPE manpage SYSTEM "http://efault.net/npat/dtds/xmlmp/xmlmp-1.1.dtd">
+<!DOCTYPE manpage SYSTEM "xmlmp-1.1.dtd">
  
 <manpage 
   title="picocom" 
@@ -396,7 +396,7 @@
 
   <section name="AVAILABILITY">
     <p>The latest version of "picocom" can be downloaded from: <url
-	href="http://efault.net/npat/hacks/picocom/"/>
+	href="http://code.google.com/p/picocom/" />
     </p>
   </section>
 
