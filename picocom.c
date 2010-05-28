@@ -260,8 +260,8 @@ fd_readline (int fdi, int fdo, char *b, int bsz)
 	unsigned char c;
 	unsigned char *bp, *bpe;
 	
-	bp = b;
-	bpe = b + bsz - 1;
+	bp = (unsigned char *)b;
+	bpe = (unsigned char *)b + bsz - 1;
 
 	while (1) {
 		r = read(fdi, &c, 1);
