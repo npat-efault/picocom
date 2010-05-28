@@ -841,10 +841,7 @@ parse_args(int argc, char *argv[])
 			opts.nolock = 1;
 			break;
 		case 'e':
-			if ( isupper(optarg[0]) )
-				opts.escape = optarg[0] - 'A' + 1;
-			else
-				opts.escape = optarg[0] - 'a' + 1;
+			opts.escape = optarg[0] & 0x1f;
 			break;
 		case 'f':
 			switch (optarg[0]) {
