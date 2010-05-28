@@ -6,6 +6,10 @@ The following people contributed suggestions, comments, and fixes:
 
 - Julius P. Malkiewicz (julius@sonartech.com.au) contributed FreeBSD
   portablity fixes, the C-\ command implementation, the UUCP locks
-  implementation, and other minor fixes
+  implementation, and other minor fixes.
 
+- Pavel Vymetalek (pvymetalek@seznam.cz) contributed the higher
+  baudrates support.
 
+- Niels Moller (nisse@lysator.liu.se) contributed support for
+  non-alphabetic escape keys.
