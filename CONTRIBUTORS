@@ -1,0 +1,11 @@
+
+The following people contributed suggestions, comments, and fixes:
+
+- Oliver Kurth (oku@debian.org) contributed bug fixes and the manual
+  page for picocm.
+
+- Julius P. Malkiewicz (julius@sonartech.com.au) contributed FreeBSD
+  portablity fixes, the C-\ command implementation, the UUCP locks
+  implementation, and other minor fixes
+
+
