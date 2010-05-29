@@ -54,6 +54,7 @@
 #define KEY_FLOW    '\x06' /* C-f: change flowcntrl mode */ 
 #define KEY_PARITY  '\x19' /* C-y: change parity mode */ 
 #define KEY_BITS    '\x02' /* C-b: change number of databits */ 
+#define KEY_LECHO   '\x03' /* C-c: toggle local echo */ 
 #define KEY_STATUS  '\x16' /* C-v: show program option */
 #define KEY_SEND    '\x13' /* C-s: send file */
 #define KEY_RECEIVE '\x12' /* C-r: receive file */
@@ -61,6 +62,74 @@
 
 #define STO STDOUT_FILENO
 #define STI STDIN_FILENO
+
+/**********************************************************************/
+
+/* implemented caracter mappings */
+#define M_CRLF   (1 << 0) /* map CR  --> LF */
+#define M_CRCRLF (1 << 1) /* map CR  --> CR + LF */
+#define M_IGNCR  (1 << 2) /* map CR  --> <nothing> */
+#define M_LFCR   (1 << 3) /* map LF  --> CR */
+#define M_LFCRLF (1 << 4) /* map LF  --> CR + LF */
+#define M_IGNLF  (1 << 5) /* map LF  --> <nothing> */
+#define M_DELBS  (1 << 6) /* map DEL --> BS */
+#define M_BSDEL  (1 << 7) /* map BS  --> DEL */
+#define M_NFLAGS 8
+
+/* default character mappings */
+#define M_I_DFL 0
+#define M_O_DFL 0
+#define M_E_DFL (M_DELBS | M_CRCRLF)
+
+/* character mapping names */
+struct map_names_s {
+	char *name;
+	int flag;
+} map_names[] = {
+	{ "crlf", M_CRLF },
+	{ "crcrlf", M_CRCRLF },
+	{ "igncr", M_IGNCR },
+    { "lfcr", M_LFCR },
+	{ "lfcrlf", M_LFCRLF },
+	{ "ignlf", M_IGNLF },
+	{ "delbs", M_DELBS },
+	{ "bsdel", M_BSDEL },
+	/* Sentinel */
+	{ NULL, 0 } 
+};
+
+int
+parse_map (char *s)
+{
+	char *m, *t;
+	int f, flags, i;
+
+	flags = 0;
+	while ( (t = strtok(s, ", \t")) ) {
+		for (i=0; (m = map_names[i].name); i++) {
+			if ( ! strcmp(t, m) ) {
+				f = map_names[i].flag;
+				break;
+			}
+		}
+		if ( m ) flags |= f;
+		else { flags = -1; break; }
+		s = NULL;
+	}
+
+	return flags;
+}
+
+void
+print_map (int flags)
+{
+	int i;
+
+	for (i = 0; i < M_NFLAGS; i++)
+		if ( flags & (1 << i) )
+			printf("%s,", map_names[i].name);
+	printf("\n");
+}
 
 /**********************************************************************/
 
@@ -72,6 +141,7 @@ struct {
 	enum parity_e parity;
 	char *parity_str;
 	int databits;
+	int lecho;
 	int noinit;
 	int noreset;
 #ifdef UUCP_LOCK_DIR
@@ -80,6 +150,9 @@ struct {
 	unsigned char escape;
 	char send_cmd[128];
 	char receive_cmd[128];
+	int imap;
+	int omap;
+	int emap;
 } opts = {
 	.port = "",
 	.baud = 9600,
@@ -88,6 +161,7 @@ struct {
 	.parity = P_NONE,
 	.parity_str = "none",
 	.databits = 8,
+	.lecho = 0,
 	.noinit = 0,
 	.noreset = 0,
 #ifdef UUCP_LOCK_DIR
@@ -95,7 +169,10 @@ struct {
 #endif
 	.escape = '\x01',
 	.send_cmd = "sz -vv",
-	.receive_cmd = "rz -vv"
+	.receive_cmd = "rz -vv",
+	.imap = M_I_DFL,
+	.omap = M_O_DFL,
+	.emap = M_E_DFL
 };
 
 int tty_fd;
@@ -292,6 +369,76 @@ out:
 }
 
 #undef cput
+
+/* maximum number of chars that can replace a single characted
+   due to mapping */
+#define M_MAXMAP 4
+
+int
+do_map (char *b, int map, char c)
+{
+	int n;
+
+	switch (c) {
+	case '\x7f':
+		/* DEL mapings */
+		if ( map & M_DELBS ) {
+			b[0] = '\x08'; n = 1;
+		} else {
+			b[0] = c; n = 1;
+		}
+		break;
+	case '\x08':
+		/* BS mapings */
+		if ( map & M_BSDEL ) {
+			b[0] = '\x7f'; n = 1;
+		} else {
+			b[0] = c; n = 1;
+		}
+		break;
+	case '\x0d':
+		/* CR mappings */
+		if ( map & M_CRLF ) {
+			b[0] = '\x0a'; n = 1;
+		} else if ( map & M_CRCRLF ) {
+			b[0] = '\x0d'; b[1] = '\x0a'; n = 2;
+		} else if ( map & M_IGNCR ) {
+			n = 0;
+		} else {
+			b[0] = c; n = 1;
+		}
+		break;
+	case '\x0a':
+		/* LF mappings */
+		if ( map & M_LFCR ) {
+			b[0] = '\x0d'; n = 1;
+		} else if ( map & M_LFCRLF ) {
+			b[0] = '\x0d'; b[1] = '\x0a'; n = 2;
+		} else if ( map & M_IGNLF ) {
+			n = 0;
+		} else {
+			b[0] = c; n = 1;
+		}
+		break;
+	default:
+		b[0] = c; n = 1;
+		break;
+	}
+
+	return n;
+}
+
+void 
+map_and_write (int fd, int map, char c)
+{
+	char b[M_MAXMAP];
+	int n;
+		
+	n = do_map(b, map, c);
+	if ( n )
+		if ( writen_ni(fd, b, n) < n )
+			fatal("write to stdout failed: %s", strerror(errno));		
+}
 
 /**********************************************************************/
 
@@ -558,9 +705,13 @@ loop(void)
 				if ( c == opts.escape ) {
 					state = ST_TRANSPARENT;
 					/* pass the escape character down */
-					if (tty_q.len <= TTY_Q_SZ)
-						tty_q.buff[tty_q.len++] = c;
-					else
+					if (tty_q.len + M_MAXMAP <= TTY_Q_SZ) {
+						n = do_map((char *)tty_q.buff + tty_q.len, 
+								   opts.omap, c);
+						tty_q.len += n;
+						if ( opts.lecho ) 
+							map_and_write(STO, opts.emap, c);
+					} else 
 						fd_printf(STO, "\x07");
 					break;
 				}
@@ -639,6 +790,11 @@ loop(void)
 					fd_printf(STO, "\r\n*** databits: %d ***\r\n", 
 							  opts.databits);
 					break;
+				case KEY_LECHO:
+					opts.lecho = ! opts.lecho;
+					fd_printf(STO, "\r\n*** local echo: %s ***\r\n", 
+							  opts.lecho ? "yes" : "no");
+					break;
 				case KEY_SEND:
 					fd_printf(STO, "\r\n*** file: ");
 					r = fd_readline(STI, STO, fname, sizeof(fname));
@@ -673,9 +829,13 @@ loop(void)
 				if ( c == opts.escape ) {
 					state = ST_COMMAND;
 				} else {
-					if (tty_q.len <= TTY_Q_SZ)
-						tty_q.buff[tty_q.len++] = c;
-					else
+					if (tty_q.len + M_MAXMAP <= TTY_Q_SZ) {
+						n = do_map((char *)tty_q.buff + tty_q.len, 
+								   opts.omap, c);
+						tty_q.len += n;
+						if ( opts.lecho ) 
+							map_and_write(STO, opts.emap, c);
+					} else 
 						fd_printf(STO, "\x07");
 				}
 				break;
@@ -698,13 +858,7 @@ loop(void)
 			else if ( n < 0 )
 				fatal("read from term failed: %s", strerror(errno));
 			
-			do {
-				n = write(STO, &c, 1);
-			} while ( errno == EAGAIN 
-					  || errno == EWOULDBLOCK
-					  || errno == EINTR );
-			if ( n <= 0 )
-				fatal("write to stdout failed: %s", strerror(errno));
+			map_and_write(STO, opts.imap, c);
 		}
 
 		if ( FD_ISSET(tty_fd, &wrset) ) {
@@ -778,12 +932,25 @@ show_usage(char *name)
 	printf("  --<p>arity o (=odd) | e (=even) | n (=none)\n");
 	printf("  --<d>atabits 5 | 6 | 7 | 8\n");
 	printf("  --<e>scape <char>\n");
+	printf("  --e<c>ho\n");
 	printf("  --no<i>nit\n");
 	printf("  --no<r>eset\n");
 	printf("  --no<l>ock\n");
 	printf("  --<s>end-cmd <command>\n");
 	printf("  --recei<v>e-cmd <command>\n");
+	printf("  --imap <map> (input mappings)\n");
+	printf("  --omap <map> (output mappings)\n");
+	printf("  --emap <map> (local-echo mappings)\n");
 	printf("  --<h>elp\n");
+	printf("<map> is a comma-separated list of one or more of:\n");
+	printf("  crlf : map CR --> LF\n");
+	printf("  crcrlf : map CR --> CR + LF\n");
+	printf("  igncr : ignore CR\n");
+	printf("  lfcr : map LF --> CR\n");
+	printf("  lfcrlf : map LF --> CR + LF\n");
+	printf("  ignlf : ignore LF\n");
+	printf("  bsdel : map BS --> DEL\n");
+	printf("  delbs : map DEL --> BS\n");
 	printf("<?> indicates the equivalent short option.\n");
 	printf("Short options are prefixed by \"-\" instead of by \"--\".\n");
 }
@@ -797,7 +964,11 @@ parse_args(int argc, char *argv[])
 	{
 		{"receive-cmd", required_argument, 0, 'v'},
 		{"send-cmd", required_argument, 0, 's'},
+        {"imap", required_argument, 0, 'I' },
+        {"omap", required_argument, 0, 'O' },
+        {"emap", required_argument, 0, 'E' },
 		{"escape", required_argument, 0, 'e'},
+		{"echo", no_argument, 0, 'c'},
 		{"noinit", no_argument, 0, 'i'},
 		{"noreset", no_argument, 0, 'r'},
 		{"nolock", no_argument, 0, 'l'},
@@ -812,11 +983,12 @@ parse_args(int argc, char *argv[])
 	while (1) {
 		int optionIndex = 0;
 		int c;
+		int map;
 
 		/* no default error messages printed. */
 		opterr = 0;
 
-		c = getopt_long(argc, argv, "hirls:r:e:f:b:p:d:",
+		c = getopt_long(argc, argv, "hirlcv:s:r:e:f:b:p:d:",
 						longOptions, &optionIndex);
 
 		if (c < 0)
@@ -830,6 +1002,24 @@ parse_args(int argc, char *argv[])
 		case 'v':
 			strncpy(opts.receive_cmd, optarg, sizeof(opts.receive_cmd));
 			opts.receive_cmd[sizeof(opts.receive_cmd) - 1] = '\0';
+			break;
+		case 'I':
+			map = parse_map(optarg);
+			if (map >= 0) opts.imap = map;
+			else fprintf(stderr, "Invalid imap, ignored\n");
+			break;
+		case 'O':
+			map = parse_map(optarg);
+			if (map >= 0) opts.omap = map;
+			else fprintf(stderr, "Invalid omap, ignored\n");
+			break;
+		case 'E':
+			map = parse_map(optarg);
+			if (map >= 0) opts.emap = map;
+			else fprintf(stderr, "Invalid emap, ignored\n");
+			break;
+		case 'c':
+			opts.lecho = 1;
 			break;
 		case 'i':
 			opts.noinit = 1;
@@ -935,15 +1125,20 @@ parse_args(int argc, char *argv[])
 	printf("parity is      : %s\n", opts.parity_str);
 	printf("databits are   : %d\n", opts.databits);
 	printf("escape is      : C-%c\n", 'a' + opts.escape - 1);
+	printf("local echo is  : %s\n", opts.lecho ? "yes" : "no");
 	printf("noinit is      : %s\n", opts.noinit ? "yes" : "no");
 	printf("noreset is     : %s\n", opts.noreset ? "yes" : "no");
 	printf("nolock is      : %s\n", opts.nolock ? "yes" : "no");
 	printf("send_cmd is    : %s\n", opts.send_cmd);
 	printf("receive_cmd is : %s\n", opts.receive_cmd);
+	printf("imap is        : "); print_map(opts.imap);
+	printf("omap is        : "); print_map(opts.omap);
+	printf("emap is        : "); print_map(opts.emap);
 	printf("\n");
 }
 
 /**********************************************************************/
+
 
 int
 main(int argc, char *argv[])
