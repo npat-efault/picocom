@@ -1,0 +1,157 @@
+------------------------------------------------------------------------
+r35 | npat | 2004-08-13 14:18:38 +0300 (Fri, 13 Aug 2004) | 3 lines
+Changed paths:
+   M /picocom/trunk/Makefile
+
+picocom version 1.4
+
+
+------------------------------------------------------------------------
+r34 | npat | 2004-08-13 14:15:23 +0300 (Fri, 13 Aug 2004) | 4 lines
+Changed paths:
+   M /picocom/trunk/Makefile
+
+Added the "changes" target that generates the CHANGES file from the
+svn (version control) commit logs.
+
+
+------------------------------------------------------------------------
+r33 | npat | 2004-08-13 05:48:26 +0300 (Fri, 13 Aug 2004) | 4 lines
+Changed paths:
+   M /picocom/trunk/Makefile
+   M /picocom/trunk/picocom.8.xml
+
+Converted the manpage sources to use the xmlmp-1.1 DTD, and hence the
+xmlmp tools (see http://npat.efault.net/hacks/xmlmp)
+
+
+------------------------------------------------------------------------
+r28 | npat | 2004-08-12 15:17:54 +0300 (Thu, 12 Aug 2004) | 2 lines
+Changed paths:
+   M /picocom/trunk/TODO
+
+Removed stale tasks from TODO. (Now it's empty).
+
+------------------------------------------------------------------------
+r27 | npat | 2004-08-12 15:16:03 +0300 (Thu, 12 Aug 2004) | 5 lines
+Changed paths:
+   M /picocom/trunk/CONTRIBUTORS
+   M /picocom/trunk/picocom.8.xml
+
+Added Julius P. Malkiewicz in the contributors list
+
+Updated documentation to comply with the changes made since r13
+
+
+------------------------------------------------------------------------
+r26 | npat | 2004-08-12 14:45:11 +0300 (Thu, 12 Aug 2004) | 9 lines
+Changed paths:
+   M /picocom/trunk/Makefile
+   M /picocom/trunk/picocom.c
+
+Added support for UUCP-style locks. Lock handling is compiled-in if
+the macro UUCP_LOCK_DIR is defined; if it is, it must contain the name
+of the lock directory. Locking can be disabled at runtime using the
+"--no<l>ock" option. 
+
+UUCP-locks support is based on a patch submitted by Julius
+P. Malkiewicz <julius@sonartech.com.au>
+
+
+------------------------------------------------------------------------
+r25 | npat | 2004-08-12 11:55:56 +0300 (Thu, 12 Aug 2004) | 4 lines
+Changed paths:
+   M /picocom/trunk/picocom.c
+
+Implemented th C-\ command, which generates a break sequence. Patch
+submitted by Julius P. Malkiewicz <julius@sonartech.com.au>
+
+
+------------------------------------------------------------------------
+r24 | npat | 2004-08-12 11:52:39 +0300 (Thu, 12 Aug 2004) | 5 lines
+Changed paths:
+   M /picocom/trunk/picocom.c
+
+If two escape-characters are sent in a row, the second is
+passed-through, and picocom returns to transparrent mode. Patch
+submitteb by Julius P. Malkiewicz <julius@sonartech.com.au>
+
+
+------------------------------------------------------------------------
+r23 | npat | 2004-08-12 11:45:57 +0300 (Thu, 12 Aug 2004) | 7 lines
+Changed paths:
+   M /picocom/trunk/term.c
+
+Fixed "term.c" to compile under FreeBSD (and probably other BSDs
+also). "term.c" now includes "termios.h" instead of "termio.h" in
+non-linux system. Added a declaration for "tioold"---that was
+missing---in the non-linux part of the DTR toggling code. Patch
+submitted by Julius P. Malkiewicz <julius@sonartech.com.au>
+
+
+------------------------------------------------------------------------
+r12 | npat | 2004-08-11 19:03:48 +0300 (Wed, 11 Aug 2004) | 2 lines
+Changed paths:
+   M /picocom/trunk/CONTRIBUTORS
+   M /picocom/trunk/Makefile
+   M /picocom/trunk/README
+   A /picocom/trunk/picocom.8.xml
+
+Added r1.3
+
+------------------------------------------------------------------------
+r10 | npat | 2004-08-11 19:02:35 +0300 (Wed, 11 Aug 2004) | 3 lines
+Changed paths:
+   A /picocom/trunk/CONTRIBUTORS
+   M /picocom/trunk/Makefile
+   A /picocom/trunk/TODO
+   M /picocom/trunk/picocom.c
+
+Added r1.2
+
+
+------------------------------------------------------------------------
+r8 | npat | 2004-08-11 19:01:25 +0300 (Wed, 11 Aug 2004) | 2 lines
+Changed paths:
+   M /picocom/trunk/Makefile
+   A /picocom/trunk/NEWS
+   M /picocom/trunk/README
+   A /picocom/trunk/pcasc
+   A /picocom/trunk/pcxm
+   A /picocom/trunk/pcym
+   A /picocom/trunk/pczm
+   M /picocom/trunk/picocom.c
+
+Added r1.1
+
+------------------------------------------------------------------------
+r6 | npat | 2004-08-11 18:59:25 +0300 (Wed, 11 Aug 2004) | 2 lines
+Changed paths:
+   A /picocom/trunk/LICENSE.txt
+   A /picocom/trunk/Makefile
+   A /picocom/trunk/README
+   A /picocom/trunk/picocom.c
+   A /picocom/trunk/term.c
+   A /picocom/trunk/term.h
+
+Imported r1.0 sources
+
+------------------------------------------------------------------------
+r1 | svn | 2004-08-11 08:02:59 +0300 (Wed, 11 Aug 2004) | 2 lines
+Changed paths:
+   A /mu0
+   A /mu0/branches
+   A /mu0/tags
+   A /mu0/trunk
+   A /picocom
+   A /picocom/branches
+   A /picocom/tags
+   A /picocom/trunk
+   A /ppgplot
+   A /ppgplot/branches
+   A /ppgplot/tags
+   A /ppgplot/trunk
+
+Imported initial projects directory structure.
+
+------------------------------------------------------------------------
