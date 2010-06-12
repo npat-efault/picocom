@@ -175,6 +175,8 @@ struct {
 	.emap = M_E_DFL
 };
 
+int tty_fd;
+
 /**********************************************************************/
 
 #ifdef UUCP_LOCK_DIR
@@ -368,8 +370,6 @@ out:
 
 #undef cput
 
-/**********************************************************************/
-
 /* maximum number of chars that can replace a single characted
    due to mapping */
 #define M_MAXMAP 4
@@ -428,94 +428,17 @@ do_map (char *b, int map, char c)
 	return n;
 }
 
-int do_imap (char *b, char c) { return do_map(b, opts.imap, c) }
-int do_omap (char *b, char c) { return do_map(b, opts.omap, c) }
-int do_emap (char *b, char c) { return do_map(b, opts.emap, c) }
-
-/**********************************************************************/
-
-#define Q_SZ 256
-
-struct queue {
-	int fd;
-	int len;
-	char buff[Q_SZ];
-};
-
-void
-q_to_fd(struct queue *q)
-{
-	do {
-		n = write(q->fd, q->buff, q->len);
-	} while ( n < 0 && errno == EINTR );
-	if ( n > 0 ) {
-		memcpy(q->buff, q->buff + n, q->len - n);
-		q->len -= n;
-	}
-
-	return n;
-}
-
-void
-fd_to_q(struct queue *q)
-{
-	do {
-		n = read(q->fd, q->buff, Q_SZ - q->len);
-	} while ( n < 0 && errno == EINTR );
-	if ( n > 0 )
-		q->len += n;
-	return n;
-}
-
-int
-q_make_room (struct queue *q, int sz)
-{
-	int empty, n, r;
-
-	empty = Q_SZ - q->len;
-	while (empty < sz) {
-		n = q_to_fd(q);
-		if ( n < 0 ) {
-			empty = -1;
-			break;
-		}
-		empty = Q_SZ - q->len;
-	}
-
-	return empty;
-}
-
-int
-q_drain (struct queue *q)
-{
-	return q_make_room(q, Q_SZ);
-}
-
-
-void
-q_flush(struct queue *q)
-{
-	q->len = 0;
-}
-
 void 
-q_map(struct queue *qo, struct queue *qi, 
-	  int (*map)(char *, char), int map_flags, int maxmap)
+map_and_write (int fd, int map, char c)
 {
-	int n = 0;
-
-	while ( n < qi.len && qo.len + maxmap < Q_SZ ) {
-		qo.len += (*map)(qo->buff, map_flags, qi.buff[i]);
-		n++;
-	}
-	memcpy(qi->buff, qi->buff + n, qi->len - n);
-	qi->len -= n;
+	char b[M_MAXMAP];
+	int n;
+		
+	n = do_map(b, map, c);
+	if ( n )
+		if ( writen_ni(fd, b, n) < n )
+			fatal("write to stdout failed: %s", strerror(errno));		
 }
-
-struct queue tty_qi;
-struct queue tty_qo;
-struct queue term_qi;
-struct queue term_qo;
 
 /**********************************************************************/
 
@@ -659,13 +582,12 @@ run_cmd(int fd, ...)
 	} else if ( pid ) {
 		/* father: picocom */
 		int r;
+
 		/* reset the mask */
 		sigprocmask(SIG_SETMASK, &sigm_old, NULL);
 		/* wait for child to finish */
 		waitpid(pid, &r, 0);
-		/* flush queues and reset terminal (back to raw mode) */
-		q_flush(tty_qo);
-		q_flush(tty_qi);
+		/* reset terminal (back to raw mode) */
 		term_apply(STI);
 		/* check and report child return status */
 		if ( WIFEXITED(r) ) { 
@@ -726,257 +648,230 @@ run_cmd(int fd, ...)
 
 /**********************************************************************/
 
-int
-do_proc_transparent (char c)
-{
-	int r;
+#define TTY_Q_SZ 256
 
-	if (tty_qo.len < Q_SZ + M_MAXMAP) {
-		/* en-queue the mapped char to the tty out-qo */
-		tty_qo.len += do_map(&tty_qo.buff[tty_qo.len], opts.omap, c);
-		if (opts.lecho) {
-			/* make sure we have room in stdout, 
-			   and echo mapped char */
-			if ( q_make_room(&term_qo, M_MAXMAP) < 0 ) 
-				goto fail_term_qo;
-			term_qo.len += do_map(&term_qo.buff[term_qo.len], 
-								  opts.emap, c);
-		}
-	} else {
-		/* meep standard out (if there is room for meep) */
-		if (term_qo.len < Q_SZ) {
-			term_qo.buff[term_qo.len] = '\x07';
-			term_qo.len++;
-		}
-	}
+struct tty_q {
+	int len;
+	unsigned char buff[TTY_Q_SZ];
+} tty_q;
 
-	return 0;
-
-fail_term_qo:
-	
-}
-
-
-int
-do_proc(char c)
-{
-	static enum {
-		ST_COMMAND,
-		ST_TRANSPARENT
-	} state = ST_TRANSPARENT;
-	static int dtr_up = 0;
-
-	int newbaud, newflow, newparity, newbits;
-	char *newflow_str, *newparity_str;
-	char fname[128];
-
-	switch (state) {
-	case ST_COMMAND:
-		state = ST_TRANSPARENT;
-		if ( c == opts.escape ) {
-			r = do_proc_transparent(c);
-			if ( r < 0 )
-				return -1;
-			break;
-		}					
-		switch (c) {
-		case KEY_EXIT:
-			return 1;
-		case KEY_QUIT:
-			term_set_hupcl(tty_qo.fd, 0);
-			term_flush(tty_qo.fd);
-			term_apply(tty_qo.fd);
-			term_erase(tty_qo.fd);
-			return 1;
-		case KEY_STATUS:
-			if ( q_drain(&term_qo) < 0 ) return -1;
-			fd_printf(term_qo.fd, "\r\n");
-			fd_printf(term_qo.fd, "*** baud: %d\r\n", opts.baud);
-			fd_printf(term_qo.fd, "*** flow: %s\r\n", opts.flow_str);
-			fd_printf(term_qo.fd, "*** parity: %s\r\n", opts.parity_str);
-			fd_printf(term_qo.fd, "*** databits: %d\r\n", opts.databits);
-			fd_printf(term_qo.fd, "*** dtr: %s\r\n", 
-					  dtr_up ? "up" : "down");
-			*ntty = 0; *nterm = 0;
-			break;
-		case KEY_PULSE:
-			if ( q_drain(&term_qo) < 0 ) return -1;
-			fd_printf(STO, "\r\n*** pulse DTR ***\r\n");
-			if ( term_pulse_dtr(tty_fd) < 0 )
-				fd_printf(STO, "*** FAILED\r\n");
-			break;
-		case KEY_TOGGLE:
-			if ( dtr_up )
-				r = term_lower_dtr(tty_fd);
-			else
-				r = term_raise_dtr(tty_fd);
-			if ( r >= 0 ) dtr_up = ! dtr_up;
-			if ( q_drain(&term_qo) < 0 ) return -1;
-			fd_printf(STO, "\r\n*** DTR: %s ***\r\n", 
-					  dtr_up ? "up" : "down");
-					break;
-		case KEY_BAUD_UP:
-			newbaud = baud_up(opts.baud);
-			term_set_baudrate(tty_qo.fd, newbaud);
-			q_flush(&tty_qo); q_flush(&tty_qi); term_flush(&tty_qo.fd);
-			if ( term_apply(tty_qo.fd) >= 0 ) opts.baud = newbaud;
-			if ( q_drain(&term_qo) < 0 ) return -1;
-			fd_printf(STO, "\r\n*** baud: %d ***\r\n", opts.baud);
-			break;
-		case KEY_BAUD_DN:
-			newbaud = baud_down(opts.baud);
-			term_set_baudrate(tty_qo.fd, newbaud);
-			q_flush(&tty_qo); q_flush(&tty_qi); term_flush(&tty_qo.fd);
-			if ( term_apply(tty_qo.fd) >= 0 ) opts.baud = newbaud;
-			if ( q_drain(&term_qo) < 0 ) return -1;
-			fd_printf(STO, "\r\n*** baud: %d ***\r\n", opts.baud);
-			break;
-		case KEY_FLOW:
-			newflow = flow_next(opts.flow, &newflow_str);
-			term_set_flowcntrl(tty_qo.fd, newflow);
-			q_flush(&tty_qo); q_flush(&tty_qi); term_flush(&tty_qo.fd);
-			if ( term_apply(tty_fd) >= 0 ) {
-				opts.flow = newflow;
-				opts.flow_str = newflow_str;
-			}
-			if ( q_drain(&term_qo) < 0 ) return -1;
-			fd_printf(STO, "\r\n*** flow: %s ***\r\n", opts.flow_str);
-			break;
-		case KEY_PARITY:
-			newparity = parity_next(opts.parity, &newparity_str);
-			term_set_parity(tty_qo.fd, newparity);
-			q_flush(&tty_qo); q_flush(&tty_qi); term_flush(&tty_qo.fd);
-			if ( term_apply(tty_fd) >= 0 ) {
-				opts.parity = newparity;
-				opts.parity_str = newparity_str;
-			}
-			if ( q_drain(&term_qo) < 0 ) return -1;
-			fd_printf(STO, "\r\n*** parity: %s ***\r\n", 
-					  opts.parity_str);
-			break;
-		case KEY_BITS:
-			newbits = bits_next(opts.databits);
-			term_set_databits(tty_qo.fd, newbits);
-			q_flush(&tty_qo); q_flush(&tty_qi); term_flush(&tty_qo.fd);
-			if ( term_apply(tty_fd) >= 0 ) opts.databits = newbits;
-			if ( q_drain(&term_qo) < 0 ) return -1;
-			fd_printf(STO, "\r\n*** databits: %d ***\r\n", 
-					  opts.databits);
-			break;
-		case KEY_LECHO:
-			opts.lecho = ! opts.lecho;
-			if ( q_drain(&term_qo) < 0 ) return -1;
-			fd_printf(STO, "\r\n*** local echo: %s ***\r\n", 
-					  opts.lecho ? "yes" : "no");
-			break;
-		case KEY_SEND:
-			if ( q_drain(&term_qo) < 0 ) return -1;
-			fd_printf(STO, "\r\n*** file: ");
-			r = fd_readline(STI, STO, fname, sizeof(fname));
-			fd_printf(STO, "\r\n");
-			if ( r < -1 && errno == EINTR ) break;
-			if ( r <= -1 )
-				fatal("cannot read filename: %s", strerror(errno));
-			run_cmd(tty_fd, opts.send_cmd, fname, NULL);
-			break;
-		case KEY_RECEIVE:
-			if ( q_drain(&term_qo) < 0 ) return -1;
-			fd_printf(STO, "*** file: ");
-			r = fd_readline(STI, STO, fname, sizeof(fname));
-			fd_printf(STO, "\r\n");
-			if ( r < -1 && errno == EINTR ) break;
-			if ( r <= -1 )
-				fatal("cannot read filename: %s", strerror(errno));
-			if ( fname[0] )
-				run_cmd(tty_fd, opts.send_cmd, fname, NULL);
-			else
-				run_cmd(tty_fd, opts.receive_cmd, NULL);
-			break;
-		case KEY_BREAK:
-			term_break(tty_fd);
-			if ( q_drain(&term_qo) < 0 ) return -1;
-			fd_printf(STO, "\r\n*** break sent ***\r\n");
-			break;
-		default:
-			break;
-		}
-		break;
-
-	case ST_TRANSPARENT:
-
-		if ( c == opts.escape ) {
-			state = ST_COMMAND;
-		} else {
-			r = do_proc_transparent(c);
-			if ( r < 0 )
-				return -1;
-			break;
-		}
-		break;
-
-	default:
-		assert(0);
-		break;
-	}
-}
+/**********************************************************************/
 
 void
 loop(void)
 {
-
+	enum {
+		ST_COMMAND,
+		ST_TRANSPARENT
+	} state;
+	int dtr_up;
 	fd_set rdset, wrset;
+	int newbaud, newflow, newparity, newbits;
+	char *newflow_str, *newparity_str;
+	char fname[128];
 	int r, n;
 	unsigned char c;
 
-	tty_q.len = 0;
 
+	tty_q.len = 0;
+	state = ST_TRANSPARENT;
+	dtr_up = 0;
 
 	for (;;) {
 		FD_ZERO(&rdset);
 		FD_ZERO(&wrset);
-		
-		/* Always read from stdin, get as much as the user can type,
-		   and process it. Don't wait, even if queues fill-up. We want
-		   to be responsive to command keys */
 		FD_SET(STI, &rdset);
-		/* For all other I/O (from tty, to tty, and to stdout) we use
-		   queues and do flow control normally */
-		if ( tty_qi.len < Q_SZ ) FD_SET(tty_qi.fd, &rdset);
-		if ( tty_qo.len ) FD_SET(tty_qo.fd, &wrset);
-		if ( term_qo.len ) FD_SET(tty_qo.fd, &wrset);
+		FD_SET(tty_fd, &rdset);
+		if ( tty_q.len ) FD_SET(tty_fd, &wrset);
 
 		if (select(FD_SETSIZE, &rdset, &wrset, NULL, NULL) < 0)
 			fatal("select failed: %d : %s", errno, strerror(errno));
 
 		if ( FD_ISSET(STI, &rdset) ) {
+
+			/* read from terminal */
+
 			do {
-				n = read(STI, trem_ib, sizeof(term_ib));
+				n = read(STI, &c, 1);
 			} while (n < 0 && errno == EINTR);
-			if ( n <= 0 )
+			if (n == 0)
+				fatal("stdin closed");
+			else if (n < 0)
 				fatal("read from stdin failed: %s", strerror(errno));
-			else
-				for (i = 0; i < n; i++) do_proc(c);
+
+			switch (state) {
+
+			case ST_COMMAND:
+				if ( c == opts.escape ) {
+					state = ST_TRANSPARENT;
+					/* pass the escape character down */
+					if (tty_q.len + M_MAXMAP <= TTY_Q_SZ) {
+						n = do_map((char *)tty_q.buff + tty_q.len, 
+								   opts.omap, c);
+						tty_q.len += n;
+						if ( opts.lecho ) 
+							map_and_write(STO, opts.emap, c);
+					} else 
+						fd_printf(STO, "\x07");
+					break;
+				}
+				state = ST_TRANSPARENT;
+				switch (c) {
+				case KEY_EXIT:
+					return;
+				case KEY_QUIT:
+					term_set_hupcl(tty_fd, 0);
+					term_flush(tty_fd);
+					term_apply(tty_fd);
+					term_erase(tty_fd);
+					return;
+				case KEY_STATUS:
+					fd_printf(STO, "\r\n");
+					fd_printf(STO, "*** baud: %d\r\n", opts.baud);
+					fd_printf(STO, "*** flow: %s\r\n", opts.flow_str);
+					fd_printf(STO, "*** parity: %s\r\n", opts.parity_str);
+					fd_printf(STO, "*** databits: %d\r\n", opts.databits);
+					fd_printf(STO, "*** dtr: %s\r\n", dtr_up ? "up" : "down");
+					break;
+				case KEY_PULSE:
+					fd_printf(STO, "\r\n*** pulse DTR ***\r\n");
+					if ( term_pulse_dtr(tty_fd) < 0 )
+						fd_printf(STO, "*** FAILED\r\n");
+					break;
+				case KEY_TOGGLE:
+					if ( dtr_up )
+						r = term_lower_dtr(tty_fd);
+					else
+						r = term_raise_dtr(tty_fd);
+					if ( r >= 0 ) dtr_up = ! dtr_up;
+					fd_printf(STO, "\r\n*** DTR: %s ***\r\n", 
+							  dtr_up ? "up" : "down");
+					break;
+				case KEY_BAUD_UP:
+					newbaud = baud_up(opts.baud);
+					term_set_baudrate(tty_fd, newbaud);
+					tty_q.len = 0; term_flush(tty_fd);
+					if ( term_apply(tty_fd) >= 0 ) opts.baud = newbaud;
+					fd_printf(STO, "\r\n*** baud: %d ***\r\n", opts.baud);
+					break;
+				case KEY_BAUD_DN:
+					newbaud = baud_down(opts.baud);
+					term_set_baudrate(tty_fd, newbaud);
+					tty_q.len = 0; term_flush(tty_fd);
+					if ( term_apply(tty_fd) >= 0 ) opts.baud = newbaud;
+					fd_printf(STO, "\r\n*** baud: %d ***\r\n", opts.baud);
+					break;
+				case KEY_FLOW:
+					newflow = flow_next(opts.flow, &newflow_str);
+					term_set_flowcntrl(tty_fd, newflow);
+					tty_q.len = 0; term_flush(tty_fd);
+					if ( term_apply(tty_fd) >= 0 ) {
+						opts.flow = newflow;
+						opts.flow_str = newflow_str;
+					}
+					fd_printf(STO, "\r\n*** flow: %s ***\r\n", opts.flow_str);
+					break;
+				case KEY_PARITY:
+					newparity = parity_next(opts.parity, &newparity_str);
+					term_set_parity(tty_fd, newparity);
+					tty_q.len = 0; term_flush(tty_fd);
+					if ( term_apply(tty_fd) >= 0 ) {
+						opts.parity = newparity;
+						opts.parity_str = newparity_str;
+					}
+					fd_printf(STO, "\r\n*** parity: %s ***\r\n", 
+							  opts.parity_str);
+					break;
+				case KEY_BITS:
+					newbits = bits_next(opts.databits);
+					term_set_databits(tty_fd, newbits);
+					tty_q.len = 0; term_flush(tty_fd);
+					if ( term_apply(tty_fd) >= 0 ) opts.databits = newbits;
+					fd_printf(STO, "\r\n*** databits: %d ***\r\n", 
+							  opts.databits);
+					break;
+				case KEY_LECHO:
+					opts.lecho = ! opts.lecho;
+					fd_printf(STO, "\r\n*** local echo: %s ***\r\n", 
+							  opts.lecho ? "yes" : "no");
+					break;
+				case KEY_SEND:
+					fd_printf(STO, "\r\n*** file: ");
+					r = fd_readline(STI, STO, fname, sizeof(fname));
+					fd_printf(STO, "\r\n");
+					if ( r < -1 && errno == EINTR ) break;
+					if ( r <= -1 )
+						fatal("cannot read filename: %s", strerror(errno));
+					run_cmd(tty_fd, opts.send_cmd, fname, NULL);
+					break;
+				case KEY_RECEIVE:
+					fd_printf(STO, "*** file: ");
+					r = fd_readline(STI, STO, fname, sizeof(fname));
+					fd_printf(STO, "\r\n");
+					if ( r < -1 && errno == EINTR ) break;
+					if ( r <= -1 )
+						fatal("cannot read filename: %s", strerror(errno));
+					if ( fname[0] )
+						run_cmd(tty_fd, opts.send_cmd, fname, NULL);
+					else
+						run_cmd(tty_fd, opts.receive_cmd, NULL);
+					break;
+				case KEY_BREAK:
+					term_break(tty_fd);
+					fd_printf(STO, "\r\n*** break sent ***\r\n");
+					break;
+				default:
+					break;
+				}
+				break;
+
+			case ST_TRANSPARENT:
+				if ( c == opts.escape ) {
+					state = ST_COMMAND;
+				} else {
+					if (tty_q.len + M_MAXMAP <= TTY_Q_SZ) {
+						n = do_map((char *)tty_q.buff + tty_q.len, 
+								   opts.omap, c);
+						tty_q.len += n;
+						if ( opts.lecho ) 
+							map_and_write(STO, opts.emap, c);
+					} else 
+						fd_printf(STO, "\x07");
+				}
+				break;
+
+			default:
+				assert(0);
+				break;
+			}
 		}
-		if ( FD_ISSET(term_qo.fd, &wrset) ) {
-			n = q_to_fd(&term_qo);
-			if ( n < 0 )
-				fatal("write to stdout failed: %s", strerror(errno));
-			else
-				q_map(&term_qo, &tty_qi, do_imap, M_MAXMAP);
-		}
-		if ( FD_ISSET(tty_qi.fd, &rdset) ) {
-			n = fd_to_q(&tty_qi);
-			if ( n < 0 )
+
+		if ( FD_ISSET(tty_fd, &rdset) ) {
+
+			/* read from port */
+
+			do {
+				n = read(tty_fd, &c, 1);
+			} while (n < 0 && errno == EINTR);
+			if (n == 0)
+				fatal("term closed");
+			else if ( n < 0 )
 				fatal("read from term failed: %s", strerror(errno));
-			else
-				q_map(&term_qo, &tty_qi, do_imap, M_MAXMAP);
+			
+			map_and_write(STO, opts.imap, c);
 		}
-		if ( FD_ISSET(tty_qo.fd, &wrset) ) {
-			n = q_to_fd(&tty_qo);
-			if ( n < 0 )
+
+		if ( FD_ISSET(tty_fd, &wrset) ) {
+
+			/* write to port */
+
+			do {
+				n = write(tty_fd, tty_q.buff, tty_q.len);
+			} while ( n < 0 && errno == EINTR );
+			if ( n <= 0 )
 				fatal("write to term failed: %s", strerror(errno));
-			else
-				q_map(&term_qo, &tty_qi, do_imap, M_MAXMAP);
+			memcpy(tty_q.buff, tty_q.buff + n, tty_q.len - n);
+			tty_q.len -= n;
 		}
 	}
 }
@@ -1246,10 +1141,9 @@ parse_args(int argc, char *argv[])
 
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
 	int r;
-	int tty_fd;
 
 	parse_args(argc, argv);
 
@@ -1288,8 +1182,6 @@ main (int argc, char *argv[])
 	if ( r < 0 )
 		fatal("failed to config device %s: %s", 
 			  opts.port, term_strerror(term_errno, errno));
-	tty_qi.fd = tty_qo.fd = tty_fd;
-	tty_qi.len = tty_qo.len = 0;
 	
 	r = term_add(STI);
 	if ( r < 0 )
@@ -1300,14 +1192,9 @@ main (int argc, char *argv[])
 	if ( r < 0 )
 		fatal("failed to set I/O device to raw mode: %s",
 			  term_strerror(term_errno, errno));
-	term_qi.fd = STI;
-	term_qo.fd = STO;
-	term_qi.len = term_qo.len = 0;
 
 	fd_printf(STO, "Terminal ready\r\n");
 	loop();
-	q_drain(tty_qo);
-	q_drain(term_qo);
 
 	fd_printf(STO, "\r\n");
 	if ( opts.noreset ) {
