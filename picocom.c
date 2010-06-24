@@ -812,7 +812,7 @@ loop(void)
 					if ( r <= -1 )
 						fatal("cannot read filename: %s", strerror(errno));
 					if ( fname[0] )
-						run_cmd(tty_fd, opts.send_cmd, fname, NULL);
+						run_cmd(tty_fd, opts.receive_cmd, fname, NULL);
 					else
 						run_cmd(tty_fd, opts.receive_cmd, NULL);
 					break;
