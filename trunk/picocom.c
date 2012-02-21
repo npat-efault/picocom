@@ -684,7 +684,7 @@ loop(void)
 		FD_SET(tty_fd, &rdset);
 		if ( tty_q.len ) FD_SET(tty_fd, &wrset);
 
-		if (select(FD_SETSIZE, &rdset, &wrset, NULL, NULL) < 0)
+		if (select(tty_fd + 1, &rdset, &wrset, NULL, NULL) < 0)
 			fatal("select failed: %d : %s", errno, strerror(errno));
 
 		if ( FD_ISSET(STI, &rdset) ) {
