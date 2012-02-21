@@ -1171,7 +1171,7 @@ main(int argc, char *argv[])
 		fatal("cannot lock %s: %s", opts.port, strerror(errno));
 #endif
 
-	tty_fd = open(opts.port, O_RDWR | O_NONBLOCK);
+	tty_fd = open(opts.port, O_RDWR | O_NONBLOCK | O_NOCTTY);
 	if (tty_fd < 0)
 		fatal("cannot open %s: %s", opts.port, strerror(errno));
 
