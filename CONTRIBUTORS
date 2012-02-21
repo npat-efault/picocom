@@ -13,3 +13,15 @@ The following people contributed suggestions, comments, and fixes:
 
 - Niels Moller (nisse@lysator.liu.se) contributed support for
   non-alphabetic escape keys.
+
+- (lwithers@gmail.com) contributed fixes to select(2) and read(2) error
+  handling.
+
+- (bob.dunlop@xyzzy.org.uk) suggested fix to prevent serial port form
+  becoming controlling terminal.
+
+- Edgar Johansen (edgar@storteig.com) suggested conditionals to enable
+  compilation without UUCP_LOCK_DIR
+
+- Scott Tsai (scott.tw@gmail.com) suggested better UUCP_LOCK_DIR definition
+
