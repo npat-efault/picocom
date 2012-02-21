@@ -1028,7 +1028,9 @@ parse_args(int argc, char *argv[])
 			opts.noreset = 1;
 			break;
 		case 'l':
+#ifdef UUCP_LOCK_DIR
 			opts.nolock = 1;
+#endif
 			break;
 		case 'e':
 			opts.escape = optarg[0] & 0x1f;
@@ -1128,7 +1130,9 @@ parse_args(int argc, char *argv[])
 	printf("local echo is  : %s\n", opts.lecho ? "yes" : "no");
 	printf("noinit is      : %s\n", opts.noinit ? "yes" : "no");
 	printf("noreset is     : %s\n", opts.noreset ? "yes" : "no");
+#ifdef UUCP_LOCK_DIR
 	printf("nolock is      : %s\n", opts.nolock ? "yes" : "no");
+#endif
 	printf("send_cmd is    : %s\n", opts.send_cmd);
 	printf("receive_cmd is : %s\n", opts.receive_cmd);
 	printf("imap is        : "); print_map(opts.imap);
