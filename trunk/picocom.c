@@ -694,10 +694,15 @@ loop(void)
 			do {
 				n = read(STI, &c, 1);
 			} while (n < 0 && errno == EINTR);
-			if (n == 0)
+			if (n == 0) {
 				fatal("stdin closed");
-			else if (n < 0)
-				fatal("read from stdin failed: %s", strerror(errno));
+			} else if (n < 0) {
+				/* is this really necessary? better safe than sory! */
+				if ( errno != EAGAIN && errno != EWOULDBLOCK ) 
+					fatal("read from stdin failed: %s", strerror(errno));
+				else
+					goto skip_proc_STI;
+			}
 
 			switch (state) {
 
@@ -845,6 +850,7 @@ loop(void)
 				break;
 			}
 		}
+	skip_proc_STI:
 
 		if ( FD_ISSET(tty_fd, &rdset) ) {
 
@@ -853,12 +859,14 @@ loop(void)
 			do {
 				n = read(tty_fd, &c, 1);
 			} while (n < 0 && errno == EINTR);
-			if (n == 0)
+			if (n == 0) {
 				fatal("term closed");
-			else if ( n < 0 )
-				fatal("read from term failed: %s", strerror(errno));
-			
-			map_and_write(STO, opts.imap, c);
+			} else if ( n < 0 ) {
+				if ( errno != EAGAIN && errno != EWOULDBLOCK )
+					fatal("read from term failed: %s", strerror(errno));
+			} else {
+				map_and_write(STO, opts.imap, c);
+			}
 		}
 
 		if ( FD_ISSET(tty_fd, &wrset) ) {
