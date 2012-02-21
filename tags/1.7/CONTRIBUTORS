@@ -1,0 +1,27 @@
+
+The following people contributed suggestions, comments, and fixes:
+
+- Oliver Kurth (oku@debian.org) contributed bug fixes and the manual
+  page for picocm.
+
+- Julius P. Malkiewicz (julius@sonartech.com.au) contributed FreeBSD
+  portablity fixes, the C-\ command implementation, the UUCP locks
+  implementation, and other minor fixes.
+
+- Pavel Vymetalek (pvymetalek@seznam.cz) contributed the higher
+  baudrates support.
+
+- Niels Moller (nisse@lysator.liu.se) contributed support for
+  non-alphabetic escape keys.
+
+- (lwithers@gmail.com) contributed fixes to select(2) and read(2) error
+  handling.
+
+- (bob.dunlop@xyzzy.org.uk) suggested fix to prevent serial port form
+  becoming controlling terminal.
+
+- Edgar Johansen (edgar@storteig.com) suggested conditionals to enable
+  compilation without UUCP_LOCK_DIR
+
+- Scott Tsai (scott.tw@gmail.com) suggested better UUCP_LOCK_DIR definition
+
