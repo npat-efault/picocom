@@ -101,8 +101,13 @@
 
     <p>
       [C-u]: Baud up. Increase the baud-rate. The list of baud-rates
-      stepped-through by this command is: 300, 600, 1200, 2400, 4800,
-      9600, 19200, 38400, 57600, 115200.
+      stepped-through by this command is: 50, 75, 110, 134, 150, 200,
+      300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600,
+      115200. If HIGH_BAUD support is compiled in, then the following
+      baud-rates are also added to the list: 230400, 460800, 500000,
+      576000, 921600, 1000000, 1152000, 1500000, 2000000, 2500000,
+      3000000, 3500000, 4000000. Depending on you system, any of the
+      higher baud rates may be missing.
     </p>
     
     <p>

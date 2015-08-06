@@ -58,6 +58,8 @@
  * F term_drain - drain the output from the terminal buffer
  * F term_flush - discard terminal input and output queue contents
  * F term_break - generate a break condition on a device
+ * F term_baud_up - return next higher baudrate
+ * F term_baud_down - return next lower baudrate
  * F term_strerror - return a string describing current error condition
  * F term_perror - print a string describing the current error condition
  * G term_errno - current error condition of the library
@@ -527,6 +529,23 @@ int term_flush (int fd);
  * Returns negative on failure, non negative on success.
  */
 int term_break(int fd);
+
+/***************************************************************************/
+
+/* F term_baud_up
+ *
+ * Returns the next higher valid baudrate. Returns "baud" if there is
+ * no higher valid baudrate.
+ */
+int term_baud_up (int baud);
+
+
+/* F term_baud_down
+ *
+ * Returns the next lower valid baudrate. Returns "baud" if there is
+ * no lower valid baudrate.
+ */
+int term_baud_down (int baud);
 
 /***************************************************************************/
 

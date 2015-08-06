@@ -566,42 +566,17 @@ map_and_write (int fd, int map, char c)
 int
 baud_up (int baud)
 {
-	if ( baud < 300 )
-		baud = 300;
-	else if ( baud == 38400 )
-		baud = 57600;
-	else	
-		baud = baud * 2;
-#ifndef HIGH_BAUD
-	if ( baud > 115200 )
-		baud = 115200;
-#else
-	if ( baud > 921600 )
-		baud = 921600;
-#endif
-
-	return baud;
+	return term_baud_up(baud);
 }
 
 int
 baud_down (int baud)
 {
-#ifndef HIGH_BAUD
-	if ( baud > 115200 )
-		baud = 115200;
-#else
-	if ( baud > 921600 )
-		baud = 921600;
-#endif
-	else if ( baud == 57600 )
-		baud = 38400;
-	else
-		baud = baud / 2;
-
-	if ( baud < 300)
-		baud = 300;
-
-	return baud;
+	int nb;
+	nb = term_baud_down(baud);
+	if (nb == 0)
+		nb = baud;
+	return nb;
 }
 
 int

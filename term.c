@@ -33,11 +33,10 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
-#ifdef __linux__
-#include <termio.h>
-#else
 #include <termios.h>
-#endif /* of __linux__ */
+#ifdef __linux__
+#include <sys/ioctl.h>
+#endif
 
 #include "term.h"
 
@@ -627,17 +626,75 @@ term_set_baudrate (int fd, int baudrate)
 		case 115200:
 			spd = B115200;
 			break;
+
 #ifdef HIGH_BAUD
+#ifdef B230400
 		case 230400:
 			spd = B230400;
 			break;
+#endif
+#ifdef B460800
 		case 460800:
 			spd = B460800;
 			break;
+#endif
+#ifdef B500000
+		case 500000:
+			spd = B500000;
+			break;
+#endif
+#ifdef B576000
+		case 576000:
+			spd = B576000;
+			break;
+#endif
+#ifdef B921600
 		case 921600:
 			spd = B921600;
 			break;
 #endif
+#ifdef B1000000
+		case 1000000:
+			spd = B1000000;
+			break;
+#endif
+#ifdef B1152000
+		case 1152000:
+			spd = B1152000;
+			break;
+#endif
+#ifdef B1500000
+		case 1500000:
+			spd = B1500000;
+			break;
+#endif
+#ifdef B2000000
+		case 2000000:
+			spd = B2000000;
+			break;
+#endif
+#ifdef B2500000
+		case 2500000:
+			spd = B2500000;
+			break;
+#endif
+#ifdef B3000000
+		case 3000000:
+			spd = B3000000;
+			break;
+#endif
+#ifdef B3500000
+		case 3500000:
+			spd = B3500000;
+			break;
+#endif
+#ifdef B4000000
+		case 4000000:
+			spd = B4000000;
+			break;
+#endif
+#endif /* of HIGH_BAUD */
+
 		default:
 			term_errno = TERM_EBAUD;
 			rval = -1;
@@ -1189,6 +1246,106 @@ term_break(int fd)
 	} while (0);
 
 	return rval;
+}
+
+/**************************************************************************/
+
+static int baud_table[] = {
+			0,
+			50,
+			75,
+			110,
+			134,
+			150,
+			200,
+			300,
+			600,
+			1200,
+			1800,
+			2400,
+			4800,
+			9600,
+			19200,
+			38400,
+			57600,
+			115200,
+#ifdef HIGH_BAUD
+#ifdef B230400
+			230400,
+#endif
+#ifdef B460800
+			460800,
+#endif
+#ifdef B500000
+			500000,
+#endif
+#ifdef B576000
+			576000,
+#endif
+#ifdef B921600
+			921600,
+#endif
+#ifdef B1000000
+			1000000,
+#endif
+#ifdef B1152000
+			1152000,
+#endif
+#ifdef B1500000
+			1500000,
+#endif
+#ifdef B2000000
+			2000000,
+#endif
+#ifdef B2500000
+			2500000,
+#endif
+#ifdef B3000000
+			3000000,
+#endif
+#ifdef B3500000
+			3500000,
+#endif
+#ifdef B4000000
+			4000000,
+#endif
+#endif /* of HIGH_BAUD */
+};
+
+#define BAUD_TABLE_SZ (sizeof(baud_table) / sizeof(baud_table[0]))
+
+int
+term_baud_up (int baud)
+{
+	int i;
+ 
+	for (i = 1; i < BAUD_TABLE_SZ; i++) {
+		if ( baud >= baud_table[i] )
+			continue;
+		else {
+			baud = baud_table[i];
+			break;
+		}
+	}
+
+ 	return baud;
+}
+
+int 
+term_baud_down (int baud)
+{
+	int i;
+
+	for (i = BAUD_TABLE_SZ - 1; i >= 0; i--) {
+		if ( baud <= baud_table[i] )
+			continue;
+		else {
+			baud = baud_table[i];
+			break;
+		}
+	}
+
+	return baud;
 }
 
 /**************************************************************************/
