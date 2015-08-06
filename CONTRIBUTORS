@@ -1,5 +1,6 @@
 
-The following people contributed suggestions, comments, and fixes:
+The following people contributed improvements, fixes, suggestions, and
+comments:
 
 - Oliver Kurth (oku@debian.org) contributed bug fixes and the manual
   page for picocm.
@@ -25,3 +26,11 @@ The following people contributed suggestions, comments, and fixes:
 
 - Scott Tsai (scott.tw@gmail.com) suggested better UUCP_LOCK_DIR definition
 
+- Josh Handley (https://github.com/jhandley) added support for
+  line-editing, autocompletion and history when entering "send" and
+  "receive" file names. Editing support uses the "linenoise"
+  library. See: https://github.com/jhandley/picocom
+
+- Salvatore Sanfilippo (https://github.com/antirez) is the author of
+  the linenoise line-editing library. See:
+  https://github.com/antirez/linenoise
