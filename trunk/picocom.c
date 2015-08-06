@@ -37,11 +37,18 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <limits.h>
+#ifdef LINENOISE
+#include <dirent.h>
+#include <libgen.h>
+#endif
 
 #define _GNU_SOURCE
 #include <getopt.h>
 
 #include "term.h"
+#ifdef LINENOISE
+#include "linenoise-1.0/linenoise.h"
+#endif
 
 /**********************************************************************/
 
@@ -328,6 +335,8 @@ fatal (const char *format, ...)
 	exit(EXIT_FAILURE);
 }
 
+#ifndef LINENOISE
+
 #define cput(fd, c) do { int cl = c; write((fd), &(cl), 1); } while(0)
 
 int
@@ -353,6 +362,10 @@ fd_readline (int fdi, int fdo, char *b, int bsz)
 				cput(fdo, '\x07');
 			}
 			break;
+		case '\x03': /* CTRL-c */
+			r = -1;
+			errno = EINTR;
+			goto out;
 		case '\r':
 			*bp = '\0';
 			r = bp - (unsigned char *)b; 
@@ -369,6 +382,114 @@ out:
 }
 
 #undef cput
+
+#else /* LINENOISE defined */
+
+void 
+send_file_completion (const char *buf, linenoiseCompletions *lc) 
+{
+	DIR *dirp;
+	struct dirent *dp;
+	char *basec, *basen, *dirc, *dirn;
+	int baselen, dirlen;
+	char *fullpath;
+	struct stat filestat;
+
+	basec = strdup(buf);
+	dirc = strdup(buf);
+	dirn = dirname(dirc);
+	dirlen = strlen(dirn);
+	basen = basename(basec);
+	baselen = strlen(basen);
+	dirp = opendir(dirn);
+
+	if (dirp) {
+		while ((dp = readdir(dirp)) != NULL) {
+			if (strncmp(basen, dp->d_name, baselen) == 0) {
+				/* add 2 extra bytes for possible / in middle & at end */
+				fullpath = (char *) malloc(strlen(dp->d_name) + dirlen + 3);
+				strcpy(fullpath, dirn);
+				if (fullpath[dirlen-1] != '/')
+					strcat(fullpath, "/");
+				strcat(fullpath, dp->d_name);
+				if (stat(fullpath, &filestat) == 0) {
+					if (S_ISDIR(filestat.st_mode)) {
+						strcat(fullpath, "/");
+					}
+					linenoiseAddCompletion(lc,fullpath);
+				}
+				free(fullpath);
+			}
+		}
+
+		closedir(dirp);
+	}
+	free(basec);
+	free(dirc);
+}
+
+static char *send_receive_history_file_path = NULL;
+
+void 
+init_send_receive_history (void)
+{
+	char *home_directory;
+
+	home_directory = getenv("HOME");
+	if (home_directory) {
+		send_receive_history_file_path = 
+			malloc(strlen(home_directory) + 2 + 
+				   strlen(SEND_RECEIVE_HISTFILE));
+		strcpy(send_receive_history_file_path, home_directory);
+		if (home_directory[strlen(home_directory)-1] != '/') {
+			strcat(send_receive_history_file_path, "/");
+		}
+		strcat(send_receive_history_file_path, SEND_RECEIVE_HISTFILE);
+		linenoiseHistoryLoad(send_receive_history_file_path);
+	}
+}
+
+void 
+cleanup_send_receive_history (void)
+{
+	if (send_receive_history_file_path)
+		free(send_receive_history_file_path);
+}
+
+void 
+add_send_receive_history (char *fname)
+{
+	linenoiseHistoryAdd(fname);
+	if (send_receive_history_file_path)
+		linenoiseHistorySave(send_receive_history_file_path);
+}
+
+char *
+read_send_filename (void)
+{
+	char *fname;
+	linenoiseSetCompletionCallback(send_file_completion);
+	printf("\r\n");
+	fname = linenoise("*** file: ");
+	printf("\r\n");
+	linenoiseSetCompletionCallback(NULL);
+	if (fname != NULL)
+		add_send_receive_history(fname);
+	return fname;
+}
+
+char *
+read_receive_filename (void)
+{
+	printf("\r\n");
+	char *fname = linenoise("*** file: ");
+	printf("\r\n");
+	if (fname != NULL)
+		add_send_receive_history(fname);
+	return fname;
+}
+
+#endif /* of ifndef LINENOISE */
 
 /* maximum number of chars that can replace a single characted
    due to mapping */
@@ -668,7 +789,11 @@ loop(void)
 	fd_set rdset, wrset;
 	int newbaud, newflow, newparity, newbits;
 	char *newflow_str, *newparity_str;
+#ifndef LINENOISE
 	char fname[128];
+#else
+	char *fname;
+#endif
 	int r, n;
 	unsigned char c;
 
@@ -801,25 +926,59 @@ loop(void)
 							  opts.lecho ? "yes" : "no");
 					break;
 				case KEY_SEND:
+#ifndef LINENOISE
 					fd_printf(STO, "\r\n*** file: ");
 					r = fd_readline(STI, STO, fname, sizeof(fname));
 					fd_printf(STO, "\r\n");
-					if ( r < -1 && errno == EINTR ) break;
-					if ( r <= -1 )
-						fatal("cannot read filename: %s", strerror(errno));
+					if ( r <= -1 ) {
+						if ( errno == EINTR ) {
+							fd_printf(STO, "Cannot read filename!\r\n");
+							break;
+						} else {
+							fatal("cannot read filename: %s", strerror(errno));
+						}
+					}
 					run_cmd(tty_fd, opts.send_cmd, fname, NULL);
+#else
+					fname = read_send_filename();
+					if (fname == NULL) {
+						fd_printf(STO, "Cannot read filename!\r\n");
+						break;
+					}
+					run_cmd(tty_fd, opts.send_cmd, fname, NULL);
+					free(fname);
+#endif		
 					break;
 				case KEY_RECEIVE:
+#ifndef LINENOISE
 					fd_printf(STO, "*** file: ");
 					r = fd_readline(STI, STO, fname, sizeof(fname));
 					fd_printf(STO, "\r\n");
-					if ( r < -1 && errno == EINTR ) break;
-					if ( r <= -1 )
-						fatal("cannot read filename: %s", strerror(errno));
+
+					if ( r <= -1 ) {
+						if ( errno == EINTR ) {
+							fd_printf(STO, "Cannot read filename!\r\n");
+							break;
+						} else {
+							fatal("cannot read filename: %s", strerror(errno));
+						}
+					}
 					if ( fname[0] )
 						run_cmd(tty_fd, opts.receive_cmd, fname, NULL);
 					else
 						run_cmd(tty_fd, opts.receive_cmd, NULL);
+#else
+					fname = read_receive_filename();
+					if (fname == NULL) {
+						fd_printf(STO, "Cannot read filename!\r\n");
+						break;
+					}
+					if ( fname[0] )
+						run_cmd(tty_fd, opts.receive_cmd, fname, NULL);
+					else
+						run_cmd(tty_fd, opts.receive_cmd, NULL);
+					free(fname);
+#endif
 					break;
 				case KEY_BREAK:
 					term_break(tty_fd);
@@ -1205,8 +1364,16 @@ main(int argc, char *argv[])
 		fatal("failed to set I/O device to raw mode: %s",
 			  term_strerror(term_errno, errno));
 
+#ifdef LINENOISE
+	init_send_receive_history();
+#endif
+
 	fd_printf(STO, "Terminal ready\r\n");
 	loop();
+
+#ifdef LINENOISE
+	cleanup_send_receive_history();
+#endif
 
 	fd_printf(STO, "\r\n");
 	if ( opts.noreset ) {

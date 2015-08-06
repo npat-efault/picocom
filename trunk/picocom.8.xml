@@ -1,21 +1,19 @@
 <?xml version="1.0" standalone='no'?>
-<!DOCTYPE manpage SYSTEM "xmlmp-1.1.dtd">
+<!DOCTYPE manpage SYSTEM "xmltoman.dtd">
  
 <manpage 
-  title="picocom" 
+  name="picocom" 
   section="8" 
   desc="minimal dumb-terminal emulation program">
   
   <synopsis>
-    <synel>
-      picocom [ <arg>options</arg> ] <arg>device</arg>
-    </synel>
+    <cmd>picocom [ <arg>options</arg> ] <arg>device</arg></cmd>
   </synopsis>
   
   <description>
 
     <p>
-      As its name suggests, <cmd>picocom</cmd> is a minimal
+      As its name suggests, <b>picocom</b> is a minimal
       dumb-terminal emulation program. It is, in principle, very much
       like <manref name="minicom" section="1"/>, only it's "pico"
       instead of "mini"! It was designed to serve as a simple, manual,
@@ -28,25 +26,25 @@
     </p>
 
     <p>
-      When <cmd>picocom</cmd> starts it opens the terminal (serial
+      When <b>picocom</b> starts it opens the terminal (serial
       device) given as its non-option argument. Unless the
       <arg>--noinit</arg> option is given, it configures the device to
       the settings specified by the option-arguments (or to some
       default settings), and sets it to "raw" mode. If
       <arg>--noinit</arg> is given, the initialization and
       configuration is skipped; the device is just opened. Following
-      this, <cmd>picocom</cmd> sets the standard-input and
+      this, <b>picocom</b> sets the standard-input and
       standard-output to raw mode. Having done so, it goes in a loop
       where it listens for input from stdin, or from the serial
       port. Input from the serial port is copied to the standard
       output while input from the standard input is copied to the
-      serial port. <cmd>picocom</cmd> also scans its input stream for
+      serial port. <b>picocom</b> also scans its input stream for
       a user-specified control character, called the "escape
       character" (being by default "C-a"). If the escape character is
       seen, then instead of sending it to the serial-device, the
       program enters "command mode" and waits for the next character
       (which is called the "function character"). Depending on the
-      value of the function character, <cmd>picocom</cmd> performs one
+      value of the function character, <b>picocom</b> performs one
       of the operations described in the "Commands" section below.
     </p>
   </description>
@@ -54,142 +52,95 @@
   <section name="COMMANDS">
 
     <p>
-      Commands are given to <cmd>picocom</cmd> by first keying the
-      "espace character" which by default is "C-a" (see "Options"
-      below on how to change it), and then keying one for the function
-      (command) characters shown here.
+      Commands are given to <b>picocom</b> by first keying the "espace
+      character" which by default is "C-a" (see "Options" below on how
+      to change it), and then keying one for the function (command)
+      characters shown here.
     </p>
     
-    <dl>
-      <dt>[escape character]</dt>
-      <dd>
-	<p>
-	  Send the escape character to the serial port and return to
-	  "transparent" mode. This means that if the escape character
-	  ("C-a", by default) is typed twice, the program sends the
-	  escape character to the serial port, and remains in
-	  transparent mode. This is a new behavior implemented in
-	  v1.4. Previously picocom used to ignore the escape-character
-	  when it was entered as a function character.
-	</p>
-      </dd>
+    <p>
+      [escape character]: Send the escape character to the serial port
+      and return to "transparent" mode. This means that if the escape
+      character ("C-a", by default) is typed twice, the program sends
+      the escape character to the serial port, and remains in
+      transparent mode. This is a new behavior implemented in
+      v1.4. Previously picocom used to ignore the escape-character
+      when it was entered as a function character.
+    </p>
 
-      <dt>C-x</dt>
-      <dd>
-	<p>
-	  Exit the program: if the "--noreset" option was not given
-	  then the serial port is reset to its original settings
-	  before exiting; if it was given the serial port is not
-	  reset.
-	</p>
-      </dd>
+    <p>
+      [C-x]: Exit the program: if the <arg>--noreset</arg> option was
+      not given then the serial port is reset to its original settings
+      before exiting; if it was given the serial port is not reset.
+    </p>
 
-      <dt>C-q</dt>
-      <dd>
-	<p>
-	  Quit the program *without* reseting the serial port,
-	  regardless of the "--noreset" option.
-	</p>
-      </dd>
+    <p>
+      [C-q]: Quit the program *without* reseting the serial port,
+      regardless of the <arg>--noreset</arg> option.
+    </p>
+	
+    <p>
+      [C-p]: Pulse the DTR line. Lower it for 1 sec, and then raise it
+      again.
+    </p>
+
+    <p>
+      [C-t]: Toggle the DTR line. If DTR is up, then lower it. If it
+      is down, then raise it.
+    </p>
+
+    <p>
+      [C-backslash]: Generate a break sequence on the serial line. A
+      break sequence is usually generated by marking (driving to
+      logical one) the serial Tx line for an amount of time
+      coresponding to several character durations.
+    </p>
+
+    <p>
+      [C-u]: Baud up. Increase the baud-rate. The list of baud-rates
+      stepped-through by this command is: 300, 600, 1200, 2400, 4800,
+      9600, 19200, 38400, 57600, 115200.
+    </p>
+    
+    <p>
+      [C-d]: Baud down. Decrease the baud-rate. The list of baud-rates
+      stepped-through by this command is the same as for the "baud-up"
+      command.
+    </p>
+
+    <p>
+      [C-f]: Cycle through flow-control settings (RTS/CTS, XON/XOFF,
+      none).
+    </p>
+
+    <p>
+      [C-y]: Cycle through parity settings (even, odd, none).
+    </p>
+
+    <p>
+      [C-b]: Cycle through databits-number settings (5, 6, 7, 8).
+    </p>
+
+    <p>
+      [C-c]: Toggle local-echo mode.
+    </p>
+
+    <p>
+      [C-v]: Show program options (like baud rate, data bits,
+      etc). Only the options that can be modified online (through
+      commands) are shown, not those that can only be set at the
+      command-line.
+    </p>
+
+    <p>
+      [C-s]: Send (upload) a file (see "Sending and Receiving Files"
+      below)
+    </p>
       
-      <dt>C-p</dt>
-      <dd>
-	<p>
-	  Pulse the DTR line. Lower it for 1 sec, and then raise it
-	  again.
-	</p>
-      </dd>
-
-      <dt>C-t</dt>
-      <dd>
-	<p>
-	  Toggle the DTR line. If DTR is up, then lower it. If it is
-	  down, then raise it.
-	</p>
-      </dd>
-
-      <dt>C-backslash</dt>
-      <dd>
-	<p>
-	  Generate a break sequence on the serial line. A break
-	  sequence is usually generated by marking (driving to logical
-	  one) the serial Tx line for an amount of time coresponding
-	  to several character durations.
-	</p>
-      </dd>
-
-      <dt>C-u</dt>
-      <dd>
-	<p>
-	  Baud up. Increase the baud-rate. The list of baud-rates
-	  stepped-through by this command is: 300, 600, 1200, 2400,
-	  4800, 9600, 19200, 38400, 57600, 115200.
-	</p>
-      </dd>
-
-      <dt>C-d</dt>
-      <dd>
-	<p>
-	  Baud down. Decrease the baud-rate. The list of baud-rates
-	  stepped-through by this command is the same as for the
-	  "baud-up" command.
-	</p>
-      </dd>
-
-      <dt>C-f</dt>
-      <dd>
-	<p>
-	  Cycle through flow-control settings (RTS/CTS, XON/XOFF, none).
-	</p>
-      </dd>
-
-      <dt>C-y</dt>
-      <dd>
-	<p>
-	  Cycle through parity settings (even, odd, none).
-	</p>
-      </dd>
-
-      <dt>C-b</dt>
-      <dd>
-	<p>
-	  Cycle through databits-number settings (5, 6, 7, 8).
-	</p>
-      </dd>
-
-      <dt>C-c</dt>
-      <dd>
-	<p>
-	  Toggle local-echo mode.
-	</p>
-      </dd>
-
-      <dt>C-v</dt>
-      <dd>
-	<p>
-	  Show program options (like baud rate, data bits, etc). Only
-	  the options that can be modified online (through commands)
-	  are shown, not those that can only be set at the
-	  command-line.
-	</p>
-      </dd>
-
-      <dt>C-s</dt>
-      <dd>
-	<p>
-	  Send (upload) a file (see "Sending and Receiving Files"
-	  below)
-	</p>
-      </dd>
-      
-      <dt>C-r</dt>
-      <dd>
-	<p>
-	  Receive (download) a file (see "Sending and Receiving Files"
-	  below)
-	</p>
-      </dd>
-    </dl>
+    <p>
+      [C-r]: Receive (download) a file (see "Sending and Receiving
+      Files" below)
+    </p>
 
     <p>
       After performing one of the above operations the program leaves
@@ -206,36 +157,34 @@
 
   <section name = "SENDING AND RECEIVING FILES">
     <p>
-      <cmd>picocom</cmd> can send and receive files over the serial
-      port using external programs that implement the respective
+      <b>picocom</b> can send and receive files over the serial port
+      using external programs that implement the respective
       protocols. In Linux typical programs for this purpose are:
     </p>
 
-    <ul>
-      <li><p><manref name="rx" section="1"/> 
-	    - receive using the X-MODEM protocol</p></li>
-      <li><p><manref name="rb" section="1"/> 
-	    - receive using the Y-MODEM protocol</p></li>
-      <li><p><manref name="rz" section="1"/> 
-	    - receive using the Z-MODEM protocol</p></li>
-      <li><p><manref name="sx" section="1"/> 
-	    - send using the X-MODEM protocol</p></li>
-      <li><p><manref name="sb" section="1"/> 
-	    - send using the Y-MODEM protocol</p></li>
-      <li><p><manref name="sz" section="1"/> 
-	    - send using the Z-MODEM protocol</p></li>
-      <li><p><manref name="ascii-xfr" section="1"/> 
-	    - receive or transmit ASCII files</p></li>
-    </ul>
+     <p><manref name="rx" section="1"/> 
+     - receive using the X-MODEM protocol</p>
+     <p><manref name="rb" section="1"/> 
+     - receive using the Y-MODEM protocol</p>
+     <p><manref name="rz" section="1"/> 
+     - receive using the Z-MODEM protocol</p>
+     <p><manref name="sx" section="1"/> 
+     - send using the X-MODEM protocol</p>
+     <p><manref name="sb" section="1"/> 
+     - send using the Y-MODEM protocol</p>
+     <p><manref name="sz" section="1"/> 
+     - send using the Z-MODEM protocol</p>
+     <p><manref name="ascii-xfr" section="1"/> 
+     - receive or transmit ASCII files</p>
     
     <p>
       The name of, and the command-line options to, the program to be
-      used for transmitting files are given by the "--send-cmd"
-      option. Similarly the program to receive files, and its
-      argumets, are given by the "--receive-cmd" option. For example,
-      in order to start a <cmd>picocom</cmd> session that uses "sz" to
-      transmit files, and "rz" to receive, you have to say something
-      like this:
+      used for transmitting files are given by the
+      <arg>--send-cmd</arg> option. Similarly the program to receive
+      files, and its argumets, are given by the
+      <arg>--receive-cmd</arg> option. For example, in order to start
+      a <b>picocom</b> session that uses "sz" to transmit files, and
+      "rz" to receive, you have to say something like this:
     </p>
 
     <p>
@@ -247,45 +196,44 @@
       commands (e.g. by pressing C-a, C-s, or C-a, C-r) you will be
       prompted for a filename. At this prompt you can enter one or
       more file-names, and any additional arguments to the
-      transmission or reception program. After that, picocom will
-      start the the external program as specified by the "--send-cmd",
-      or "--receive-cmd" option, and with any filenames and additional
-      arguments you may have supplied. The standard input and output
-      of the external program will be connected to the serial
-      port. The standard error of the external program will be
-      connected to the terminal which---while the program is
-      running---will revert to canonical mode. Pressing 'C-c' while
-      the external program is running will prematurely terminate it,
-      and return control to <cmd>picocom</cmd>. Pressing 'C-c' at any other
-      time, has no special effect; the character is normally passed to
-      the serial port.
+      transmission or reception program. Command-line editing and
+      pathname completion are available at this prompt, if you have
+      compiled picocom with support for the linenoise
+      library. Pressing 'C-c' at this prompt will cancel the file
+      transfer command and return to normal <b>picocom</b>
+      operation. After entering a filename (and / or additional
+      transmission or reception program arguments) and assuming you
+      have not canceled the operation by pressing C-c, picocom will
+      start the the external program as specified by the
+      <arg>--send-cmd</arg>, or <arg>--receive-cmd</arg> option, and
+      with any filenames and additional arguments you may have
+      supplied. The standard input and output of the external program
+      will be connected to the serial port. The standard error of the
+      external program will be connected to the terminal which---while
+      the program is running---will revert to canonical mode. Pressing
+      'C-c' while the external program is running will prematurely
+      terminate it, and return control to <b>picocom</b>. Pressing
+      'C-c' at any other time, has no special effect; the character is
+      normally passed to the serial port.
     </p>
       
   </section>
 
   <section name = "INPUT, OUTPUT, AND ECHO MAPPING">
     <p>
-      Using the "--imap", "--omap", and "--emap" options you can make
-      <cmd>picocom</cmd> map (tranlate, replace) certain special
-      characters after being read from the serial port (with
-      <arg>--imap</arg>), before being written to the serial port
-      (with <arg>--omap</arg>), and before being locally echoed to the
-      terminal (standard output) if local echo is enabled (with
-      <arg>--emap</arg>). These mapping options take, each, a single
-      argument which is a comma-separated list of one or more of the
-      following identifiers:
+      Using the <arg>--imap</arg>, <arg>--omap</arg>, and
+      <arg>--emap</arg> options you can make <b>picocom</b> map
+      (tranlate, replace) certain special characters after being read
+      from the serial port (with <arg>--imap</arg>), before being
+      written to the serial port (with <arg>--omap</arg>), and before
+      being locally echoed to the terminal (standard output) if local
+      echo is enabled (with <arg>--emap</arg>). These mapping options
+      take, each, a single argument which is a comma-separated list of
+      one or more of the following identifiers: "crlf" (map CR to LF),
+      "crcrlf" (map CR to CR + LF), "igncr" (ignore CR), "lfcr" (map
+      LF to CR), "lfcrlf" (map LF to CR + LF), "ignlf" (ignore LF),
+      "bsdel" (map BS --> DEL), "delbs" (map DEL --> BS)
     </p>
-    
-    <ul>
-      <li>crlf: map CR to LF</li>
-      <li>crcrlf: map CR to CR + LF</li>
-      <li>igncr: ignore CR</li>
-      <li>lfcr: map LF to CR</li>
-      <li>lfcrlf: map LF to CR + LF</li>
-      <li>ignlf: ignore LF</li>
-      <li>bsdel: map BS --> DEL</li>
-      <li>delbs: map DEL --> BS</li>
-    </ul>
 
     <p>
       For example the command:
@@ -304,112 +252,112 @@
     </p>
   </section>
   
-  <section name = "OPTIONS">
+  <options>
     <p> 
-      <cmd>picocom</cmd> accepts the following command-line options
+      <b>picocom</b> accepts the following command-line options
     </p>
     
-    <dl>
-      <dt>--baud | -b</dt>
-      <dd>
+    <option>
+      <opt><p>--baud | -b</p></opt>
+      <optdesc>
 	<p>
 	  Defines the baud-rate to set the serial-port (terminal) to.
 	</p>
-      </dd>
+      </optdesc>
+    </option>
 
-      <dt>--flow | -f</dt>
-      <dd>
+    <option>
+      <opt><p>--flow | -f</p></opt>
+      <optdesc>
 	<p>
-	  Defines the flow-control mode to set the serial-port to. Must be
-	  one of:
+	  Defines the flow-control mode to set the serial-port
+	  to. Must be one of: 'x' for xon/xoff (software) mode, 'h'
+	  for hardware flow control (RTS/CTS), 'n' for no flow
+	  control. (Default: 'n')
 	</p>
-	<ul>
-	  <li><p>\'x' for xon/xoff (software) mode</p></li>
-	  <li><p>\'h' for hardware flow control (RTS/CTS)</p></li>
-	  <li><p>\'n' for no flow control</p></li>
-	</ul>
-	<p>(Default: 'n')</p>
-      </dd>
-
-      <dt>--parity | -p</dt>
-      <dd>
-	<p>
-	  Defines the parity mode to set the serial-port to.
-	  Must be one of:
-	</p>
-	<ul>
-	  <li><p>\'o' for odd parity mode.</p></li>
-	  <li><p>\'e' for even parity mode.</p></li>
-	  <li><p>\'n' for no parity, mode.</p></li>
-	</ul>
-	<p>(Default: 'n')</p>
-      </dd>
+      </optdesc>
+    </option>
     
-      <dt>--databits | -d</dt>
-      <dd>
+    <option>
+      <opt><p>--parity | -p</p></opt>
+      <optdesc>
 	<p>
-	  Defines the number of data bits in every character. Must be one of:
-	  5, 6, 7, 8
+	  Defines the parity mode to set the serial-port to.  Must be
+	  one of: 'o' for odd parity mode, 'e' for even parity mode,
+	  'n' for no parity mode. (Default: 'n')
 	</p>
-	<p>(Default: 8)</p>
-      </dd>
-
-      <dt>--esacpe | -e</dt>
-      <dd>
+      </optdesc>
+    </option>
+    
+    <option>
+      <opt><p>--databits | -d</p></opt>
+      <optdesc>
 	<p>
-	  Defines the character that will make picocom enter command-mode
-	  (see description above). If 'x' is given, then C-x will
-	  make picocom enter command mode.
+	  Defines the number of data bits in every character. Must be
+	  one of: 5, 6, 7, 8. (Default: 8)
 	</p>
+      </optdesc>
+    </option>
+    
+    <option>
+      <opt><p>--esacpe | -e</p></opt>
+      <optdesc>
 	<p>
-	  (Default: 'a')
+	  Defines the character that will make picocom enter
+	  command-mode (see description above). If 'x' is given, then
+	  C-x will make picocom enter command mode. (Default: 'a')
 	</p>
-      </dd>
-
-      <dt>--echo | -c</dt>
-      <dd>
+      </optdesc>
+    </option>
+    
+    <option>
+      <opt><p>--echo | -c</p></opt>
+      <optdesc>
 	<p>
 	  Enable local echo. Every character being read from the
 	  terminal (standard input) is echoed to the terminal
 	  (standard output) subject to the echo-mapping configuration
-	  (see <arg>--emap</arg> option.
+	  (see <arg>--emap</arg> option. (Default: Disabled)
 	</p>
+      </optdesc>
+    </option>
+    
+    <option>
+      <opt><p>--noinit | -i</p></opt>
+      <optdesc>
 	<p>
-	  (Default: Disabled)
-	</p>
-      </dd>
-
-      <dt>--noinit | -i</dt>
-      <dd>
-	<p>
-	  If given, <cmd>picocom</cmd> will not initialize, reset, or
+	  If given, <b>picocom</b> will not initialize, reset, or
 	  otherwise meddle with the serial port at start-up. It will
 	  just open it. This is useful, for example, for connecting
-	  <cmd>picocom</cmd> to already-connected modems, or already
+	  <b>picocom</b> to already-connected modems, or already
 	  configured ports without terminating the connection, or
 	  altering the settings. If required serial port parameters
 	  can then be adjusted at run-time by commands.
 	</p>
-      </dd>
-
-      <dt>--noreset | -r</dt>
-      <dd>
+      </optdesc>
+    </option>
+    
+    <option>
+      <opt><p>--noreset | -r</p></opt>
+      <optdesc>
 	<p>
-	  If given, <cmd>picocom</cmd> will not *reset* the serial
-	  port when exiting. It will just close the filedes and do
-	  nothing more. This is useful, for example, for leaving
-	  modems connected when exiting <cmd>picocom</cmd>. Regardless
-	  whether the "--noreset" option is given the user can exit
-	  <cmd>picocom</cmd> using the "Quit" command (instead of
-	  "Exit"), which never resets the serial port. If "--noreset"
+	  If given, <b>picocom</b> will not *reset* the serial port
+	  when exiting. It will just close the filedes and do nothing
+	  more. This is useful, for example, for leaving modems
+	  connected when exiting <b>picocom</b>. Regardless whether
+	  the <arg>--noreset</arg> option is given the user can exit
+	  <b>picocom</b> using the "Quit" command (instead of "Exit"),
+	  which never resets the serial port. If <arg>--noreset</arg>
 	  is given then "Quit" and "Exit" behave essentially the same.
 	</p>
-      </dd>
-
-      <dt>--nolock | -l</dt>
-      <dd>
+      </optdesc>
+    </option>
+    
+    <option>
+      <opt><p>--nolock | -l</p></opt>
+      <optdesc>
 	<p>
-	  If given, <cmd>picocom</cmd> will *not* attempt to lock the
+	  If given, <b>picocom</b> will *not* attempt to lock the
 	  serial port before opening it. Normally picocom attempts to
 	  get a UUCP-style lock-file (e.g. "/var/lock/LCK..ttyS0")
 	  before opening the port. Failing to do so, results in the
@@ -417,77 +365,76 @@
 	  possible that your picocom binary is compiled without this
 	  option.
 	</p>
-      </dd>
-
-      <dt>--send-cmd | -s</dt>
-      <dd>
+      </optdesc>
+    </option>
+    
+    <option>
+      <opt><p>--send-cmd | -s</p></opt>
+      <optdesc>
 	<p>
 	  Specifies the external program (and any arguments to it)
-	  that will be used for transmitting files.
+	  that will be used for transmitting files. (Default: "sz
+	  -vv")
 	</p>
-	<p>
-	  Default: "sz -vv"
-	</p>
-      </dd>
-
-      <dt>--receive-cmd | -v</dt>
-      <dd>
+      </optdesc>
+    </option>
+    
+    <option>
+      <opt><p>--receive-cmd | -v</p></opt>
+      <optdesc>
 	<p> 
 	  Specifies the external program (and any arguments to it)
-	  that will be used for receiving files.
+	  that will be used for receiving files. (Default: "rz -vv")
 	</p>
-	<p>
-	  (Default: "rz -vv")
-	</p>
-      </dd>
-
-      <dt>--imap</dt>
-      <dd>
+      </optdesc>
+    </option>
+    
+    <option>
+      <opt><p>--imap</p></opt>
+      <optdesc>
 	<p>
 	  Specifies the input character map (i.e. special characters
 	  to be replaced when read from the serial port). Example:
-	  "--imap crlf,delbs"
+	  "--imap crlf,delbs". (Defaul: Empty)
 	</p>
-        <p>
-          (Defaul: Empty)
-        </p>
-      </dd>
-
-      <dt>--omap</dt>
-      <dd>
+      </optdesc>
+    </option>
+    
+    <option>
+      <opt><p>--omap</p></opt>
+      <optdesc>
 	<p>
 	  Specifies the output character map (i.e. special characters
 	  to be replaced before being written to serial
-	  port). Example: "--omap crcrlf,bsdel"
+	  port). Example: "--omap crcrlf,bsdel". (Defaul: Empty)
 	</p>
-        <p>
-          (Defaul: Empty)
-        </p>
-      </dd>
-
-      <dt>--emap</dt>
-      <dd>
+      </optdesc>
+    </option>
+    
+    <option>
+      <opt><p>--emap</p></opt>
+      <optdesc>
 	<p>
 	  Specifies the local-echo character map (i.e. special
 	  characters to be replaced before being echoed-back to the
 	  terminal, if local-echo is enabled). Example: "--emap
-	  crcrlf,bsdel"
+	  crcrlf,bsdel". (Defaul: delbs,crcrlf)
 	</p>
-        <p>
-          (Defaul: delbs,crcrlf)
-        </p>
-      </dd>
-
-      <dt>--help | -h</dt>
-      <dd>
+      </optdesc>
+    </option>
+    
+    <option>
+      <opt><p>--help | -h</p></opt>
+      <optdesc>
 	<p>
 	  Print a short help message describing the command-line
 	  options.
 	</p>
-      </dd>
-    </dl>
-  </section>
-
+      </optdesc>
+    </option>
+  </options>
+  
+  
   <section name="AUTHOR">
     <p>picocom was written by Nick Patavalis (npat@efault.net)</p>
   </section>
