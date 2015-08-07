@@ -3,6 +3,10 @@ Minimal dumb-terminal emulator
 
 by Nick Patavalis (npat@efault.net)
 
+The latest release of "picocom" can be downloaded from:
+
+> https://github.com/npat-efault/picocom/releases
+
 As its name suggests, *picocom* is a minimal dumb-terminal emulation
 program. It is, in principle, very much like minicom, only it's "pico"
 instead of "mini"! 
@@ -31,10 +35,6 @@ distribution as "picocom.8", and also html-ized as "picocom.8.html".
 People who have contibuted to picocom, by offering feature
 implementations, bug-fixes, corrections, and suggestions are listed in
 the "CONTRIBUTORS" file.
-
-The latest release of "picocom" can be downloaded from:
-
-  https://github.com/npat-efault/picocom/releases
 
 Please feel free to send comments, requests for new features (no
 promisses, though!), bug-fixes and rants, to the author's email
