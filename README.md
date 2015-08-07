@@ -1,9 +1,9 @@
 #picocom
 Minimal dumb-terminal emulator
 
-by Nick Patavalis (npat@efault.net)
+> by Nick Patavalis (npat@efault.net)
 
-The latest release of "picocom" can be downloaded from:
+The latest release can be downloaded from:
 
 > https://github.com/npat-efault/picocom/releases
 
