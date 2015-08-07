@@ -9,6 +9,10 @@ CFLAGS = -Wall -g
 LDFLAGS = -g
 LDLIBS =
 
+## Increase this to use larger input (e.g. copy-paste) buffer
+TTY_Q_SZ = 1024
+CPPFLAGS += -DTTY_Q_SZ=$(TTY_Q_SZ)
+
 ## Comment this out to disable high-baudrate support
 CPPFLAGS += -DHIGH_BAUD
 

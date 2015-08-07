@@ -744,7 +744,9 @@ run_cmd(int fd, ...)
 
 /**********************************************************************/
 
+#ifndef TTY_Q_SZ
 #define TTY_Q_SZ 256
+#endif
 
 struct tty_q {
 	int len;
