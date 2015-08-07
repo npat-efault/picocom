@@ -16,9 +16,15 @@ CPPFLAGS += -DTTY_Q_SZ=$(TTY_Q_SZ)
 ## Comment this out to disable high-baudrate support
 CPPFLAGS += -DHIGH_BAUD
 
+## Normally you should NOT enable both: UUCP-style and flock(2)
+## locking.
+
+## Comment this out to disable locking with flock
+CPPFLAGS += -DUSE_FLOCK
+
 ## Comment these out to disable UUCP-style lockdirs
-UUCP_LOCK_DIR=/var/lock
-CPPFLAGS += -DUUCP_LOCK_DIR=\"$(UUCP_LOCK_DIR)\"
+#UUCP_LOCK_DIR=/var/lock
+#CPPFLAGS += -DUUCP_LOCK_DIR=\"$(UUCP_LOCK_DIR)\"
 
 ## Comment these out to disable "linenoise"-library support
 SEND_RECEIVE_HISTFILE = .picocom_send_receive

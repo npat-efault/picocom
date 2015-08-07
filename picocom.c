@@ -37,6 +37,9 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <limits.h>
+#ifdef USE_FLOCK
+#include <sys/file.h>
+#endif
 #ifdef LINENOISE
 #include <dirent.h>
 #include <libgen.h>
@@ -151,7 +154,7 @@ struct {
 	int lecho;
 	int noinit;
 	int noreset;
-#ifdef UUCP_LOCK_DIR
+#if defined (UUCP_LOCK_DIR) || defined (USE_FLOCK)
 	int nolock;
 #endif
 	unsigned char escape;
@@ -171,7 +174,7 @@ struct {
 	.lecho = 0,
 	.noinit = 0,
 	.noreset = 0,
-#ifdef UUCP_LOCK_DIR
+#if defined (UUCP_LOCK_DIR) || defined (USE_FLOCK)
 	.nolock = 0,
 #endif
 	.escape = '\x01',
@@ -1172,7 +1175,7 @@ parse_args(int argc, char *argv[])
 			opts.noreset = 1;
 			break;
 		case 'l':
-#ifdef UUCP_LOCK_DIR
+#if defined (UUCP_LOCK_DIR) || defined (USE_FLOCK)
 			opts.nolock = 1;
 #endif
 			break;
@@ -1274,7 +1277,7 @@ parse_args(int argc, char *argv[])
 	printf("local echo is  : %s\n", opts.lecho ? "yes" : "no");
 	printf("noinit is      : %s\n", opts.noinit ? "yes" : "no");
 	printf("noreset is     : %s\n", opts.noreset ? "yes" : "no");
-#ifdef UUCP_LOCK_DIR
+#if defined (UUCP_LOCK_DIR) || defined (USE_FLOCK)
 	printf("nolock is      : %s\n", opts.nolock ? "yes" : "no");
 #endif
 	printf("send_cmd is    : %s\n", opts.send_cmd);
@@ -1310,6 +1313,14 @@ main(int argc, char *argv[])
 	tty_fd = open(opts.port, O_RDWR | O_NONBLOCK | O_NOCTTY);
 	if (tty_fd < 0)
 		fatal("cannot open %s: %s", opts.port, strerror(errno));
+
+#ifdef USE_FLOCK
+	if ( ! opts.nolock ) {
+		r = flock(tty_fd, LOCK_EX | LOCK_NB);
+		if ( r < 0 )
+			fatal("cannot lock %s: %s", opts.port, strerror(errno));
+	}
+#endif
 
 	if ( opts.noinit ) {
 		r = term_add(tty_fd);
