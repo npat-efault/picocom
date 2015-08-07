@@ -1,7 +1,7 @@
 #picocom
 Minimal dumb-terminal emulator
 
-> by Nick Patavalis (npat@efault.net)
+by Nick Patavalis (npat@efault.net)
 
 The latest release can be downloaded from:
 
