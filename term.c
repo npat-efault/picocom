@@ -1178,7 +1178,12 @@ term_drain(int fd)
 		}
 
 		do {
+#ifdef __BIONIC__
+			/* See: http://dan.drown.org/android/src/gdb/no-tcdrain */
+			r = ioctl(fd, TCSBRK, 1);
+#else
 			r = tcdrain(fd);
+#endif
 		} while ( r < 0 && errno == EINTR);
 		if ( r < 0 ) {
 			term_errno = TERM_EDRAIN;
