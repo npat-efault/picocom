@@ -1072,7 +1072,24 @@ show_usage(char *name)
 	s = s ? s+1 : name;
 
 	printf("picocom v%s\n", VERSION_STR);
-	printf("Usage is: %s [options] <tty device>\n", s);
+
+	printf("\nCompiled-in options:\n");
+	printf("  TTY_Q_SZ is %d\n", TTY_Q_SZ);
+#ifdef USE_HIGH_BAUD
+	printf("  HIGH_BAUD is enabled\n");
+#endif
+#ifdef USE_FLOCK
+	printf("  USE_FLOCK is enabled\n");
+#endif
+#ifdef UUCP_LOCK_DIR
+	printf("  UUCP_LOCK_DIR is: %s\n", UUCP_LOCK_DIR);
+#endif
+#ifdef LINENOISE
+	printf("  LINENOISE is enabled\n");
+	printf("  SEND_RECEIVE_HISTFILE is: %s\n", SEND_RECEIVE_HISTFILE);
+#endif
+	
+	printf("\nUsage is: %s [options] <tty device>\n", s);
 	printf("Options are:\n");
 	printf("  --<b>aud <baudrate>\n");
 	printf("  --<f>low s (=soft) | h (=hard) | n (=none)\n");
