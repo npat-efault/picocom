@@ -39,3 +39,32 @@ the "CONTRIBUTORS" file.
 Please feel free to send comments, requests for new features (no
 promisses, though!), bug-fixes and rants, to the author's email
 address shown at the top of this file.
+
+## Compilation / Installation
+
+Change into picocom's source directory and say:
+
+```
+  make
+```
+
+This will be enough to compile picocom for most Unix-like systems. If
+you want, you can then strip the resulting binary like this:
+
+```
+  strip picocom
+```
+
+and copy it, as well as the man-page, to wherever you put your
+binaries and man-pages. For example:
+
+```
+  cp picocom ~/bin
+  cp picocom.8 ~/man/man8
+```
+
+If something goes wrong and picocom can't compile cleanly, or if it's
+lacking a feature you need, take a look at the included Makefile. It's
+very simple and easy to understand. It allows you to select
+compile-time options and enable or disable some compile-time features
+by commenting in or out the respective lines.
