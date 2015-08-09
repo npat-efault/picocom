@@ -130,6 +130,126 @@ term_perror (const char *prefix)
 
 /***************************************************************************/
 
+#define BNONE 0xFFFFFFFF
+
+struct baud_codes {
+	int speed;
+	speed_t code;
+} baud_table[] = {
+	{ 0, B0 },
+	{ 50, B50 },
+	{ 75, B75 },
+	{ 110, B110 },
+	{ 134, B134 },
+	{ 150, B150 },
+	{ 200, B200 },
+	{ 300, B300 },
+	{ 600, B600 },
+	{ 1200, B1200 },
+	{ 1800, B1800 },
+	{ 2400, B2400 },
+	{ 4800, B4800 },
+	{ 9600, B9600 },
+	{ 19200, B19200 },
+	{ 38400, B38400 },
+	{ 57600, B57600 },
+	{ 115200, B115200 },
+#ifdef HIGH_BAUD
+#ifdef B230400
+	{ 230400, B230400 },
+#endif
+#ifdef B460800
+	{ 460800, B460800 },
+#endif
+#ifdef B500000
+	{ 500000, B500000 },
+#endif
+#ifdef B576000
+	{ 576000, B576000 },
+#endif
+#ifdef B921600
+	{ 921600, B921600 },
+#endif
+#ifdef B1000000
+	{ 1000000, B1000000 },
+#endif
+#ifdef B1152000
+	{ 1152000, B1152000 },
+#endif
+#ifdef B1500000
+	{ 1500000, B1500000 },
+#endif
+#ifdef B2000000
+	{ 2000000, B2000000 },
+#endif
+#ifdef B2500000
+	{ 2500000, B2500000 },
+#endif
+#ifdef B3000000
+	{ 3000000, B3000000 },
+#endif
+#ifdef B3500000
+	{ 3500000, B3500000 },
+#endif
+#ifdef B4000000
+	{ 4000000, 4000000 },
+#endif
+#endif /* of HIGH_BAUD */
+};
+
+#define BAUD_TABLE_SZ (sizeof(baud_table) / sizeof(baud_table[0]))
+
+int
+term_baud_up (int baud)
+{
+	int i;
+
+	for (i = 0; i < BAUD_TABLE_SZ; i++) {
+		if ( baud >= baud_table[i].speed )
+			continue;
+		else {
+			baud = baud_table[i].speed;
+			break;
+		}
+	}
+
+ 	return baud;
+}
+
+int
+term_baud_down (int baud)
+{
+	int i;
+
+	for (i = BAUD_TABLE_SZ - 1; i >= 0; i--) {
+		if ( baud <= baud_table[i].speed )
+			continue;
+		else {
+			baud = baud_table[i].speed;
+			break;
+		}
+	}
+
+	return baud;
+}
+
+static speed_t
+Bcode(int speed)
+{
+	speed_t code = BNONE;
+	int i;
+
+	for (i = 0; i < BAUD_TABLE_SZ; i++) {
+		if ( baud_table[i].speed == speed ) {
+			code = baud_table[i].code;
+			break;
+		}
+	}
+	return code;
+}
+
+/**************************************************************************/
+
 static int
 term_find_next_free (void)
 {
@@ -570,137 +690,12 @@ term_set_baudrate (int fd, int baudrate)
 		}
 
 		tio = term.nexttermios[i];
-
-		switch (baudrate) {
-		case 0:
-			spd = B0;
-			break;
-		case 50:
-			spd = B50;
-			break;
-		case 75:
-			spd = B75;
-			break;
-		case 110:
-			spd = B110;
-			break;
-		case 134:
-			spd = B134;
-			break;
-		case 150:
-			spd = B150;
-			break;
-		case 200:
-			spd = B200;
-			break;
-		case 300:
-			spd = B300;
-			break;
-		case 600:
-			spd = B600;
-			break;
-		case 1200:
-			spd = B1200;
-			break;
-		case 1800:
-			spd = B1800;
-			break;
-		case 2400:
-			spd = B2400;
-			break;
-		case 4800:
-			spd = B4800;
-			break;
-		case 9600:
-			spd = B9600;
-			break;
-		case 19200:
-			spd = B19200;
-			break;
-		case 38400:
-			spd = B38400;
-			break;
-		case 57600:
-			spd = B57600;
-			break;
-		case 115200:
-			spd = B115200;
-			break;
-
-#ifdef HIGH_BAUD
-#ifdef B230400
-		case 230400:
-			spd = B230400;
-			break;
-#endif
-#ifdef B460800
-		case 460800:
-			spd = B460800;
-			break;
-#endif
-#ifdef B500000
-		case 500000:
-			spd = B500000;
-			break;
-#endif
-#ifdef B576000
-		case 576000:
-			spd = B576000;
-			break;
-#endif
-#ifdef B921600
-		case 921600:
-			spd = B921600;
-			break;
-#endif
-#ifdef B1000000
-		case 1000000:
-			spd = B1000000;
-			break;
-#endif
-#ifdef B1152000
-		case 1152000:
-			spd = B1152000;
-			break;
-#endif
-#ifdef B1500000
-		case 1500000:
-			spd = B1500000;
-			break;
-#endif
-#ifdef B2000000
-		case 2000000:
-			spd = B2000000;
-			break;
-#endif
-#ifdef B2500000
-		case 2500000:
-			spd = B2500000;
-			break;
-#endif
-#ifdef B3000000
-		case 3000000:
-			spd = B3000000;
-			break;
-#endif
-#ifdef B3500000
-		case 3500000:
-			spd = B3500000;
-			break;
-#endif
-#ifdef B4000000
-		case 4000000:
-			spd = B4000000;
-			break;
-#endif
-#endif /* of HIGH_BAUD */
-
-		default:
+		spd = Bcode(baudrate);
+		if ( spd == BNONE ) {
 			term_errno = TERM_EBAUD;
 			rval = -1;
 			break;
 		}
-		if ( rval < 0 ) break;
 
 		r = cfsetospeed(&tio, spd);
 		if ( r < 0 ) {
@@ -1251,106 +1246,6 @@ term_break(int fd)
 	} while (0);
 
 	return rval;
-}
-
-/**************************************************************************/
-
-static int baud_table[] = {
-			0,
-			50,
-			75,
-			110,
-			134,
-			150,
-			200,
-			300,
-			600,
-			1200,
-			1800,
-			2400,
-			4800,
-			9600,
-			19200,
-			38400,
-			57600,
-			115200,
-#ifdef HIGH_BAUD
-#ifdef B230400
-			230400,
-#endif
-#ifdef B460800
-			460800,
-#endif
-#ifdef B500000
-			500000,
-#endif
-#ifdef B576000
-			576000,
-#endif
-#ifdef B921600
-			921600,
-#endif
-#ifdef B1000000
-			1000000,
-#endif
-#ifdef B1152000
-			1152000,
-#endif
-#ifdef B1500000
-			1500000,
-#endif
-#ifdef B2000000
-			2000000,
-#endif
-#ifdef B2500000
-			2500000,
-#endif
-#ifdef B3000000
-			3000000,
-#endif
-#ifdef B3500000
-			3500000,
-#endif
-#ifdef B4000000
-			4000000,
-#endif
-#endif /* of HIGH_BAUD */
-};
-
-#define BAUD_TABLE_SZ (sizeof(baud_table) / sizeof(baud_table[0]))
-
-int
-term_baud_up (int baud)
-{
-	int i;
- 
-	for (i = 1; i < BAUD_TABLE_SZ; i++) {
-		if ( baud >= baud_table[i] )
-			continue;
-		else {
-			baud = baud_table[i];
-			break;
-		}
-	}
-
- 	return baud;
-}
-
-int 
-term_baud_down (int baud)
-{
-	int i;
-
-	for (i = BAUD_TABLE_SZ - 1; i >= 0; i--) {
-		if ( baud <= baud_table[i] )
-			continue;
-		else {
-			baud = baud_table[i];
-			break;
-		}
-	}
-
-	return baud;
 }
 
 /**************************************************************************/
