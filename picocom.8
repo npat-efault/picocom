@@ -63,9 +63,13 @@ picocom can send and receive files over the serial port using external programs 
 
 \fBascii-xfr(1)\f1 - receive or transmit ASCII files
 
-The name of, and the command-line options to, the program to be used for transmitting files are given by the \fI--send-cmd\f1 option. Similarly the program to receive files, and its argumets, are given by the \fI--receive-cmd\f1 option. For example, in order to start a picocom session that uses "sz" to transmit files, and "rz" to receive, you have to say something like this: 
+The name of, and the command-line options to, the program to be used for transmitting files are given by the \fI--send-cmd\f1 option. Similarly the program to receive files, and its argumets, are given by the \fI--receive-cmd\f1 option. For example, in order to start a picocom session that uses "sz" to transmit files, and "rz" to receive files, you have to say something like this: 
 
 picocom --send-cmd "sz -vv" --receive-cmd "rz -vv" 
+
+If the argument to the \fI--send-cmd\f1 option, or the argument to the \fI--receive-cmd\f1 option is the empty string, then the respective command is disabled. For example, in order to disable both the "send" and the "receive" commands you can invoke picocom like this: 
+
+picocom --send-cmd '' --receive-cmd '' 
 
 During the picocom session, if you key the "send" or "receive" commands (e.g. by pressing C-a, C-s, or C-a, C-r) you will be prompted for a filename. At this prompt you can enter one or more file-names, and any additional arguments to the transmission or reception program. Command-line editing and pathname completion are available at this prompt, if you have compiled picocom with support for the linenoise library. Pressing 'C-c' at this prompt will cancel the file transfer command and return to normal picocom operation. After entering a filename (and / or additional transmission or reception program arguments) and assuming you have not canceled the operation by pressing C-c, picocom will start the the external program as specified by the \fI--send-cmd\f1, or \fI--receive-cmd\f1 option, and with any filenames and additional arguments you may have supplied. The standard input and output of the external program will be connected to the serial port. The standard error of the external program will be connected to the terminal which---while the program is running---will revert to canonical mode. Pressing 'C-c' while the external program is running will prematurely terminate it, and return control to picocom. Pressing 'C-c' at any other time, has no special effect; the character is normally passed to the serial port. 
 .SH INPUT, OUTPUT, AND ECHO MAPPING
@@ -107,10 +111,10 @@ picocom accepts the following command-line options
 \f1If given, picocom will *not* attempt to lock the serial port before opening it. Normally picocom attempts to get a UUCP-style lock-file (e.g. "/var/lock/LCK..ttyS0") before opening the port. Failing to do so, results in the program exiting after emitting an error-message. It is possible that your picocom binary is compiled without this option. 
 .TP
 \fB--send-cmd | -s
-\f1Specifies the external program (and any arguments to it) that will be used for transmitting files. (Default: "sz -vv") 
+\f1Specifies the external program (and any arguments to it) that will be used for transmitting files. If the argument to \fI--send-cmd\f1 is the empty string (''), the send-file command is disabled. (Default: "sz -vv") 
 .TP
 \fB--receive-cmd | -v
-\f1Specifies the external program (and any arguments to it) that will be used for receiving files. (Default: "rz -vv") 
+\f1Specifies the external program (and any arguments to it) that will be used for receiving files. If the argument to \fI--receive-cmd\f1 is the empty string (''), the receive-file command is disabled. (Default: "rz -vv") 
 .TP
 \fB--imap
 \f1Specifies the input character map (i.e. special characters to be replaced when read from the serial port). Example: "--imap crlf,delbs". (Defaul: Empty) 

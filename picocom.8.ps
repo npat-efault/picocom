@@ -1,6 +1,6 @@
 %!PS-Adobe-3.0
 %%Creator: groff version 1.22.2
-%%CreationDate: Sat Aug  8 21:30:50 2015
+%%CreationDate: Tue Aug 11 21:10:18 2015
 %%DocumentNeededResources: font Times-Roman
 %%+ font Times-Bold
 %%+ font Times-Italic
@@ -383,163 +383,181 @@ tions to, the program to be used for transmitting \214les are gi)108
 3.149(nb).15 G 3.149(yt)-3.149 G(he)-3.149 E F3(--r)3.149 E(eceive-)-.37
 E(cmd)108 580.8 Q F0 1.136(option. F)3.636 F 1.136(or e)-.15 F 1.135(xa\
 mple, in order to start a picocom session that uses "sz" to transmit \
-\214les, and "rz" to)-.15 F(recei)108 592.8 Q -.15(ve)-.25 G 2.5(,y).15
-G(ou ha)-2.5 E .3 -.15(ve t)-.2 H 2.5(os).15 G(ay something lik)-2.5 E
-2.5(et)-.1 G(his:)-2.5 E(picocom --send-cmd "sz -vv" --recei)108 616.8 Q
--.15(ve)-.25 G(-cmd "rz -vv").15 E .309
-(During the picocom session, if you k)108 640.8 R .609 -.15(ey t)-.1 H
-.309(he "send" or "recei).15 F -.15(ve)-.25 G 2.809("c).15 G .309
-(ommands \(e.g. by pressing C-a, C-s, or C-)-2.809 F .431(a, C-r\) you \
-will be prompted for a \214lename. At this prompt you can enter one or \
-more \214le-names, and an)108 652.8 R(y)-.15 E .532(additional ar)108
-664.8 R .533(guments to the transmission or reception program. Command-\
-line editing and pathname com-)-.18 F .983(pletion are a)108 676.8 R
--.25(va)-.2 G .983(ilable at this prompt, if you ha).25 F 1.282 -.15
-(ve c)-.2 H .982(ompiled picocom with support for the linenoise library)
-.15 F(.)-.65 E .077(Pressing 'C-c' at this prompt will cancel the \214l\
-e transfer command and return to normal picocom operation.)108 688.8 R
-.597(After entering a \214lename \(and / or additional transmission or \
-reception program ar)108 700.8 R .597(guments\) and assuming)-.18 F .478
-(you ha)108 712.8 R .778 -.15(ve n)-.2 H .479(ot canceled the operation\
- by pressing C-c, picocom will start the the e).15 F .479
-(xternal program as speci-)-.15 F .352(\214ed by the)108 724.8 R F3
-(--send-cmd)2.852 E F0 2.852(,o)C(r)-2.852 E F3(--r)2.852 E(eceive-cmd)
--.37 E F0 .352(option, and with an)2.852 F 2.852<798c>-.15 G .352
-(lenames and additional ar)-2.852 F .352(guments you may)-.18 F 187.62
-(Manuals User)72 768 R(2)219.56 E 0 Cg EP
+\214les, and "rz" to)-.15 F(recei)108 592.8 Q .3 -.15(ve \214)-.25 H
+(les, you ha).15 E .3 -.15(ve t)-.2 H 2.5(os).15 G(ay something lik)-2.5
+E 2.5(et)-.1 G(his:)-2.5 E(picocom --send-cmd "sz -vv" --recei)108 616.8
+Q -.15(ve)-.25 G(-cmd "rz -vv").15 E .704(If the ar)108 640.8 R .704
+(gument to the)-.18 F F3(--send-cmd)3.204 E F0 .704(option, or the ar)
+3.204 F .704(gument to the)-.18 F F3(--r)3.204 E(eceive-cmd)-.37 E F0
+.704(option is the empty string,)3.204 F .191(then the respecti)108
+652.8 R .491 -.15(ve c)-.25 H .191(ommand is disabled. F).15 F .191
+(or e)-.15 F .19
+(xample, in order to disable both the "send" and the "recei)-.15 F -.15
+(ve)-.25 G(").15 E(commands you can in)108 664.8 Q -.2(vo)-.4 G .2 -.1
+(ke p).2 H(icocom lik).1 E 2.5(et)-.1 G(his:)-2.5 E
+(picocom --send-cmd ')108 688.8 Q 2.5('-)-.74 G(-recei)-2.5 E -.15(ve)
+-.25 G(-cmd ').15 E(')-.74 E .309(During the picocom session, if you k)
+108 712.8 R .609 -.15(ey t)-.1 H .309(he "send" or "recei).15 F -.15(ve)
+-.25 G 2.809("c).15 G .309(ommands \(e.g. by pressing C-a, C-s, or C-)
+-2.809 F .431(a, C-r\) you will be prompted for a \214lename. At this p\
+rompt you can enter one or more \214le-names, and an)108 724.8 R(y)-.15
+E 187.62(Manuals User)72 768 R(2)219.56 E 0 Cg EP
 %%Page: 3 3
 %%BeginPageSetup
 BP
 %%EndPageSetup
 /F0 10/Times-Roman@0 SF 131.795(picocom\(8\) System)72 48 R(Manager')2.5
-E 2.5(sM)-.55 G 131.795(anual picocom\(8\))-2.5 F(ha)108 84 Q 1.022 -.15
-(ve s)-.2 H .723(upplied. The standard input and output of the e).15 F
-.723(xternal program will be connected to the serial port.)-.15 F .523
-(The standard error of the e)108 96 R .522(xternal program will be conn\
-ected to the terminal which---while the program is)-.15 F .683
-(running---will re)108 108 R -.15(ve)-.25 G .683
+E 2.5(sM)-.55 G 131.795(anual picocom\(8\))-2.5 F .532(additional ar)108
+84 R .533(guments to the transmission or reception program. Command-lin\
+e editing and pathname com-)-.18 F .983(pletion are a)108 96 R -.25(va)
+-.2 G .983(ilable at this prompt, if you ha).25 F 1.282 -.15(ve c)-.2 H
+.982(ompiled picocom with support for the linenoise library).15 F(.)-.65
+E .077(Pressing 'C-c' at this prompt will cancel the \214le transfer co\
+mmand and return to normal picocom operation.)108 108 R .597(After ente\
+ring a \214lename \(and / or additional transmission or reception progr\
+am ar)108 120 R .597(guments\) and assuming)-.18 F .478(you ha)108 132 R
+.778 -.15(ve n)-.2 H .479(ot canceled the operation by pressing C-c, pi\
+cocom will start the the e).15 F .479(xternal program as speci-)-.15 F
+.352(\214ed by the)108 144 R/F1 10/Times-Italic@0 SF(--send-cmd)2.852 E
+F0 2.852(,o)C(r)-2.852 E F1(--r)2.852 E(eceive-cmd)-.37 E F0 .352
+(option, and with an)2.852 F 2.852<798c>-.15 G .352
+(lenames and additional ar)-2.852 F .352(guments you may)-.18 F(ha)108
+156 Q 1.022 -.15(ve s)-.2 H .723
+(upplied. The standard input and output of the e).15 F .723
+(xternal program will be connected to the serial port.)-.15 F .523
+(The standard error of the e)108 168 R .522(xternal program will be con\
+nected to the terminal which---while the program is)-.15 F .683
+(running---will re)108 180 R -.15(ve)-.25 G .683
 (rt to canonical mode. Pressing 'C-c' while the e).15 F .684
 (xternal program is running will prema-)-.15 F .03(turely terminate it,\
- and return control to picocom. Pressing 'C-c' at an)108 120 R 2.529(yo)
+ and return control to picocom. Pressing 'C-c' at an)108 192 R 2.529(yo)
 -.15 G .029(ther time, has no special ef)-2.529 F .029(fect; the)-.25 F
-(character is normally passed to the serial port.)108 132 Q/F1 10.95
-/Times-Bold@0 SF(INPUT)72 148.8 Q 2.738(,O)-.81 G(UTPUT)-2.738 E 2.738
-(,A)-.81 G(ND ECHO MAPPING)-2.738 E F0 .036(Using the)108 160.8 R/F2 10
-/Times-Italic@0 SF(--imap)2.536 E F0(,)A F2(--omap)2.536 E F0 2.536(,a)C
-(nd)-2.536 E F2(--emap)2.536 E F0 .036(options you can mak)2.536 F 2.536
-(ep)-.1 G .036(icocom map \(tranlate, replace\) certain special)-2.536 F
-.778(characters after being read from the serial port \(with)108 172.8 R
-F2(--imap)3.278 E F0 .777
-(\), before being written to the serial port \(with)B F2(--omap)108
-184.8 Q F0 1.051(\), and before being locally echoed to the terminal \(\
-standard output\) if local echo is enabled \(with)B F2(--emap)108 196.8
+(character is normally passed to the serial port.)108 204 Q/F2 10.95
+/Times-Bold@0 SF(INPUT)72 220.8 Q 2.738(,O)-.81 G(UTPUT)-2.738 E 2.738
+(,A)-.81 G(ND ECHO MAPPING)-2.738 E F0 .036(Using the)108 232.8 R F1
+(--imap)2.536 E F0(,)A F1(--omap)2.536 E F0 2.536(,a)C(nd)-2.536 E F1
+(--emap)2.536 E F0 .036(options you can mak)2.536 F 2.536(ep)-.1 G .036
+(icocom map \(tranlate, replace\) certain special)-2.536 F .778
+(characters after being read from the serial port \(with)108 244.8 R F1
+(--imap)3.278 E F0 .777
+(\), before being written to the serial port \(with)B F1(--omap)108
+256.8 Q F0 1.051(\), and before being locally echoed to the terminal \(\
+standard output\) if local echo is enabled \(with)B F1(--emap)108 268.8
 Q F0 .895(\). These mapping options tak)B .895(e, each, a single ar)-.1
 F .894(gument which is a comma-separated list of one or)-.18 F .984
-(more of the follo)108 208.8 R .985(wing identi\214ers: "crlf" \(map CR\
+(more of the follo)108 280.8 R .985(wing identi\214ers: "crlf" \(map CR\
  to LF\), "crcrlf" \(map CR to CR + LF\), "igncr" \(ignore)-.25 F .197(\
 CR\), "lfcr" \(map LF to CR\), "lfcrlf" \(map LF to CR + LF\), "ignlf" \
-\(ignore LF\), "bsdel" \(map BS --> DEL\),)108 220.8 R
-("delbs" \(map DEL --> BS\))108 232.8 Q -.15(Fo)108 256.8 S 2.5(re).15 G
+\(ignore LF\), "bsdel" \(map BS --> DEL\),)108 292.8 R
+("delbs" \(map DEL --> BS\))108 304.8 Q -.15(Fo)108 328.8 S 2.5(re).15 G
 (xample the command:)-2.65 E
 (picocom --omap crlf,delbs --imap inglf,bsdel --emap crcrlf ...)108
-280.8 Q .86(will: Replace e)108 304.8 R -.15(ve)-.25 G .86(ry CR \(carr\
+352.8 Q .86(will: Replace e)108 376.8 R -.15(ve)-.25 G .86(ry CR \(carr\
 iage return, 0x0d\) caracter with LF \(line feed, 0x0a\) and e).15 F
 -.15(ve)-.25 G .86(ry DEL \(delete,).15 F .054(0x7f\) character with BS\
  \(backspace, 0x08\) before writing it to the serial port. Ignore \(not\
- write to the termi-)108 316.8 R .781(nal\) e)108 328.8 R -.15(ve)-.25 G
+ write to the termi-)108 388.8 R .781(nal\) e)108 400.8 R -.15(ve)-.25 G
 .781(ry LF character read from the serial port and replace e).15 F -.15
 (ve)-.25 G .781(ry BS character read from the serial port).15 F 1.42
-(with DEL. Replace e)108 340.8 R -.15(ve)-.25 G 1.42(ry CR character wi\
+(with DEL. Replace e)108 412.8 R -.15(ve)-.25 G 1.42(ry CR character wi\
 th CR and LF when echoing to the terminal \(if local-echo is).15 F
-(enabled\).)108 352.8 Q F1(OPTIONS)72 369.6 Q F0
-(picocom accepts the follo)108 381.6 Q(wing command-line options)-.25 E
-/F3 10/Times-Bold@0 SF(--baud | -b)108 398.4 Q F0
+(enabled\).)108 424.8 Q F2(OPTIONS)72 441.6 Q F0
+(picocom accepts the follo)108 453.6 Q(wing command-line options)-.25 E
+/F3 10/Times-Bold@0 SF(--baud | -b)108 470.4 Q F0
 (De\214nes the baud-rate to set the serial-port \(terminal\) to.)144
-410.4 Q F3(--\215o)108 427.2 Q 2.5(w|-)-.1 G(f)-2.5 E F0 .33
-(De\214nes the \215o)144 439.2 R .33(w-control mode to set the serial-p\
+482.4 Q F3(--\215o)108 499.2 Q 2.5(w|-)-.1 G(f)-2.5 E F0 .33
+(De\214nes the \215o)144 511.2 R .33(w-control mode to set the serial-p\
 ort to. Must be one of: 'x' for xon/xof)-.25 F 2.83(f\()-.25 G(softw)
--2.83 E(are\))-.1 E(mode, 'h' for hardw)144 451.2 Q(are \215o)-.1 E 2.5
+-2.83 E(are\))-.1 E(mode, 'h' for hardw)144 523.2 Q(are \215o)-.1 E 2.5
 (wc)-.25 G(ontrol \(R)-2.5 E(TS/CTS\), 'n' for no \215o)-.6 E 2.5(wc)
--.25 G(ontrol. \(Def)-2.5 E(ault: 'n'\))-.1 E F3(--parity | -p)108 468 Q
+-.25 G(ontrol. \(Def)-2.5 E(ault: 'n'\))-.1 E F3(--parity | -p)108 540 Q
 F0 .685(De\214nes the parity mode to set the serial-port to. Must be on\
-e of: 'o' for odd parity mode, 'e' for)144 480 R -2.15 -.25(ev e)144 492
+e of: 'o' for odd parity mode, 'e' for)144 552 R -2.15 -.25(ev e)144 564
 T 2.5(np).25 G(arity mode, 'n' for no parity mode. \(Def)-2.5 E
-(ault: 'n'\))-.1 E F3(--databits | -d)108 508.8 Q F0
-(De\214nes the number of data bits in e)144 520.8 Q -.15(ve)-.25 G
+(ault: 'n'\))-.1 E F3(--databits | -d)108 580.8 Q F0
+(De\214nes the number of data bits in e)144 592.8 Q -.15(ve)-.25 G
 (ry character).15 E 2.5(.M)-.55 G(ust be one of: 5, 6, 7, 8. \(Def)-2.5
-E(ault: 8\))-.1 E F3(--esacpe | -e)108 537.6 Q F0 .329
-(De\214nes the character that will mak)144 549.6 R 2.829(ep)-.1 G .329
+E(ault: 8\))-.1 E F3(--esacpe | -e)108 609.6 Q F0 .329
+(De\214nes the character that will mak)144 621.6 R 2.829(ep)-.1 G .329
 (icocom enter command-mode \(see description abo)-2.829 F -.15(ve)-.15 G
-.33(\). If 'x').15 F(is gi)144 561.6 Q -.15(ve)-.25 G
+.33(\). If 'x').15 F(is gi)144 633.6 Q -.15(ve)-.25 G
 (n, then C-x will mak).15 E 2.5(ep)-.1 G
 (icocom enter command mode. \(Def)-2.5 E(ault: 'a'\))-.1 E F3
-(--echo | -c)108 578.4 Q F0 .602(Enable local echo. Ev)144 590.4 R .602
+(--echo | -c)108 650.4 Q F0 .602(Enable local echo. Ev)144 662.4 R .602
 (ery character being read from the terminal \(standard input\) is echoe\
 d to the)-.15 F .156(terminal \(standard output\) subject to the echo-m\
-apping con\214guration \(see)144 602.4 R F2(--emap)2.657 E F0 .157
-(option. \(Def)2.657 F(ault:)-.1 E(Disabled\))144 614.4 Q F3
-(--noinit | -i)108 631.2 Q F0 .785(If gi)144 643.2 R -.15(ve)-.25 G .785
+apping con\214guration \(see)144 674.4 R F1(--emap)2.657 E F0 .157
+(option. \(Def)2.657 F(ault:)-.1 E(Disabled\))144 686.4 Q F3
+(--noinit | -i)108 703.2 Q F0 .785(If gi)144 715.2 R -.15(ve)-.25 G .785
 (n, picocom will not initialize, reset, or otherwise meddle with the se\
 rial port at start-up. It).15 F 2.742
-(will just open it. This is useful, for e)144 655.2 R 2.743
-(xample, for connecting picocom to already-connected)-.15 F .038(modems\
-, or already con\214gured ports without terminating the connection, or \
-altering the settings. If)144 667.2 R(required serial port parameters c\
-an then be adjusted at run-time by commands.)144 679.2 Q F3(--nor)108
-696 Q(eset | -r)-.18 E F0 .396(If gi)144 708 R -.15(ve)-.25 G .396
-(n, picocom will not *reset* the serial port when e).15 F .397
-(xiting. It will just close the \214ledes and do)-.15 F .696
-(nothing more. This is useful, for e)144 720 R .696(xample, for lea)-.15
-F .696(ving modems connected when e)-.2 F .696(xiting picocom.)-.15 F
-187.62(Manuals User)72 768 R(3)219.56 E 0 Cg EP
+(will just open it. This is useful, for e)144 727.2 R 2.743
+(xample, for connecting picocom to already-connected)-.15 F 187.62
+(Manuals User)72 768 R(3)219.56 E 0 Cg EP
 %%Page: 4 4
 %%BeginPageSetup
 BP
 %%EndPageSetup
 /F0 10/Times-Roman@0 SF 131.795(picocom\(8\) System)72 48 R(Manager')2.5
-E 2.5(sM)-.55 G 131.795(anual picocom\(8\))-2.5 F(Re)144 84 Q -.05(ga)
--.15 G .545(rdless whether the).05 F/F1 10/Times-Italic@0 SF(--nor)3.045
-E(eset)-.37 E F0 .545(option is gi)3.045 F -.15(ve)-.25 G 3.045(nt).15 G
-.545(he user can e)-3.045 F .546(xit picocom using the "Quit" com-)-.15
-F .822(mand \(instead of "Exit"\), which ne)144 96 R -.15(ve)-.25 G
-3.321(rr).15 G .821(esets the serial port. If)-3.321 F F1(--nor)3.321 E
-(eset)-.37 E F0 .821(is gi)3.321 F -.15(ve)-.25 G 3.321(nt).15 G .821
-(hen "Quit" and)-3.321 F("Exit" beha)144 108 Q .3 -.15(ve e)-.2 H
-(ssentially the same.).15 E/F2 10/Times-Bold@0 SF(--nolock | -l)108
-124.8 Q F0 .744(If gi)144 136.8 R -.15(ve)-.25 G .744(n, picocom will *\
-not* attempt to lock the serial port before opening it. Normally picoco\
-m).15 F .389(attempts to get a UUCP-style lock-\214le \(e.g. "/v)144
-148.8 R .388(ar/lock/LCK..ttyS0"\) before opening the port. F)-.25 F
-(ail-)-.15 E .294(ing to do so, results in the program e)144 160.8 R
-.294(xiting after emitting an error)-.15 F .294
+E 2.5(sM)-.55 G 131.795(anual picocom\(8\))-2.5 F .038(modems, or alrea\
+dy con\214gured ports without terminating the connection, or altering t\
+he settings. If)144 84 R(required serial port parameters can then be ad\
+justed at run-time by commands.)144 96 Q/F1 10/Times-Bold@0 SF(--nor)108
+112.8 Q(eset | -r)-.18 E F0 .396(If gi)144 124.8 R -.15(ve)-.25 G .396
+(n, picocom will not *reset* the serial port when e).15 F .397
+(xiting. It will just close the \214ledes and do)-.15 F .696
+(nothing more. This is useful, for e)144 136.8 R .696(xample, for lea)
+-.15 F .696(ving modems connected when e)-.2 F .696(xiting picocom.)-.15
+F(Re)144 148.8 Q -.05(ga)-.15 G .545(rdless whether the).05 F/F2 10
+/Times-Italic@0 SF(--nor)3.045 E(eset)-.37 E F0 .545(option is gi)3.045
+F -.15(ve)-.25 G 3.045(nt).15 G .545(he user can e)-3.045 F .546
+(xit picocom using the "Quit" com-)-.15 F .822
+(mand \(instead of "Exit"\), which ne)144 160.8 R -.15(ve)-.25 G 3.321
+(rr).15 G .821(esets the serial port. If)-3.321 F F2(--nor)3.321 E(eset)
+-.37 E F0 .821(is gi)3.321 F -.15(ve)-.25 G 3.321(nt).15 G .821
+(hen "Quit" and)-3.321 F("Exit" beha)144 172.8 Q .3 -.15(ve e)-.2 H
+(ssentially the same.).15 E F1(--nolock | -l)108 189.6 Q F0 .744(If gi)
+144 201.6 R -.15(ve)-.25 G .744(n, picocom will *not* attempt to lock t\
+he serial port before opening it. Normally picocom).15 F .389
+(attempts to get a UUCP-style lock-\214le \(e.g. "/v)144 213.6 R .388
+(ar/lock/LCK..ttyS0"\) before opening the port. F)-.25 F(ail-)-.15 E
+.294(ing to do so, results in the program e)144 225.6 R .294
+(xiting after emitting an error)-.15 F .294
 (-message. It is possible that your)-.2 F
-(picocom binary is compiled without this option.)144 172.8 Q F2
-(--send-cmd | -s)108 189.6 Q F0 1.102(Speci\214es the e)144 201.6 R
-1.102(xternal program \(and an)-.15 F 3.601(ya)-.15 G -.18(rg)-3.601 G
-1.101(uments to it\) that will be used for transmitting \214les.).18 F
-(\(Def)144 213.6 Q(ault: "sz -vv"\))-.1 E F2(--r)108 230.4 Q(ecei)-.18 E
--.1(ve)-.1 G(-cmd | -v).1 E F0 1.86(Speci\214es the e)144 242.4 R 1.86
-(xternal program \(and an)-.15 F 4.36(ya)-.15 G -.18(rg)-4.36 G 1.86
-(uments to it\) that will be used for recei).18 F 1.86(ving \214les.)
--.25 F(\(Def)144 254.4 Q(ault: "rz -vv"\))-.1 E F2(--imap)108 271.2 Q F0
-.575(Speci\214es the input character map \(i.e. special characters to b\
-e replaced when read from the serial)144 271.2 R
-(port\). Example: "--imap crlf,delbs". \(Def)144 283.2 Q(aul: Empty\))
--.1 E F2(--omap)108 300 Q F0 1.031(Speci\214es the output character map\
- \(i.e. special characters to be replaced before being written to)144
-300 R(serial port\). Example: "--omap crcrlf,bsdel". \(Def)144 312 Q
-(aul: Empty\))-.1 E F2(--emap)108 328.8 Q F0 .408(Speci\214es the local\
+(picocom binary is compiled without this option.)144 237.6 Q F1
+(--send-cmd | -s)108 254.4 Q F0 .46(Speci\214es the e)144 266.4 R .46
+(xternal program \(and an)-.15 F 2.96(ya)-.15 G -.18(rg)-2.96 G .46
+(uments to it\) that will be used for transmitting \214les. If).18 F
+.862(the ar)144 278.4 R .862(gument to)-.18 F F2(--send-cmd)3.363 E F0
+.863(is the empty string \(')3.363 F .863
+('\), the send-\214le command is disabled. \(Def)-.74 F(ault:)-.1 E
+("sz -vv"\))144 290.4 Q F1(--r)108 307.2 Q(ecei)-.18 E -.1(ve)-.1 G
+(-cmd | -v).1 E F0 .237(Speci\214es the e)144 319.2 R .237
+(xternal program \(and an)-.15 F 2.737(ya)-.15 G -.18(rg)-2.737 G .236
+(uments to it\) that will be used for recei).18 F .236
+(ving \214les. If the)-.25 F(ar)144 331.2 Q .499(gument to)-.18 F F2
+(--r)2.999 E(eceive-cmd)-.37 E F0 .499(is the empty string \(')2.999 F
+.499('\), the recei)-.74 F -.15(ve)-.25 G .5
+(-\214le command is disabled. \(Def).15 F(ault:)-.1 E("rz -vv"\))144
+343.2 Q F1(--imap)108 360 Q F0 .575(Speci\214es the input character map\
+ \(i.e. special characters to be replaced when read from the serial)144
+360 R(port\). Example: "--imap crlf,delbs". \(Def)144 372 Q
+(aul: Empty\))-.1 E F1(--omap)108 388.8 Q F0 1.031(Speci\214es the outp\
+ut character map \(i.e. special characters to be replaced before being \
+written to)144 388.8 R
+(serial port\). Example: "--omap crcrlf,bsdel". \(Def)144 400.8 Q
+(aul: Empty\))-.1 E F1(--emap)108 417.6 Q F0 .408(Speci\214es the local\
 -echo character map \(i.e. special characters to be replaced before bei\
-ng echoed-)144 328.8 R 4.24(back to the terminal, if local-echo is enab\
-led\). Example: "--emap crcrlf,bsdel". \(Def)144 340.8 R(aul:)-.1 E
-(delbs,crcrlf\))144 352.8 Q F2(--help | -h)108 369.6 Q F0
+ng echoed-)144 417.6 R 4.24(back to the terminal, if local-echo is enab\
+led\). Example: "--emap crcrlf,bsdel". \(Def)144 429.6 R(aul:)-.1 E
+(delbs,crcrlf\))144 441.6 Q F1(--help | -h)108 458.4 Q F0
 (Print a short help message describing the command-line options.)144
-381.6 Q/F3 10.95/Times-Bold@0 SF -.548(AU)72 398.4 S(THOR).548 E F0
-(picocom w)108 410.4 Q(as written by Nick P)-.1 E(ata)-.15 E -.25(va)-.2
-G(lis \(npat@ef).25 E(ault.net\))-.1 E F3 -1.04 -1.588(AV A)72 427.2 T
-(ILABILITY)1.588 E F0 5.149(The latest v)108 439.2 R 5.149
-(ersion of "picocom" can be do)-.15 F 5.149(wnloaded from:)-.25 F F2
-(https://github)7.648 E(.com/npat-efault/pico-)-.4 E(com/r)108 451.2 Q
+470.4 Q/F3 10.95/Times-Bold@0 SF -.548(AU)72 487.2 S(THOR).548 E F0
+(picocom w)108 499.2 Q(as written by Nick P)-.1 E(ata)-.15 E -.25(va)-.2
+G(lis \(npat@ef).25 E(ault.net\))-.1 E F3 -1.04 -1.588(AV A)72 516 T
+(ILABILITY)1.588 E F0 5.149(The latest v)108 528 R 5.149
+(ersion of "picocom" can be do)-.15 F 5.149(wnloaded from:)-.25 F F1
+(https://github)7.648 E(.com/npat-efault/pico-)-.4 E(com/r)108 540 Q
 (eleases)-.18 E F0 187.62(Manuals User)72 768 R(4)219.56 E 0 Cg EP
 %%Trailer
 end

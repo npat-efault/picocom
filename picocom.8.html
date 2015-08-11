@@ -194,11 +194,23 @@
       files, and its argumets, are given by the
       <em>--receive-cmd</em> option. For example, in order to start
       a picocom session that uses &quot;sz&quot; to transmit files, and
-      &quot;rz&quot; to receive, you have to say something like this:
+      &quot;rz&quot; to receive files, you have to say something like this:
     </p>
 
     <p>
       picocom --send-cmd &quot;sz -vv&quot; --receive-cmd &quot;rz -vv&quot;
+    </p>
+
+    <p>
+      If the argument to the <em>--send-cmd</em> option, or the
+      argument to the <em>--receive-cmd</em> option is the empty
+      string, then the respective command is disabled. For example, in
+      order to disable both the &quot;send&quot; and the &quot;receive&quot; commands you
+      can invoke picocom like this:
+    </p>
+
+    <p>
+      picocom --send-cmd '' --receive-cmd ''
     </p>
 
     <p>
@@ -387,8 +399,9 @@
       
 	<p>
 	  Specifies the external program (and any arguments to it)
-	  that will be used for transmitting files. (Default: &quot;sz
-	  -vv&quot;)
+	  that will be used for transmitting files. If the argument to
+	  <em>--send-cmd</em> is the empty string (''), the
+	  send-file command is disabled. (Default: &quot;sz -vv&quot;)
 	</p>
       
     
@@ -398,7 +411,9 @@
       
 	<p> 
 	  Specifies the external program (and any arguments to it)
-	  that will be used for receiving files. (Default: &quot;rz -vv&quot;)
+	  that will be used for receiving files. If the argument to
+	  <em>--receive-cmd</em> is the empty string (''), the
+	  receive-file command is disabled. (Default: &quot;rz -vv&quot;)
 	</p>
       
     
