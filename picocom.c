@@ -906,6 +906,10 @@ loop(void)
 							  opts.lecho ? "yes" : "no");
 					break;
 				case KEY_SEND:
+					if ( opts.send_cmd[0] == '\0' ) {
+						fd_printf(STO, "\r\n*** command disabled ***\r\n");
+						break;
+					}
 #ifndef LINENOISE
 					fd_printf(STO, "\r\n*** file: ");
 					r = fd_readline(STI, STO, fname, sizeof(fname));
@@ -927,9 +931,13 @@ loop(void)
 					}
 					run_cmd(tty_fd, opts.send_cmd, fname, NULL);
 					free(fname);
-#endif		
+#endif
 					break;
 				case KEY_RECEIVE:
+					if ( opts.receive_cmd[0] == '\0' ) {
+						fd_printf(STO, "\r\n*** command disabled ***\r\n");
+						break;
+					}
 #ifndef LINENOISE
 					fd_printf(STO, "*** file: ");
 					r = fd_readline(STI, STO, fname, sizeof(fname));
@@ -1297,8 +1305,10 @@ parse_args(int argc, char *argv[])
 #if defined (UUCP_LOCK_DIR) || defined (USE_FLOCK)
 	printf("nolock is      : %s\n", opts.nolock ? "yes" : "no");
 #endif
-	printf("send_cmd is    : %s\n", opts.send_cmd);
-	printf("receive_cmd is : %s\n", opts.receive_cmd);
+	printf("send_cmd is    : %s\n", 
+		   (opts.send_cmd[0] == '\0') ? "disabled" : opts.send_cmd);
+	printf("receive_cmd is : %s\n", 
+		   (opts.receive_cmd[0] == '\0') ? "disabled" : opts.receive_cmd);
 	printf("imap is        : "); print_map(opts.imap);
 	printf("omap is        : "); print_map(opts.omap);
 	printf("emap is        : "); print_map(opts.emap);
