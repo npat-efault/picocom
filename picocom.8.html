@@ -29,10 +29,10 @@
     <p>
       When picocom starts it opens the terminal (serial
       device) given as its non-option argument. Unless the
-      <em>--noinit</em> option is given, it configures the device to
+      <b>--noinit</b> option is given, it configures the device to
       the settings specified by the option-arguments (or to some
       default settings), and sets it to &quot;raw&quot; mode. If
-      <em>--noinit</em> is given, the initialization and
+      <b>--noinit</b> is given, the initialization and
       configuration is skipped; the device is just opened. Following
       this, picocom sets the standard-input and
       standard-output to raw mode. Having done so, it goes in a loop
@@ -66,20 +66,18 @@
       and return to &quot;transparent&quot; mode. This means that if the escape
       character (&quot;C-a&quot;, by default) is typed twice, the program sends
       the escape character to the serial port, and remains in
-      transparent mode. This is a new behavior implemented in
-      v1.4. Previously picocom used to ignore the escape-character
-      when it was entered as a function character.
+      transparent mode.
     </p>
 
     <p>
-      [C-x]: Exit the program: if the <em>--noreset</em> option was
+      [C-x]: Exit the program: if the <b>--noreset</b> option was
       not given then the serial port is reset to its original settings
       before exiting; if it was given the serial port is not reset.
     </p>
 
     <p>
       [C-q]: Quit the program *without* reseting the serial port,
-      regardless of the <em>--noreset</em> option.
+      regardless of the <b>--noreset</b> option.
     </p>
 	
     <p>
@@ -190,9 +188,9 @@
     <p>
       The name of, and the command-line options to, the program to be
       used for transmitting files are given by the
-      <em>--send-cmd</em> option. Similarly the program to receive
+      <b>--send-cmd</b> option. Similarly the program to receive
       files, and its argumets, are given by the
-      <em>--receive-cmd</em> option. For example, in order to start
+      <b>--receive-cmd</b> option. For example, in order to start
       a picocom session that uses &quot;sz&quot; to transmit files, and
       &quot;rz&quot; to receive files, you have to say something like this:
     </p>
@@ -202,8 +200,8 @@
     </p>
 
     <p>
-      If the argument to the <em>--send-cmd</em> option, or the
-      argument to the <em>--receive-cmd</em> option is the empty
+      If the argument to the <b>--send-cmd</b> option, or the
+      argument to the <b>--receive-cmd</b> option is the empty
       string, then the respective command is disabled. For example, in
       order to disable both the &quot;send&quot; and the &quot;receive&quot; commands you
       can invoke picocom like this:
@@ -227,7 +225,7 @@
       transmission or reception program arguments) and assuming you
       have not canceled the operation by pressing C-c, picocom will
       start the the external program as specified by the
-      <em>--send-cmd</em>, or <em>--receive-cmd</em> option, and
+      <b>--send-cmd</b>, or <b>--receive-cmd</b> option, and
       with any filenames and additional arguments you may have
       supplied. The standard input and output of the external program
       will be connected to the serial port. The standard error of the
@@ -245,13 +243,13 @@
   <h2>INPUT, OUTPUT, AND ECHO MAPPING</h2>
 
     <p>
-      Using the <em>--imap</em>, <em>--omap</em>, and
-      <em>--emap</em> options you can make picocom map
+      Using the <b>--imap</b>, <b>--omap</b>, and
+      <b>--emap</b> options you can make picocom map
       (tranlate, replace) certain special characters after being read
-      from the serial port (with <em>--imap</em>), before being
-      written to the serial port (with <em>--omap</em>), and before
+      from the serial port (with <b>--imap</b>), before being
+      written to the serial port (with <b>--omap</b>), and before
       being locally echoed to the terminal (standard output) if local
-      echo is enabled (with <em>--emap</em>). These mapping options
+      echo is enabled (with <b>--emap</b>). These mapping options
       take, each, a single argument which is a comma-separated list of
       one or more of the following identifiers: &quot;crlf&quot; (map CR to LF),
       &quot;crcrlf&quot; (map CR to CR + LF), &quot;igncr&quot; (ignore CR), &quot;lfcr&quot; (map
@@ -343,7 +341,7 @@
 	  Enable local echo. Every character being read from the
 	  terminal (standard input) is echoed to the terminal
 	  (standard output) subject to the echo-mapping configuration
-	  (see <em>--emap</em> option. (Default: Disabled)
+	  (see <b>--emap</b> option. (Default: Disabled)
 	</p>
       
     
@@ -371,9 +369,9 @@
 	  when exiting. It will just close the filedes and do nothing
 	  more. This is useful, for example, for leaving modems
 	  connected when exiting picocom. Regardless whether
-	  the <em>--noreset</em> option is given the user can exit
+	  the <b>--noreset</b> option is given the user can exit
 	  picocom using the &quot;Quit&quot; command (instead of &quot;Exit&quot;),
-	  which never resets the serial port. If <em>--noreset</em>
+	  which never resets the serial port. If <b>--noreset</b>
 	  is given then &quot;Quit&quot; and &quot;Exit&quot; behave essentially the same.
 	</p>
       
@@ -384,12 +382,14 @@
       
 	<p>
 	  If given, picocom will *not* attempt to lock the
-	  serial port before opening it. Normally picocom attempts to
-	  get a UUCP-style lock-file (e.g. &quot;/var/lock/LCK..ttyS0&quot;)
-	  before opening the port. Failing to do so, results in the
+	  serial port before opening it. Normally, depending on how
+	  it's compiled, picocom attempts to get a UUCP-style
+	  lock-file (e.g. &quot;/var/lock/LCK..ttyS0&quot;) before opening the
+	  port, or attempts to lock the port device-node using <b>flock (2)</b>. Failing to do so, results in the
 	  program exiting after emitting an error-message. It is
-	  possible that your picocom binary is compiled without this
-	  option.
+	  possible that your picocom binary is compiled without
+	  support for locking. In this case the <b>--nolock</b>
+	  option is accepted, but has no effect.
 	</p>
       
     
@@ -400,7 +400,7 @@
 	<p>
 	  Specifies the external program (and any arguments to it)
 	  that will be used for transmitting files. If the argument to
-	  <em>--send-cmd</em> is the empty string (''), the
+	  <b>--send-cmd</b> is the empty string (''), the
 	  send-file command is disabled. (Default: &quot;sz -vv&quot;)
 	</p>
       
@@ -412,7 +412,7 @@
 	<p> 
 	  Specifies the external program (and any arguments to it)
 	  that will be used for receiving files. If the argument to
-	  <em>--receive-cmd</em> is the empty string (''), the
+	  <b>--receive-cmd</b> is the empty string (''), the
 	  receive-file command is disabled. (Default: &quot;rz -vv&quot;)
 	</p>
       
@@ -457,7 +457,8 @@
       
 	<p>
 	  Print a short help message describing the command-line
-	  options.
+	  options. picocom's version, compile-time options, and enabled
+	  features are also shown.
 	</p>
       
     
@@ -472,7 +473,7 @@
 
   <h2>AVAILABILITY</h2>
 
-    <p>The latest version of &quot;picocom&quot; can be downloaded from: <a href = "https://github.com/npat-efault/picocom/releases">https://github.com/npat-efault/picocom/releases</a>
+    <p>The latest release of &quot;picocom&quot; can be downloaded from: <a href = "https://github.com/npat-efault/picocom/releases">https://github.com/npat-efault/picocom/releases</a>
     </p>
   
 
