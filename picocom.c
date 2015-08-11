@@ -358,9 +358,10 @@ fd_readline (int fdi, int fdo, char *b, int bsz)
 
 		switch (c) {
 		case '\b':
+		case '\x7f':
 			if ( bp > (unsigned char *)b ) { 
 				bp--;
-				cput(fdo, c); cput(fdo, ' '); cput(fdo, c);
+				cput(fdo, '\b'); cput(fdo, ' '); cput(fdo, '\b');
 			} else {
 				cput(fdo, '\x07');
 			}
