@@ -8,30 +8,30 @@
  *
  * Principles of operation:
  *
- * After the library is initialized one or more file-descriptors, can
+ * After the library is initialized, one or more file-descriptors can
  * be added to (and latter removed from) the list managed by the
- * library (framework). These file descriptors must be opened on
- * terminal devices. For every fd, the original settings of the
- * associated terminal device are saved by the library. These settings
- * are restored when the fd is removed from the framework, or at
- * program termination [by means of an atexit(3) handler installed by
- * the library], or at user request. The library maintains three
- * structures for every fd in the framework: The original settings
- * structure ("origtermios"), keeping the settings of the terminal
- * device when the respective filedes was added to the framework. The
- * current settings structure ("currtermios"), keeping the current
- * settings of the associated terminal device; and the next settings
- * structure ("nexttermios") which keeps settings to be applied to the
- * associated terminal device at a latter time, upon user request.
- * The "term_set_*" functions can be used to modify the device
- * settings stored in the nexttermios structure. Using functions
- * provided by the library the user can: Apply the nexttermios
- * settings to the device. Revert all changes made on nexttermios by
- * copying the currtermios structure to nexttermios. Reset the device,
- * by configuring it to the original settings, and copying origtermios
- * to currtermios and nexttermios. Refresh the device by rereading the
- * current settings from it and updating currtermios (to catch up with
- * changes made to the device by means outside of this framework).
+ * it. These file descriptors must be opened on terminal devices. For
+ * every fd, the original settings of the associated terminal device
+ * are saved by the library. These settings are restored when the fd
+ * is removed from the framework, or at program termination [by means
+ * of an atexit(3) handler installed by the library], or at user
+ * request. The library maintains three structures for every fd in the
+ * framework: The original settings structure ("origtermios"), keeping
+ * the settings of the terminal device when the respective filedes was
+ * added to the framework. The current settings structure
+ * ("currtermios"), keeping the current settings of the associated
+ * terminal device; and the next settings structure ("nexttermios")
+ * which keeps settings to be applied to the associated terminal
+ * device at a latter time, upon user request.  The "term_set_*"
+ * functions can be used to modify the device settings stored in the
+ * nexttermios structure. Using functions provided by the library the
+ * user can: Apply the nexttermios settings to the device. Revert all
+ * changes made on nexttermios by copying the currtermios structure to
+ * nexttermios. Reset the device, by configuring it to the original
+ * settings, and copying origtermios to currtermios and
+ * nexttermios. Refresh the device by rereading the current settings
+ * from it and updating currtermios (to catch up with changes made to
+ * the device by means outside of this framework).
  *
  * Interface summary:
  *
@@ -265,7 +265,10 @@ int term_erase (int fd);
  * removed from the framework without the associated device beign
  * reset (it is most-likely no longer connected to a device anyway,
  * and reset would fail). The device associated with "newfd" is
- * configured with "oldfd"s current settings.
+ * configured with "oldfd"s current settings (stored in the
+ * "currtermios" structure). After applying the settings to "newfd",
+ * the "currtermios" structure is re-read from the device, so that it
+ * corresponds to the actual device settings.
  *
  * Returns negative on failure, non-negative on success. In case of
  * failure "oldfd" is not removed from the framework, and no
@@ -276,21 +279,24 @@ int term_erase (int fd);
  * you a way to do transparent "open"s and "close"s: Before you close
  * a device, it has certain settings managed by the library. When you
  * close it and then re-open it many of these settings are lost, since
- * the device reverts to system-default settings. By calling movefd,
- * you conceptually _maintain_ the old (pre-close) settings to the new
- * (post-open) filedes.
+ * the device reverts to system-default settings. By calling
+ * term_replace, you conceptually _maintain_ the old (pre-close)
+ * settings to the new (post-open) filedes.
  */
 int term_replace (int oldfd, int newfd);
 
 /*
  * F term_apply 
  *
- * Applies the settings stored in the nexttermios structure associated
- * with the managed filedes "fd", to the respective terminal device.
- * It then copies nexttermios to currtermios.
+ * Applies the settings stored in the "nexttermios" structure
+ * associated with the managed filedes "fd", to the respective
+ * terminal device.  It then re-reads the settings form the device and
+ * stores them in "nexttermios". Finally it copies "nexttermios" to
+ * "currtermios".
  *
  * Returns negative on failure, non negative on success. In case of
- * failure the currtermios structure is not affected.
+ * failure the "nexttermios" and "currtermios" structures are not
+ * affected.
  */
 int term_apply (int fd);
 
@@ -311,9 +317,9 @@ int term_revert (int fd);
  *
  * Reset the terminal device associated with the managed filedes "fd"
  * to its "original" settings. This function applies the settings in
- * the "origtermios" structure to the actual device. It also discards
- * the settings in the "currtermios" and "nexttermios" stuctures by
- * making them equal to "origtermios".
+ * the "origtermios" structure to the actual device. It then reads the
+ * settings from the device and stores them in both the "currtermios"
+ * and "nexttermios" stuctures.
  *
  * Returns negative on failure, non-negative of success. On failure
  * the the "origtermios", "currtermios", and "nexttermios" stuctures

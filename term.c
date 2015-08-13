@@ -513,6 +513,12 @@ term_replace (int oldfd, int newfd)
 			rval = -1;
 			break;
 		}
+		r = tcgetattr(newfd, &term.currtermios[i]);
+		if ( r < 0 ) {
+			term_errno = TERM_EGETATTR;
+			rval = -1;
+			break;
+		}
 
 		term.fd[i] = newfd;
 
@@ -550,9 +556,14 @@ term_reset (int fd)
 			rval = -1;
 			break;
 		}
+		r = tcgetattr(term.fd[i], &term.currtermios[i]);
+		if ( r < 0 ) {
+			term_errno = TERM_EGETATTR;
+			rval = -1;
+			break;
+		}
 
-		term.currtermios[i] = term.origtermios[i];
-		term.nexttermios[i] = term.origtermios[i];
+		term.nexttermios[i] = term.currtermios[i];
 	} while (0);
 
 	return rval;
@@ -634,7 +645,13 @@ term_apply (int fd)
 			rval = -1;
 			break;
 		}
-		
+		r = tcgetattr(term.fd[i], &term.nexttermios[i]);
+		if ( r < 0 ) {
+			term_errno = TERM_EGETATTR;
+			rval = -1;
+			break;
+		}
+
 		term.currtermios[i] = term.nexttermios[i];
 
 	} while (0);
