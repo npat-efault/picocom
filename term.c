@@ -192,7 +192,7 @@ struct baud_codes {
 	{ 3500000, B3500000 },
 #endif
 #ifdef B4000000
-	{ 4000000, 4000000 },
+	{ 4000000, B4000000 },
 #endif
 #endif /* of HIGH_BAUD */
 };
