@@ -52,6 +52,10 @@
  * F term_set_hupcl - enable or disable hupcl in "nexttermios"
  * F term_set_local - set "nexttermios" to local or non-local mode
  * F term_set - set all params of "nexttermios" in a single stroke
+ * F term_get_baudrate - return the baudrate set in "currtermios"
+ * F term_get_parity - return the parity setting in "currtermios"
+ * F term_get_databits - return the data-bits setting in "currtermios"
+ * F term_get_flowcntrl - return the flow-control setting in "currtermios"
  * F term_pulse_dtr - pulse the DTR line a device
  * F term_lower_dtr - lower the DTR line of a device
  * F term_raise_dtr - raise the DTR line of a device
@@ -126,6 +130,7 @@ enum term_errno_e {
 	TERM_EBAUD,
 	TERM_ESETOSPEED,
 	TERM_ESETISPEED,
+	TERM_EGETSPEED,
 	TERM_EPARITY,
 	TERM_EDATABITS,
 	TERM_EFLOW,
@@ -139,14 +144,18 @@ enum term_errno_e {
  *
  * Parity modes supported by the library:
  *
- * P_NONE - no patiry
- * P_EVEN - even parity
- * P_ODD  - odd parity
+ * P_NONE  - no patiry
+ * P_EVEN  - even parity
+ * P_ODD   - odd parity
+ * P_MARK  - mark parity (parity bit always 1)
+ * P_SPACE - space parity (parity bit always 0)
  */
 enum parity_e {
-	P_NONE, 
+	P_NONE = 0, 
 	P_EVEN, 
-	P_ODD
+	P_ODD,
+	P_MARK,
+	P_SPACE
 };
 
 /* 
@@ -160,9 +169,10 @@ enum parity_e {
  * FC_XONXOFF  - xon/xoff flow control. 
  */
 enum flowcntrl_e {
-	FC_NONE, 
+	FC_NONE = 0, 
 	FC_RTSCTS, 
-	FC_XONXOFF
+	FC_XONXOFF,
+	FC_OTHER
 };
 
 /***************************************************************************/
@@ -474,6 +484,49 @@ int term_set (int fd,
               int baud, 
               enum parity_e parity, int bits, enum flowcntrl_e fc,
 			  int local, int hupcl);
+
+/* F term_get_baudrate
+ *
+ * Reads and decodes the current baudrate settings in the
+ * "currtermios" structure of the managed filedes "fd".
+ *
+ * Returns the decoded output baudrate (as bits-per-second), or -1 if
+ * the output baudrate cannot be decoded, or if "fd" does not
+ * correspond to a managed filedes. If "ispeed" is not NULL, it writes
+ * the decoded input baudrate to the integer pointed-to by "ispeed";
+ * if the input baudrate cannot be decoded in writes -1 instead.
+ */
+int term_get_baudrate (int fd, int *ispeed);
+
+/* F term_get_parity
+ *
+ * Reads and decodes the current parity settings in the
+ * "currtermios" structure of the managed filedes "fd".
+ *
+ * Returns one of the "enum parity_e" members, or -1 if "fd" does not
+ * correspond to a managed filedes.
+ */
+enum parity_e term_get_parity (int fd);
+
+/* F term_get_databits
+ *
+ * Reads and decodes the current databits settings in the
+ * "currtermios" structure of the managed filedes "fd".
+ *
+ * Returns the number of databits (5..8), or -1 if "fd" does not
+ * correspond to a managed filedes.
+ */
+int term_get_databits (int fd);
+
+/* F term_get_flowcntrl
+ *
+ * Reads and decodes the current flow-control settings in the
+ * "currtermios" structure of the managed filedes "fd".
+ *
+ * Returns one of the "enum flowcntrl_e" members, or -1 if "fd" does
+ * not correspond to a managed filedes.
+ */
+enum flowcntrl_e term_get_flowcntrl (int fd);
 
 /* F term_pulse_dtr
  *

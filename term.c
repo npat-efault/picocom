@@ -68,6 +68,7 @@ static const char * const term_err_str[] = {
 	[TERM_EBAUD]      = "Invalid baud rate",
 	[TERM_ESETOSPEED] = "Cannot set the output speed",
 	[TERM_ESETISPEED] = "Cannot set the input speed",
+	[TERM_EGETSPEED]  = "Cannot decode speed",
 	[TERM_EPARITY]    = "Invalid parity mode",
 	[TERM_EDATABITS]  = "Invalid number of databits",
 	[TERM_EFLOW]      = "Invalid flowcontrol mode",
@@ -246,6 +247,20 @@ Bcode(int speed)
 		}
 	}
 	return code;
+}
+
+static int
+Bspeed(speed_t code)
+{
+	int speed = -1, i;
+
+	for (i = 0; i < BAUD_TABLE_SZ; i++) {
+		if ( baud_table[i].code == code ) {
+			speed = baud_table[i].speed;
+			break;
+		}
+	}
+	return speed;
 }
 
 /**************************************************************************/
@@ -735,6 +750,34 @@ term_set_baudrate (int fd, int baudrate)
 	return rval;
 }
 
+int 
+term_get_baudrate (int fd, int *ispeed)
+{
+	speed_t code;
+	int i, ospeed;
+
+	do { /* dummy */
+
+		i = term_find(fd);
+		if ( i < 0 ) {
+			ospeed = -1;
+			break;
+		}
+
+		if ( ispeed ) {
+			code = cfgetispeed(&term.currtermios[i]);
+			*ispeed = Bspeed(code);
+		}
+		code = cfgetospeed(&term.currtermios[i]);
+		ospeed = Bspeed(code);
+		if ( ospeed < 0 )
+			term_errno = TERM_EGETSPEED;
+
+	} while (0);
+
+	return ospeed;
+}
+
 /***************************************************************************/
 
 int
@@ -757,14 +800,22 @@ term_set_parity (int fd, enum parity_e parity)
 
 		switch (parity) {
 		case P_EVEN:
-			tiop->c_cflag &= ~PARODD;
+			tiop->c_cflag &= ~(PARODD | CMSPAR);
 			tiop->c_cflag |= PARENB;
 			break;
 		case P_ODD:
+			tiop->c_cflag &= ~CMSPAR;
 			tiop->c_cflag |= PARENB | PARODD;
 			break;
+		case P_MARK:
+			tiop->c_cflag |= PARENB | PARODD | CMSPAR;
+			break;
+		case P_SPACE:
+			tiop->c_cflag &= ~PARODD;
+			tiop->c_cflag |= PARENB | CMSPAR;
+			break;
 		case P_NONE:
-			tiop->c_cflag &= ~(PARENB | PARODD); 
+			tiop->c_cflag &= ~(PARENB | PARODD | CMSPAR); 
 			break;
 		default:
 			term_errno = TERM_EPARITY;
@@ -776,6 +827,34 @@ term_set_parity (int fd, enum parity_e parity)
 	} while (0);
 
 	return rval;
+}
+
+enum parity_e
+term_get_parity (int fd)
+{
+	tcflag_t flg;
+	int i, parity;
+
+	do { /* dummy */
+
+		i = term_find(fd);
+		if ( i < 0 ) {
+			parity = -1;
+			break;
+		}
+
+		flg = term.currtermios[i].c_cflag;
+		if ( ! (flg & PARENB) ) {
+			parity = P_NONE;
+		} else if ( flg & CMSPAR ) {
+			parity = (flg & PARODD) ? P_MARK : P_SPACE;
+		} else {
+			parity = (flg & PARODD) ? P_ODD : P_EVEN;
+		}
+
+	} while (0);
+	
+	return parity;
 }
 
 /***************************************************************************/
@@ -823,6 +902,42 @@ term_set_databits (int fd, int databits)
 	return rval;
 }
 
+int
+term_get_databits (int fd)
+{
+	tcflag_t flg;
+	int i, bits;
+
+	do { /* dummy */
+
+		i = term_find(fd);
+		if ( i < 0 ) {
+			bits = -1;
+			break;
+		}
+
+		flg = term.currtermios[i].c_cflag & CSIZE;
+		switch (flg) {
+		case CS5:
+			bits = 5;
+			break;
+		case CS6:
+			bits = 6;
+			break;
+		case CS7:
+			bits = 7;
+			break;
+		case CS8:
+		default:
+			bits = 8;
+			break;
+		}
+
+	} while (0);
+
+	return bits;
+}
+
 /***************************************************************************/
 
 int
@@ -866,6 +981,39 @@ term_set_flowcntrl (int fd, enum flowcntrl_e flowcntl)
 	} while (0);
 
 	return rval;
+}
+
+enum flowcntrl_e
+term_get_flowcntrl (int fd)
+{
+	int i, flow;
+	int rtscts, xoff, xon;
+
+	do { /* dummy */
+
+		i = term_find(fd);
+		if ( i < 0 ) {
+			flow = -1;
+			break;
+		}
+
+		rtscts = (term.currtermios[i].c_cflag & CRTSCTS) ? 1 : 0;
+		xoff = (term.currtermios[i].c_iflag & IXOFF) ? 1 : 0;
+		xon = (term.currtermios[i].c_iflag & (IXON | IXANY)) ? 1 : 0;
+
+		if ( rtscts && ! xoff && ! xon ) {
+			flow = FC_RTSCTS;
+		} else if ( ! rtscts && xoff && xon ) {
+			flow = FC_XONXOFF;
+		} else if ( ! rtscts && ! xoff && ! xon ) {
+			flow = FC_NONE;
+		} else {
+			flow = FC_OTHER;
+		}
+
+	} while (0);
+	
+	return flow;
 }
 
 /***************************************************************************/
