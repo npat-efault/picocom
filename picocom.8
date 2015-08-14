@@ -35,7 +35,7 @@ Commands are given to picocom by first keying the "espace character" which by de
 
 [C-c]: Toggle local-echo mode. 
 
-[C-v]: Show program options (like baud rate, data bits, etc). Only the options that can be modified online (through commands) are shown, not those that can only be set at the command-line. 
+[C-v]: Show program options (like baud rate, data bits, etc) as well as the actual serial port settings. Only the options and port settings that can be modified online (through commands) are shown, not those that can only be set at the command-line. If an actual port setting is different than the current value of the respective option (for whatever reason) then the value of the option is shown, followed by the value of the actual port setting in parenthesis. Example: "*** baud: 115200 (9600)". This means that a baud rate of 115200bps has been selected (from the command line, or using commands) but the serial port is actually operating at 9600bps (the driver may not support the higher setting, and has silently replaced it with a safe default, or the setting may have been changed from outside picocom). If the option and the corresponding port setting are the same, only a single value is shown. Example: "*** baud: 9600". 
 
 [C-s]: Send (upload) a file (see "Sending and Receiving Files" below) 
 
@@ -46,6 +46,8 @@ After performing one of the above operations the program leaves the command mode
 C-a, C-u, C-a, C-u 
 
 assuming of-course that "C-a" is the escape character. 
+
+Commands that change program options ([C-u], [C-d], [C-f], etc) also display a message showing the new option value. If the new option value cannot be applied succesfully to the serial port (for whatever reason), then the respective actual current port setting is also shown. See the description of the [C-v] command, above, for more on this. 
 .SH SENDING AND RECEIVING FILES
 picocom can send and receive files over the serial port using external programs that implement the respective protocols. In Linux typical programs for this purpose are: 
 
