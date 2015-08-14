@@ -55,6 +55,25 @@
 
 /**********************************************************************/
 
+/* parity modes names */
+const char *parity_str[] = {
+	[P_NONE] = "none",
+	[P_EVEN] = "even",
+	[P_ODD] = "odd",
+	[P_MARK] = "mark",
+	[P_SPACE] = "space",
+};
+
+/* flow control modes names */
+const char *flow_str[] = {
+	[FC_NONE] = "none",
+	[FC_RTSCTS] = "RTS/CTS",
+	[FC_XONXOFF] = "xon/xoff",
+	[FC_OTHER] = "other",
+};
+
+/**********************************************************************/
+
 #define KEY_EXIT    '\x18' /* C-x: exit picocom */
 #define KEY_QUIT    '\x11' /* C-q: exit picocom without reseting port */
 #define KEY_PULSE   '\x10' /* C-p: pulse DTR */
@@ -147,9 +166,7 @@ struct {
 	char port[128];
 	int baud;
 	enum flowcntrl_e flow;
-	char *flow_str;
 	enum parity_e parity;
-	char *parity_str;
 	int databits;
 	int lecho;
 	int noinit;
@@ -167,9 +184,7 @@ struct {
 	.port = "",
 	.baud = 9600,
 	.flow = FC_NONE,
-	.flow_str = "none",
 	.parity = P_NONE,
-	.parity_str = "none",
 	.databits = 8,
 	.lecho = 0,
 	.noinit = 0,
@@ -584,24 +599,20 @@ baud_down (int baud)
 }
 
 int
-flow_next (int flow, char **flow_str)
+flow_next (int flow)
 {
 	switch(flow) {
 	case FC_NONE:
 		flow = FC_RTSCTS;
-		*flow_str = "RTS/CTS";
 		break;
 	case FC_RTSCTS:
 		flow = FC_XONXOFF;
-		*flow_str = "xon/xoff";
 		break;
 	case FC_XONXOFF:
 		flow = FC_NONE;
-		*flow_str = "none";
 		break;
 	default:
 		flow = FC_NONE;
-		*flow_str = "none";
 		break;
 	}
 
@@ -609,24 +620,20 @@ flow_next (int flow, char **flow_str)
 }
 
 int
-parity_next (int parity, char **parity_str)
+parity_next (int parity)
 {
 	switch(parity) {
 	case P_NONE:
 		parity = P_EVEN;
-		*parity_str = "even";
 		break;
 	case P_EVEN:
 		parity = P_ODD;
-		*parity_str = "odd";
 		break;
 	case P_ODD:
 		parity = P_NONE;
-		*parity_str = "none";
 		break;
 	default:
 		parity = P_NONE;
-		*parity_str = "none";
 		break;
 	}
 
@@ -640,6 +647,47 @@ bits_next (int bits)
 	if (bits > 8) bits = 5;
 
 	return bits;
+}
+
+void
+show_status (int dtr_up) 
+{
+	int baud, bits;
+	enum flowcntrl_e flow;
+	enum parity_e parity;
+
+	term_refresh(tty_fd);
+
+	baud = term_get_baudrate(tty_fd, NULL);
+	flow = term_get_flowcntrl(tty_fd);
+	parity = term_get_parity(tty_fd);
+	bits = term_get_databits(tty_fd);
+	
+	fd_printf(STO, "\r\n");
+ 
+	if ( baud != opts.baud ) {
+		fd_printf(STO, "*** baud: %d (%d)\r\n", opts.baud, baud);
+	} else { 
+		fd_printf(STO, "*** baud: %d\r\n", opts.baud);
+	}
+	if ( flow != opts.flow ) {
+		fd_printf(STO, "*** flow: %s (%s)\r\n", 
+				  flow_str[opts.flow], flow_str[flow]);
+	} else {
+		fd_printf(STO, "*** flow: %s\r\n", flow_str[opts.flow]);
+	}
+	if ( parity != opts.parity ) {
+		fd_printf(STO, "*** parity: %s (%s)\r\n", 
+				  parity_str[opts.parity], parity_str[parity]);
+	} else {
+		fd_printf(STO, "*** parity: %s\r\n", parity_str[opts.parity]);
+	}
+	if ( bits != opts.databits ) {
+		fd_printf(STO, "*** databits: %d (%d)\r\n", opts.databits, bits);
+	} else {
+		fd_printf(STO, "*** databits: %d\r\n", opts.databits);
+	}
+	fd_printf(STO, "*** dtr: %s\r\n", dtr_up ? "up" : "down");
 }
 
 /**********************************************************************/
@@ -769,7 +817,6 @@ loop(void)
 	int dtr_up;
 	fd_set rdset, wrset;
 	int newbaud, newflow, newparity, newbits;
-	char *newflow_str, *newparity_str;
 #ifndef LINENOISE
 	char fname[128];
 #else
@@ -837,12 +884,7 @@ loop(void)
 					term_erase(tty_fd);
 					return;
 				case KEY_STATUS:
-					fd_printf(STO, "\r\n");
-					fd_printf(STO, "*** baud: %d\r\n", opts.baud);
-					fd_printf(STO, "*** flow: %s\r\n", opts.flow_str);
-					fd_printf(STO, "*** parity: %s\r\n", opts.parity_str);
-					fd_printf(STO, "*** databits: %d\r\n", opts.databits);
-					fd_printf(STO, "*** dtr: %s\r\n", dtr_up ? "up" : "down");
+					show_status(dtr_up);
 					break;
 				case KEY_PULSE:
 					fd_printf(STO, "\r\n*** pulse DTR ***\r\n");
@@ -859,47 +901,64 @@ loop(void)
 							  dtr_up ? "up" : "down");
 					break;
 				case KEY_BAUD_UP:
-					newbaud = baud_up(opts.baud);
-					term_set_baudrate(tty_fd, newbaud);
-					tty_q.len = 0; term_flush(tty_fd);
-					if ( term_apply(tty_fd) >= 0 ) opts.baud = newbaud;
-					fd_printf(STO, "\r\n*** baud: %d ***\r\n", opts.baud);
-					break;
 				case KEY_BAUD_DN:
-					newbaud = baud_down(opts.baud);
-					term_set_baudrate(tty_fd, newbaud);
+					if (c == KEY_BAUD_UP)
+						opts.baud = baud_up(opts.baud);
+					else 
+						opts.baud = baud_down(opts.baud);
+					term_set_baudrate(tty_fd, opts.baud);
 					tty_q.len = 0; term_flush(tty_fd);
-					if ( term_apply(tty_fd) >= 0 ) opts.baud = newbaud;
-					fd_printf(STO, "\r\n*** baud: %d ***\r\n", opts.baud);
+					term_apply(tty_fd);
+					newbaud = term_get_baudrate(tty_fd, NULL);
+					if ( opts.baud != newbaud ) {
+						fd_printf(STO, "\r\n*** baud: %d (%d) ***\r\n", 
+								  opts.baud, newbaud);
+					} else {
+						fd_printf(STO, "\r\n*** baud: %d ***\r\n", opts.baud);
+					}
 					break;
 				case KEY_FLOW:
-					newflow = flow_next(opts.flow, &newflow_str);
-					term_set_flowcntrl(tty_fd, newflow);
+					opts.flow = flow_next(opts.flow);
+					term_set_flowcntrl(tty_fd, opts.flow);
 					tty_q.len = 0; term_flush(tty_fd);
-					if ( term_apply(tty_fd) >= 0 ) {
-						opts.flow = newflow;
-						opts.flow_str = newflow_str;
+					term_apply(tty_fd);
+					newflow = term_get_flowcntrl(tty_fd);
+					if ( opts.flow != newflow ) {
+						fd_printf(STO, "\r\n*** flow: %s (%s) ***\r\n", 
+								  flow_str[opts.flow], flow_str[newflow]);
+					} else {
+						fd_printf(STO, "\r\n*** flow: %s ***\r\n", 
+								  flow_str[opts.flow]);
 					}
-					fd_printf(STO, "\r\n*** flow: %s ***\r\n", opts.flow_str);
 					break;
 				case KEY_PARITY:
-					newparity = parity_next(opts.parity, &newparity_str);
-					term_set_parity(tty_fd, newparity);
+					opts.parity = parity_next(opts.parity);
+					term_set_parity(tty_fd, opts.parity);
 					tty_q.len = 0; term_flush(tty_fd);
-					if ( term_apply(tty_fd) >= 0 ) {
-						opts.parity = newparity;
-						opts.parity_str = newparity_str;
+					term_apply(tty_fd);
+					newparity = term_get_parity(tty_fd);
+					if (opts.parity != newparity ) {
+						fd_printf(STO, "\r\n*** parity: %s (%s) ***\r\n",
+								  parity_str[opts.parity], 
+								  parity_str[newparity]);
+					} else {
+						fd_printf(STO, "\r\n*** parity: %s ***\r\n", 
+								  parity_str[opts.parity]);
 					}
-					fd_printf(STO, "\r\n*** parity: %s ***\r\n", 
-							  opts.parity_str);
 					break;
 				case KEY_BITS:
-					newbits = bits_next(opts.databits);
-					term_set_databits(tty_fd, newbits);
+					opts.databits = bits_next(opts.databits);
+					term_set_databits(tty_fd, opts.databits);
 					tty_q.len = 0; term_flush(tty_fd);
-					if ( term_apply(tty_fd) >= 0 ) opts.databits = newbits;
-					fd_printf(STO, "\r\n*** databits: %d ***\r\n", 
-							  opts.databits);
+					term_apply(tty_fd);
+					newbits = term_get_databits(tty_fd);
+					if (opts.databits != newbits ) {
+						fd_printf(STO, "\r\n*** databits: %d (%d) ***\r\n",
+								  opts.databits, newbits);
+					} else {
+						fd_printf(STO, "\r\n*** databits: %d ***\r\n", 
+								  opts.databits);
+					}
 					break;
 				case KEY_LECHO:
 					opts.lecho = ! opts.lecho;
@@ -1212,17 +1271,14 @@ parse_args(int argc, char *argv[])
 			switch (optarg[0]) {
 			case 'X':
 			case 'x':
-				opts.flow_str = "xon/xoff";
 				opts.flow = FC_XONXOFF;
 				break;
 			case 'H':
 			case 'h':
-				opts.flow_str = "RTS/CTS";
 				opts.flow = FC_RTSCTS;
 				break;
 			case 'N':
 			case 'n':
-				opts.flow_str = "none";
 				opts.flow = FC_NONE;
 				break;
 			default:
@@ -1237,15 +1293,12 @@ parse_args(int argc, char *argv[])
 		case 'p':
 			switch (optarg[0]) {
 			case 'e':
-				opts.parity_str = "even";
 				opts.parity = P_EVEN;
 				break;
 			case 'o':
-				opts.parity_str = "odd";
 				opts.parity = P_ODD;
 				break;
 			case 'n':
-				opts.parity_str = "none";
 				opts.parity = P_NONE;
 				break;
 			default:
@@ -1295,9 +1348,9 @@ parse_args(int argc, char *argv[])
 	printf("picocom v%s\n", VERSION_STR);
 	printf("\n");
 	printf("port is        : %s\n", opts.port);
-	printf("flowcontrol    : %s\n", opts.flow_str);
+	printf("flowcontrol    : %s\n", flow_str[opts.flow]);
 	printf("baudrate is    : %d\n", opts.baud);
-	printf("parity is      : %s\n", opts.parity_str);
+	printf("parity is      : %s\n", parity_str[opts.parity]);
 	printf("databits are   : %d\n", opts.databits);
 	printf("escape is      : C-%c\n", 'a' + opts.escape - 1);
 	printf("local echo is  : %s\n", opts.lecho ? "yes" : "no");
