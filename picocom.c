@@ -355,7 +355,7 @@ fatal (const char *format, ...)
 
 #ifndef LINENOISE
 
-#define cput(fd, c) do { int cl = c; write((fd), &(cl), 1); } while(0)
+#define cput(fd, c) do { char cl = c; write((fd), &(cl), 1); } while(0)
 
 int
 fd_readline (int fdi, int fdo, char *b, int bsz)
