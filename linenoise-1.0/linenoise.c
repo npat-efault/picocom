@@ -756,7 +756,12 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
         char seq[3];
 
         nread = read(l.ifd,&c,1);
-        if (nread <= 0) return l.len;
+        if (nread < 0) {
+            return nread;
+        } else if (nread == 0) {
+            errno = EAGAIN;
+            return -1;
+        }
 
         /* Only autocomplete when the callback is set. It returns < 0 when
          * there was an error reading from fd. Otherwise it will return the
