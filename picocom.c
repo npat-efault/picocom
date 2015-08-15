@@ -380,7 +380,7 @@ fd_readline (int fdi, int fdo, char *b, int bsz)
 
 	while (1) {
 		r = read(fdi, &c, 1);
-		if ( r <= 0 ) { r--; goto out; }
+		if ( r <= 0 ) { r = -1; goto out; }
 
 		switch (c) {
 		case '\b':
@@ -413,10 +413,25 @@ out:
 
 #undef cput
 
+char *
+read_filename (void)
+{
+	char fname[_POSIX_PATH_MAX];
+	int r;
+
+	fd_printf(STO, "\r\n*** file: ");
+	r = fd_readline(STI, STO, fname, sizeof(fname));
+	fd_printf(STO, "\r\n");
+	if ( r < 0 ) 
+		return NULL;
+	else
+		return strdup(fname);
+}
+
 #else /* LINENOISE defined */
 
 void 
-send_file_completion (const char *buf, linenoiseCompletions *lc) 
+file_completion_cb (const char *buf, linenoiseCompletions *lc) 
 {
 	DIR *dirp;
 	struct dirent *dp;
@@ -495,25 +510,14 @@ add_send_receive_history (char *fname)
 }
 
 char *
-read_send_filename (void)
+read_filename (void)
 {
 	char *fname;
-	linenoiseSetCompletionCallback(send_file_completion);
+	linenoiseSetCompletionCallback(file_completion_cb);
 	printf("\r\n");
 	fname = linenoise("*** file: ");
 	printf("\r\n");
 	linenoiseSetCompletionCallback(NULL);
-	if (fname != NULL)
-		add_send_receive_history(fname);
-	return fname;
-}
-
-char *
-read_receive_filename (void)
-{
-	printf("\r\n");
-	char *fname = linenoise("*** file: ");
-	printf("\r\n");
 	if (fname != NULL)
 		add_send_receive_history(fname);
 	return fname;
@@ -816,11 +820,8 @@ do_command (unsigned char c)
 {
 	static int dtr_up = 0;
 	int newbaud, newflow, newparity, newbits;
-#ifndef LINENOISE
-	char fname[128];
-#else
+	const char *xfr_cmd;
 	char *fname;
-#endif
 	int r;
 
 	switch (c) {
@@ -915,67 +916,19 @@ do_command (unsigned char c)
 				  opts.lecho ? "yes" : "no");
 		break;
 	case KEY_SEND:
-		if ( opts.send_cmd[0] == '\0' ) {
-			fd_printf(STO, "\r\n*** command disabled ***\r\n");
-			break;
-		}
-#ifndef LINENOISE
-		fd_printf(STO, "\r\n*** file: ");
-		r = fd_readline(STI, STO, fname, sizeof(fname));
-		fd_printf(STO, "\r\n");
-		if ( r <= -1 ) {
-			if ( errno == EINTR ) {
-				fd_printf(STO, "Cannot read filename!\r\n");
-				break;
-			} else {
-				fatal("cannot read filename: %s", strerror(errno));
-			}
-		}
-		run_cmd(tty_fd, opts.send_cmd, fname, NULL);
-#else
-		fname = read_send_filename();
-		if (fname == NULL) {
-			fd_printf(STO, "Cannot read filename!\r\n");
-			break;
-		}
-		run_cmd(tty_fd, opts.send_cmd, fname, NULL);
-		free(fname);
-#endif
-		break;
 	case KEY_RECEIVE:
-		if ( opts.receive_cmd[0] == '\0' ) {
+		xfr_cmd = (c == KEY_SEND) ? opts.send_cmd : opts.receive_cmd;
+		if ( xfr_cmd[0] == '\0' ) {
 			fd_printf(STO, "\r\n*** command disabled ***\r\n");
 			break;
 		}
-#ifndef LINENOISE
-		fd_printf(STO, "*** file: ");
-		r = fd_readline(STI, STO, fname, sizeof(fname));
-		fd_printf(STO, "\r\n");
-
-		if ( r <= -1 ) {
-			if ( errno == EINTR ) {
-				fd_printf(STO, "Cannot read filename!\r\n");
-				break;
-			} else {
-				fatal("cannot read filename: %s", strerror(errno));
-			}
-		}
-		if ( fname[0] )
-			run_cmd(tty_fd, opts.receive_cmd, fname, NULL);
-		else
-			run_cmd(tty_fd, opts.receive_cmd, NULL);
-#else
-		fname = read_receive_filename();
+		fname = read_filename();
 		if (fname == NULL) {
-			fd_printf(STO, "Cannot read filename!\r\n");
+			fd_printf(STO, "*** cannot read filename ***\r\n");
 			break;
 		}
-		if ( fname[0] )
-			run_cmd(tty_fd, opts.receive_cmd, fname, NULL);
-		else
-			run_cmd(tty_fd, opts.receive_cmd, NULL);
+		run_cmd(tty_fd, xfr_cmd, fname, NULL);
 		free(fname);
-#endif
 		break;
 	case KEY_BREAK:
 		term_break(tty_fd);
