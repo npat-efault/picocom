@@ -213,6 +213,18 @@ struct tty_q {
 	unsigned char buff[TTY_Q_SZ];
 } tty_q;
 
+int tty_write_sz;
+
+#define TTY_WRITE_SZ_DIV 10
+#define TTY_WRITE_SZ_MIN 8
+
+#define set_tty_write_sz(baud)							\
+    do {												\
+        tty_write_sz = (baud) / TTY_WRITE_SZ_DIV;		\
+	    if ( tty_write_sz < TTY_WRITE_SZ_MIN )			\
+            tty_write_sz = TTY_WRITE_SZ_MIN;			\
+    } while (0)
+
 /**********************************************************************/
 
 #ifdef UUCP_LOCK_DIR
@@ -872,6 +884,7 @@ do_command (unsigned char c)
 		} else {
 			fd_printf(STO, "\r\n*** baud: %d ***\r\n", opts.baud);
 		}
+		set_tty_write_sz(newbaud);
 		break;
 	case KEY_FLOW:
 		opts.flow = flow_next(opts.flow);
@@ -1058,8 +1071,10 @@ loop(void)
 
 			/* write to port */
 
+			int sz;
+			sz = (tty_q.len < tty_write_sz) ? tty_q.len : tty_write_sz;
 			do {
-				n = write(tty_fd, tty_q.buff, tty_q.len);
+				n = write(tty_fd, tty_q.buff, sz);
 			} while ( n < 0 && errno == EINTR );
 			if ( n <= 0 )
 				fatal("write to term failed: %s", strerror(errno));
@@ -1399,6 +1414,8 @@ main(int argc, char *argv[])
 	if ( r < 0 )
 		fatal("failed to config device %s: %s", 
 			  opts.port, term_strerror(term_errno, errno));
+
+	set_tty_write_sz(term_get_baudrate(tty_fd, NULL));
 	
 	r = term_add(STI);
 	if ( r < 0 )
