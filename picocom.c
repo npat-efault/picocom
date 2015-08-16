@@ -197,6 +197,8 @@ struct {
 	.emap = M_E_DFL
 };
 
+int sig_exit = 0;
+
 #define STO STDOUT_FILENO
 #define STI STDIN_FILENO
 
@@ -710,23 +712,20 @@ show_status (int dtr_up)
 /**********************************************************************/
 
 void
-child_empty_handler (int signum)
-{
-}
-
-void
 establish_child_signal_handlers (void)
 {
-	struct sigaction empty_action;
+	struct sigaction dfl_action;
+
+	/* Set up the structure to specify the default action. */
+	dfl_action.sa_handler = SIG_DFL;
+	sigemptyset (&dfl_action.sa_mask);
+	dfl_action.sa_flags = 0;
 	
-	/* Set up the structure to specify the "empty" action. */
-    empty_action.sa_handler = child_empty_handler;
-	sigemptyset (&empty_action.sa_mask);
-	empty_action.sa_flags = 0;
-	
-	sigaction (SIGINT, &empty_action, NULL);
-	sigaction (SIGTERM, &empty_action, NULL);
+	sigaction (SIGINT, &dfl_action, NULL);
+	sigaction (SIGTERM, &dfl_action, NULL);
 }
+
+#define EXEC "exec "
 
 int
 run_cmd(int fd, ...)
@@ -742,35 +741,38 @@ run_cmd(int fd, ...)
 	pid = fork();
 	if ( pid < 0 ) {
 		sigprocmask(SIG_SETMASK, &sigm_old, NULL);
-		fd_printf(STO, "*** cannot fork: %s\n", strerror(errno));
+		fd_printf(STO, "*** cannot fork: %s ***\r\n", strerror(errno));
 		return -1;
 	} else if ( pid ) {
 		/* father: picocom */
-		int r;
+		int status, r;
 
 		/* reset the mask */
 		sigprocmask(SIG_SETMASK, &sigm_old, NULL);
 		/* wait for child to finish */
-		waitpid(pid, &r, 0);
+		do {
+			r = waitpid(pid, &status, 0);
+		} while ( r < 0 && errno == EINTR );
 		/* reset terminal (back to raw mode) */
 		term_apply(STI);
 		/* check and report child return status */
-		if ( WIFEXITED(r) ) { 
-			fd_printf(STO, "\r\n*** exit status: %d\r\n", 
-					  WEXITSTATUS(r));
-			return WEXITSTATUS(r);
+		if ( WIFEXITED(status) ) { 
+			fd_printf(STO, "\r\n*** exit status: %d ***\r\n", 
+					  WEXITSTATUS(status));
+			return WEXITSTATUS(status);
+		} else if ( WIFSIGNALED(status) ) {
+			fd_printf(STO, "\r\n*** killed by signal: %d ***\r\n", 
+					  WTERMSIG(status));
+			return -1;
 		} else {
-			fd_printf(STO, "\r\n*** abnormal termination: 0x%x\r\n", r);
+			fd_printf(STO, "\r\n*** abnormal termination: 0x%x ***\r\n", r);
 			return -1;
 		}
 	} else {
 		/* child: external program */
-		int r;
 		long fl;
 		char cmd[512];
 
-		establish_child_signal_handlers();
-		sigprocmask(SIG_SETMASK, &sigm_old, NULL);
 		/* unmanage terminal, and reset it to canonical mode */
 		term_remove(STI);
 		/* unmanage serial port fd, without reset */
@@ -791,7 +793,8 @@ run_cmd(int fd, ...)
 			int n;
 			va_list vls;
 			
-			c = cmd;
+			strcpy(cmd, EXEC);
+			c = &cmd[sizeof(EXEC)- 1];
 			ce = cmd + sizeof(cmd) - 1;
 			va_start(vls, fd);
 			while ( (s = va_arg(vls, const char *)) ) {
@@ -804,12 +807,15 @@ run_cmd(int fd, ...)
 			*c = '\0';
 		}
 		/* run extenral command */
-		fd_printf(STDERR_FILENO, "%s\n", cmd);
-		r = system(cmd);
-		if ( WIFEXITED(r) ) exit(WEXITSTATUS(r));
-		else exit(128);
+		fd_printf(STDERR_FILENO, "%s\n", &cmd[sizeof(EXEC) - 1]);
+		establish_child_signal_handlers();
+		sigprocmask(SIG_SETMASK, &sigm_old, NULL);
+		execl("/bin/sh", "sh", "-c", cmd, NULL);
+		exit(42);
 	}
 }
+
+#undef EXEC
 
 /**********************************************************************/
 
@@ -951,21 +957,26 @@ loop(void)
 		ST_TRANSPARENT
 	} state;
 	fd_set rdset, wrset;
-	int n;
+	int r, n;
 	unsigned char c;
 
 	tty_q.len = 0;
 	state = ST_TRANSPARENT;
 
-	for (;;) {
+	while ( ! sig_exit ) {
 		FD_ZERO(&rdset);
 		FD_ZERO(&wrset);
 		FD_SET(STI, &rdset);
 		FD_SET(tty_fd, &rdset);
 		if ( tty_q.len ) FD_SET(tty_fd, &wrset);
 
-		if (select(tty_fd + 1, &rdset, &wrset, NULL, NULL) < 0)
-			fatal("select failed: %d : %s", errno, strerror(errno));
+		r = select(tty_fd + 1, &rdset, &wrset, NULL, NULL);
+		if ( r < 0 )  {
+			if ( errno == EINTR )
+				continue;
+			else
+				fatal("select failed: %d : %s", errno, strerror(errno));
+		}
 
 		if ( FD_ISSET(STI, &rdset) ) {
 
@@ -1000,6 +1011,7 @@ loop(void)
 				} else {
 					/* process command key */
 					if ( do_command(c) )
+						/* picocom exit */
 						return;
 				}
 				state = ST_TRANSPARENT;
@@ -1062,12 +1074,10 @@ loop(void)
 void
 deadly_handler(int signum)
 {
-	kill(0, SIGTERM);
-	sleep(1);
-#ifdef UUCP_LOCK_DIR
-	uucp_unlock();
-#endif
-	exit(EXIT_FAILURE);
+	if ( ! sig_exit ) {
+		sig_exit = 1;
+		kill(0, SIGTERM);
+	}
 }
 
 void
@@ -1089,6 +1099,7 @@ establish_signal_handlers (void)
 
         sigaction (SIGINT, &ign_action, NULL); 
         sigaction (SIGHUP, &ign_action, NULL);
+		sigaction (SIGQUIT, &ign_action, NULL);
         sigaction (SIGALRM, &ign_action, NULL);
         sigaction (SIGUSR1, &ign_action, NULL);
         sigaction (SIGUSR2, &ign_action, NULL);
@@ -1416,7 +1427,10 @@ main(int argc, char *argv[])
 		term_erase(tty_fd);
 	}
 
-	fd_printf(STO, "Thanks for using picocom\r\n");
+	if ( sig_exit )
+		fd_printf(STO, "Picocom was killed\r\n");
+	else
+		fd_printf(STO, "Thanks for using picocom\r\n");
 	/* wait a bit for output to drain */
 	sleep(1);
 
