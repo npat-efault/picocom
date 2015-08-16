@@ -1051,7 +1051,7 @@ loop(void)
 			} while ( n < 0 && errno == EINTR );
 			if ( n <= 0 )
 				fatal("write to term failed: %s", strerror(errno));
-			memcpy(tty_q.buff, tty_q.buff + n, tty_q.len - n);
+			memmove(tty_q.buff, tty_q.buff + n, tty_q.len - n);
 			tty_q.len -= n;
 		}
 	}
