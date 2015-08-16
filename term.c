@@ -335,12 +335,10 @@ term_exitfunc (void)
 		for (i = 0; i < MAX_TERMS; i++) {
 			if (term.fd[i] == -1)
 				continue;
-			do { /* dummy */
-				r = tcflush(term.fd[i], TCIOFLUSH);
-				if ( r < 0 ) break;
+			tcflush(term.fd[i], TCIOFLUSH);
+			do {
 				r = tcsetattr(term.fd[i], TCSAFLUSH, &term.origtermios[i]);
-				if ( r < 0 ) break;
-			} while (0);
+			} while ( r < 0 && errno == EINTR );
 			if ( r < 0 ) {
 				char *tname;
 
@@ -369,12 +367,10 @@ term_lib_init (void)
 			for (i = 0; i < MAX_TERMS; i++) {
 				if (term.fd[i] == -1)
 					continue;
+				tcflush(term.fd[i], TCIOFLUSH);
 				do {
-					r = tcflush(term.fd[i], TCIOFLUSH);
-					if ( r < 0 ) break;
 					r = tcsetattr(term.fd[i], TCSAFLUSH, &term.origtermios[i]);
-					if ( r < 0 ) break;
-				} while (0);
+				} while ( r < 0 && errno == EINTR );
 				if ( r < 0 ) {
 					char *tname;
  
