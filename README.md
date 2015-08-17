@@ -167,7 +167,7 @@ To exit picocom you have to type:
 
 ```
 C-a, C-x
-``
+```
 
 Which means you have to type [Conttol-A] followed by [Control-C]. You
 can do this by pressing and holding down the [Control] key, then
