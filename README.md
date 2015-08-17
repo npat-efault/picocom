@@ -56,7 +56,7 @@ this:
 ```
 
 Striping the binary is not required, it just reduces its size by a few
-kilobytes. Then you can and copy the picocom binary, as well as the
+kilobytes. Then you can copy the picocom binary, as well as the
 man-page, to wherever you put your binaries and man-pages. For
 example:
 
@@ -79,15 +79,15 @@ by commenting in or out the respective lines.
 If your computer is a PC and has the standard on-board RS-233 ports
 (usually accessible as two male DB9 connectors at the back) then under
 Linux these are accessed through device nodes most likely named:
-`/dev/tty S0` and `/dev/ttyS1`. If your computer has no on-board
-serial ports, then you will need a USB-to-Serial adapter (or something
+`/dev/ttyS0` and `/dev/ttyS1`. If your computer has no on-board serial
+ports, then you will need a USB-to-Serial adapter (or something
 similar). Once inserted to a USB port and recognized by Linux, a
 device node is created for each serial port accessed through the
 adapter(s). These nodes are most likely named `/dev/ttyUSB0`,
-`/dev/ttyUSB1`, and so on. For other systems and Unix-like OSes you
-will have to consult their documentation as to how the serial port
+`/dev/ttyUSB1`, and so on. For other systems and other Unix-like OSes
+you will have to consult their documentation as to how the serial port
 device nodes are named.  Lets assume your serial port is accessed
-through a device node called `/dev/ttyS0`.
+through a device node named `/dev/ttyS0`.
 
 You can start picocom with its default option values (default serial
 port settings) like this:
@@ -127,13 +127,16 @@ system to system). On most Linux systems you can do it like this:
 sudo usermod -a -G dialout username
 ```
 
+You will need to log-out and then log-in back again for this change to
+take effect.
+
 You can explicitly set one or more of the serial port settings to the
 desired values using picocom's command line options. For example, to
 set the baud-rate to 115200bps (the default is 9600bps), and enable
 hardware flow-control (RTS/CTS handshake) you can say:
 
 ```
-picocom --baud 115200 --flow h /dev/ttyS0
+picocom -b 115200 -f h /dev/ttyS0
 ```
 
 or:
@@ -169,7 +172,7 @@ To exit picocom you have to type:
 C-a, C-x
 ```
 
-Which means you have to type [Conttol-A] followed by [Control-C]. You
+Which means you have to type [Conttol-A] followed by [Control-X]. You
 can do this by pressing and holding down the [Control] key, then
 pressing (and releasing) the [A] key and then pressing (and releasing)
 the [X] key (while you still keep [Control] held down).
