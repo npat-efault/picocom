@@ -33,12 +33,12 @@ CPPFLAGS += -DSEND_RECEIVE_HISTFILE=\"$(SEND_RECEIVE_HISTFILE)\" \
 picocom : linenoise-1.0/linenoise.o
 linenoise-1.0/linenoise.o : linenoise-1.0/linenoise.c linenoise-1.0/linenoise.h
 
-
-picocom : picocom.o term.o
+picocom : picocom.o term.o split.o
 #	$(LD) $(LDFLAGS) -o $@ $+ $(LDLIBS)
 
 picocom.o : picocom.c term.h
 term.o : term.c term.h
+split.o : split.c split.h
 
 
 doc : picocom.8 picocom.8.html picocom.8.ps
