@@ -93,6 +93,11 @@ const char *flow_str[] = {
 #define KEY_RECEIVE '\x12' /* C-r: receive file */
 #define KEY_BREAK   '\x1c' /* C-\: break */
 
+/* control-key to printable character (lowcase) */
+#define KEYC(k) ((k) | 0x60)
+/* printable character to control-key */
+#define CKEY(c) ((c) & 0x1f)
+
 /**********************************************************************/
 
 /* implemented caracter mappings */
@@ -648,23 +653,38 @@ show_keys()
 #ifndef NO_HELP
 	fd_printf(STO, "\r\n");
 	fd_printf(STO, "*** Picocom commands (all prefixed by [C-%c])\r\n",
-			  'a' + opts.escape - 1);
+			  KEYC(opts.escape));
 	fd_printf(STO, "\r\n");
-	fd_printf(STO, "*** [C-x] : Exit picocom\r\n");
-	fd_printf(STO, "*** [C-q] : Exit without reseting serial port\r\n");
-	fd_printf(STO, "*** [C-u] : Increase baudrate (baud-up)\r\n");
-	fd_printf(STO, "*** [C-d] : Decrease baudrate (baud-down)\r\n");
-	fd_printf(STO, "*** [C-b] : Change number of databits\r\n");
-	fd_printf(STO, "*** [C-f] : Change flow-control mode\r\n");
-	fd_printf(STO, "*** [C-y] : Change parity mode\r\n");
-	fd_printf(STO, "*** [C-p] : Pulse DTR\r\n");
-	fd_printf(STO, "*** [C-t] : Toggle DTR\r\n");
-	fd_printf(STO, "*** [C-\\] : Send break\r\n");
-	fd_printf(STO, "*** [C-c] : Toggle local echo\r\n");
-	fd_printf(STO, "*** [C-s] : Send file\r\n");
-	fd_printf(STO, "*** [C-r] : Receive file\r\n");
-	fd_printf(STO, "*** [C-v] : Show port settings\r\n");
-	fd_printf(STO, "*** [C-h] : Show this message\r\n");
+	fd_printf(STO, "*** [C-%c] : Exit picocom\r\n", 
+			  KEYC(KEY_EXIT));
+	fd_printf(STO, "*** [C-%c] : Exit without reseting serial port\r\n", 
+			  KEYC(KEY_QUIT));
+	fd_printf(STO, "*** [C-%c] : Increase baudrate (baud-up)\r\n", 
+			  KEYC(KEY_BAUD_UP));
+	fd_printf(STO, "*** [C-%c] : Decrease baudrate (baud-down)\r\n",
+			  KEYC(KEY_BAUD_DN));;
+	fd_printf(STO, "*** [C-%c] : Change number of databits\r\n",
+			  KEYC(KEY_BITS));
+	fd_printf(STO, "*** [C-%c] : Change flow-control mode\r\n",
+			  KEYC(KEY_FLOW));
+	fd_printf(STO, "*** [C-%c] : Change parity mode\r\n",
+			  KEYC(KEY_PARITY));
+	fd_printf(STO, "*** [C-%c] : Pulse DTR\r\n",
+			  KEYC(KEY_PULSE));
+	fd_printf(STO, "*** [C-%c] : Toggle DTR\r\n",
+			  KEYC(KEY_TOGGLE));
+	fd_printf(STO, "*** [C-%c] : Send break\r\n",
+			  KEYC(KEY_BREAK));
+	fd_printf(STO, "*** [C-%c] : Toggle local echo\r\n",
+			  KEYC(KEY_LECHO));
+	fd_printf(STO, "*** [C-%c] : Send file\r\n",
+			  KEYC(KEY_SEND));
+	fd_printf(STO, "*** [C-%c] : Receive file\r\n",
+			  KEYC(KEY_RECEIVE));
+	fd_printf(STO, "*** [C-%c] : Show port settings\r\n",
+			  KEYC(KEY_STATUS));
+	fd_printf(STO, "*** [C-%c] : Show this message\r\n",
+			  KEYC(KEY_HELP));
 	fd_printf(STO, "\r\n");
 #else /* defined NO_HELP */
 	fd_printf(STO, "*** Help is disabled.\r\n");
@@ -1220,7 +1240,7 @@ parse_args(int argc, char *argv[])
 #endif
 			break;
 		case 'e':
-			opts.escape = optarg[0] & 0x1f;
+			opts.escape = CKEY(optarg[0]);
 			break;
 		case 'f':
 			switch (optarg[0]) {
@@ -1313,7 +1333,7 @@ parse_args(int argc, char *argv[])
 	printf("baudrate is    : %d\n", opts.baud);
 	printf("parity is      : %s\n", parity_str[opts.parity]);
 	printf("databits are   : %d\n", opts.databits);
-	printf("escape is      : C-%c\n", 'a' + opts.escape - 1);
+	printf("escape is      : C-%c\n", KEYC(opts.escape));
 	printf("local echo is  : %s\n", opts.lecho ? "yes" : "no");
 	printf("noinit is      : %s\n", opts.noinit ? "yes" : "no");
 	printf("noreset is     : %s\n", opts.noreset ? "yes" : "no");
@@ -1402,8 +1422,8 @@ main(int argc, char *argv[])
 #endif
 
 #ifndef NO_HELP
-	fd_printf(STO, "Type [C-%c] [C-h] to see available commands\r\n\r\n",
-			  'a' + opts.escape - 1);
+	fd_printf(STO, "Type [C-%c] [C-%c] to see available commands\r\n\r\n",
+			  KEYC(opts.escape), KEYC(KEY_HELP));
 #endif
 	fd_printf(STO, "Terminal ready\r\n");
 	loop();
