@@ -48,6 +48,8 @@
 #define _GNU_SOURCE
 #include <getopt.h>
 
+#include "fdio.h"
+#include "split.h"
 #include "term.h"
 #ifdef LINENOISE
 #include "linenoise-1.0/linenoise.h"
@@ -55,23 +57,47 @@
 
 /**********************************************************************/
 
-#define KEY_EXIT    '\x18' /* C-x: exit picocom */
-#define KEY_QUIT    '\x11' /* C-q: exit picocom without reseting port */
-#define KEY_PULSE   '\x10' /* C-p: pulse DTR */
-#define KEY_TOGGLE  '\x14' /* C-t: toggle DTR */
-#define KEY_BAUD_UP '\x15' /* C-u: increase baudrate (up) */
-#define KEY_BAUD_DN '\x04' /* C-d: decrase baudrate (down) */ 
-#define KEY_FLOW    '\x06' /* C-f: change flowcntrl mode */ 
-#define KEY_PARITY  '\x19' /* C-y: change parity mode */ 
-#define KEY_BITS    '\x02' /* C-b: change number of databits */ 
-#define KEY_LECHO   '\x03' /* C-c: toggle local echo */ 
-#define KEY_STATUS  '\x16' /* C-v: show program option */
-#define KEY_SEND    '\x13' /* C-s: send file */
-#define KEY_RECEIVE '\x12' /* C-r: receive file */
-#define KEY_BREAK   '\x1c' /* C-\: break */
+/* parity modes names */
+const char *parity_str[] = {
+	[P_NONE] = "none",
+	[P_EVEN] = "even",
+	[P_ODD] = "odd",
+	[P_MARK] = "mark",
+	[P_SPACE] = "space",
+};
 
-#define STO STDOUT_FILENO
-#define STI STDIN_FILENO
+/* flow control modes names */
+const char *flow_str[] = {
+	[FC_NONE] = "none",
+	[FC_RTSCTS] = "RTS/CTS",
+	[FC_XONXOFF] = "xon/xoff",
+	[FC_OTHER] = "other",
+};
+
+/**********************************************************************/
+
+/* control-key to printable character (lowcase) */
+#define KEYC(k) ((k) | 0x60)
+/* printable character to control-key */
+#define CKEY(c) ((c) & 0x1f)
+
+#define KEY_EXIT    CKEY('x') /* exit picocom */
+#define KEY_QUIT    CKEY('q') /* exit picocom without reseting port */
+#define KEY_PULSE   CKEY('p') /* pulse DTR */
+#define KEY_TOGGLE  CKEY('t') /* toggle DTR */
+#define KEY_BAUD_UP CKEY('u') /* increase baudrate (up) */
+#define KEY_BAUD_DN CKEY('d') /* decrase baudrate (down) */ 
+#define KEY_FLOW    CKEY('f') /* change flowcntrl mode */ 
+#define KEY_PARITY  CKEY('y') /* change parity mode */ 
+#define KEY_BITS    CKEY('b') /* change number of databits */ 
+#define KEY_STOP    CKEY('j') /* change number of stopbits */ 
+#define KEY_LECHO   CKEY('c') /* toggle local echo */ 
+#define KEY_STATUS  CKEY('v') /* show program options */
+#define KEY_HELP    CKEY('h') /* show help (same as [C-k]) */
+#define KEY_KEYS    CKEY('k') /* show available command keys */
+#define KEY_SEND    CKEY('s') /* send file */
+#define KEY_RECEIVE CKEY('r') /* receive file */
+#define KEY_BREAK   CKEY('\\') /* break */
 
 /**********************************************************************/
 
@@ -147,10 +173,9 @@ struct {
 	char port[128];
 	int baud;
 	enum flowcntrl_e flow;
-	char *flow_str;
 	enum parity_e parity;
-	char *parity_str;
 	int databits;
+	int stopbits;
 	int lecho;
 	int noinit;
 	int noreset;
@@ -167,17 +192,16 @@ struct {
 	.port = "",
 	.baud = 9600,
 	.flow = FC_NONE,
-	.flow_str = "none",
 	.parity = P_NONE,
-	.parity_str = "none",
 	.databits = 8,
+	.stopbits = 1,
 	.lecho = 0,
 	.noinit = 0,
 	.noreset = 0,
 #if defined (UUCP_LOCK_DIR) || defined (USE_FLOCK)
 	.nolock = 0,
 #endif
-	.escape = '\x01',
+	.escape = CKEY('a'),
 	.send_cmd = "sz -vv",
 	.receive_cmd = "rz -vv",
 	.imap = M_I_DFL,
@@ -185,7 +209,33 @@ struct {
 	.emap = M_E_DFL
 };
 
+int sig_exit = 0;
+
+#define STO STDOUT_FILENO
+#define STI STDIN_FILENO
+
 int tty_fd;
+
+#ifndef TTY_Q_SZ
+#define TTY_Q_SZ 256
+#endif
+
+struct tty_q {
+	int len;
+	unsigned char buff[TTY_Q_SZ];
+} tty_q;
+
+int tty_write_sz;
+
+#define TTY_WRITE_SZ_DIV 10
+#define TTY_WRITE_SZ_MIN 8
+
+#define set_tty_write_sz(baud)							\
+    do {												\
+        tty_write_sz = (baud) / TTY_WRITE_SZ_DIV;		\
+	    if ( tty_write_sz < TTY_WRITE_SZ_MIN )			\
+            tty_write_sz = TTY_WRITE_SZ_MIN;			\
+    } while (0)
 
 /**********************************************************************/
 
@@ -271,42 +321,6 @@ uucp_unlock(void)
 
 /**********************************************************************/
 
-ssize_t
-writen_ni(int fd, const void *buff, size_t n)
-{
-	size_t nl; 
-	ssize_t nw;
-	const char *p;
-
-	p = buff;
-	nl = n;
-	while (nl > 0) {
-		do {
-			nw = write(fd, p, nl);
-		} while ( nw < 0 && errno == EINTR );
-		if ( nw <= 0 ) break;
-		nl -= nw;
-		p += nw;
-	}
-	
-	return n - nl;
-}
-
-int
-fd_printf (int fd, const char *format, ...)
-{
-	char buf[256];
-	va_list args;
-	int len;
-	
-	va_start(args, format);
-	len = vsnprintf(buf, sizeof(buf), format, args);
-	buf[sizeof(buf) - 1] = '\0';
-	va_end(args);
-	
-	return writen_ni(fd, buf, len);
-}
-
 void
 fatal (const char *format, ...)
 {
@@ -338,58 +352,29 @@ fatal (const char *format, ...)
 	exit(EXIT_FAILURE);
 }
 
+/**********************************************************************/
+
 #ifndef LINENOISE
 
-#define cput(fd, c) do { int cl = c; write((fd), &(cl), 1); } while(0)
-
-int
-fd_readline (int fdi, int fdo, char *b, int bsz)
+char *
+read_filename (void)
 {
+	char fname[_POSIX_PATH_MAX];
 	int r;
-	unsigned char c;
-	unsigned char *bp, *bpe;
-	
-	bp = (unsigned char *)b;
-	bpe = (unsigned char *)b + bsz - 1;
 
-	while (1) {
-		r = read(fdi, &c, 1);
-		if ( r <= 0 ) { r--; goto out; }
-
-		switch (c) {
-		case '\b':
-			if ( bp > (unsigned char *)b ) { 
-				bp--;
-				cput(fdo, c); cput(fdo, ' '); cput(fdo, c);
-			} else {
-				cput(fdo, '\x07');
-			}
-			break;
-		case '\x03': /* CTRL-c */
-			r = -1;
-			errno = EINTR;
-			goto out;
-		case '\r':
-			*bp = '\0';
-			r = bp - (unsigned char *)b; 
-			goto out;
-		default:
-			if ( bp < bpe ) { *bp++ = c; cput(fdo, c); }
-			else { cput(fdo, '\x07'); }
-			break;
-		}
-	}
-
-out:
-	return r;
+	fd_printf(STO, "\r\n*** file: ");
+	r = fd_readline(STI, STO, fname, sizeof(fname));
+	fd_printf(STO, "\r\n");
+	if ( r < 0 ) 
+		return NULL;
+	else
+		return strdup(fname);
 }
-
-#undef cput
 
 #else /* LINENOISE defined */
 
 void 
-send_file_completion (const char *buf, linenoiseCompletions *lc) 
+file_completion_cb (const char *buf, linenoiseCompletions *lc) 
 {
 	DIR *dirp;
 	struct dirent *dp;
@@ -431,68 +416,58 @@ send_file_completion (const char *buf, linenoiseCompletions *lc)
 	free(dirc);
 }
 
-static char *send_receive_history_file_path = NULL;
+static char *history_file_path = NULL;
 
 void 
-init_send_receive_history (void)
+init_history (void)
 {
 	char *home_directory;
 
 	home_directory = getenv("HOME");
 	if (home_directory) {
-		send_receive_history_file_path = 
-			malloc(strlen(home_directory) + 2 + 
-				   strlen(SEND_RECEIVE_HISTFILE));
-		strcpy(send_receive_history_file_path, home_directory);
+		history_file_path = malloc(strlen(home_directory) + 2 + 
+								   strlen(HISTFILE));
+		strcpy(history_file_path, home_directory);
 		if (home_directory[strlen(home_directory)-1] != '/') {
-			strcat(send_receive_history_file_path, "/");
+			strcat(history_file_path, "/");
 		}
-		strcat(send_receive_history_file_path, SEND_RECEIVE_HISTFILE);
-		linenoiseHistoryLoad(send_receive_history_file_path);
+		strcat(history_file_path, HISTFILE);
+		linenoiseHistoryLoad(history_file_path);
 	}
 }
 
 void 
-cleanup_send_receive_history (void)
+cleanup_history (void)
 {
-	if (send_receive_history_file_path)
-		free(send_receive_history_file_path);
+	if (history_file_path)
+		free(history_file_path);
 }
 
 void 
-add_send_receive_history (char *fname)
+add_history (char *fname)
 {
 	linenoiseHistoryAdd(fname);
-	if (send_receive_history_file_path)
-		linenoiseHistorySave(send_receive_history_file_path);
+	if (history_file_path)
+		linenoiseHistorySave(history_file_path);
 }
 
 char *
-read_send_filename (void)
+read_filename (void)
 {
 	char *fname;
-	linenoiseSetCompletionCallback(send_file_completion);
+	linenoiseSetCompletionCallback(file_completion_cb);
 	printf("\r\n");
 	fname = linenoise("*** file: ");
 	printf("\r\n");
 	linenoiseSetCompletionCallback(NULL);
 	if (fname != NULL)
-		add_send_receive_history(fname);
-	return fname;
-}
-
-char *
-read_receive_filename (void)
-{
-	printf("\r\n");
-	char *fname = linenoise("*** file: ");
-	printf("\r\n");
-	if (fname != NULL)
-		add_send_receive_history(fname);
+		add_history(fname);
 	return fname;
 }
 
 #endif /* of ifndef LINENOISE */
+
+/**********************************************************************/
 
 /* maximum number of chars that can replace a single characted
    due to mapping */
@@ -583,24 +558,20 @@ baud_down (int baud)
 }
 
 int
-flow_next (int flow, char **flow_str)
+flow_next (int flow)
 {
 	switch(flow) {
 	case FC_NONE:
 		flow = FC_RTSCTS;
-		*flow_str = "RTS/CTS";
 		break;
 	case FC_RTSCTS:
 		flow = FC_XONXOFF;
-		*flow_str = "xon/xoff";
 		break;
 	case FC_XONXOFF:
 		flow = FC_NONE;
-		*flow_str = "none";
 		break;
 	default:
 		flow = FC_NONE;
-		*flow_str = "none";
 		break;
 	}
 
@@ -608,24 +579,20 @@ flow_next (int flow, char **flow_str)
 }
 
 int
-parity_next (int parity, char **parity_str)
+parity_next (int parity)
 {
 	switch(parity) {
 	case P_NONE:
 		parity = P_EVEN;
-		*parity_str = "even";
 		break;
 	case P_EVEN:
 		parity = P_ODD;
-		*parity_str = "odd";
 		break;
 	case P_ODD:
 		parity = P_NONE;
-		*parity_str = "none";
 		break;
 	default:
 		parity = P_NONE;
-		*parity_str = "none";
 		break;
 	}
 
@@ -641,29 +608,130 @@ bits_next (int bits)
 	return bits;
 }
 
-/**********************************************************************/
+int
+stopbits_next (int bits)
+{
+	bits++;
+	if (bits > 2) bits = 1;
+
+	return bits;
+}
+
 
 void
-child_empty_handler (int signum)
+show_status (int dtr_up) 
 {
+	int baud, bits, stopbits;
+	enum flowcntrl_e flow;
+	enum parity_e parity;
+
+	term_refresh(tty_fd);
+
+	baud = term_get_baudrate(tty_fd, NULL);
+	flow = term_get_flowcntrl(tty_fd);
+	parity = term_get_parity(tty_fd);
+	bits = term_get_databits(tty_fd);
+	stopbits = term_get_stopbits(tty_fd);
+	
+	fd_printf(STO, "\r\n");
+ 
+	if ( baud != opts.baud ) {
+		fd_printf(STO, "*** baud: %d (%d)\r\n", opts.baud, baud);
+	} else { 
+		fd_printf(STO, "*** baud: %d\r\n", opts.baud);
+	}
+	if ( flow != opts.flow ) {
+		fd_printf(STO, "*** flow: %s (%s)\r\n", 
+				  flow_str[opts.flow], flow_str[flow]);
+	} else {
+		fd_printf(STO, "*** flow: %s\r\n", flow_str[opts.flow]);
+	}
+	if ( parity != opts.parity ) {
+		fd_printf(STO, "*** parity: %s (%s)\r\n", 
+				  parity_str[opts.parity], parity_str[parity]);
+	} else {
+		fd_printf(STO, "*** parity: %s\r\n", parity_str[opts.parity]);
+	}
+	if ( bits != opts.databits ) {
+		fd_printf(STO, "*** databits: %d (%d)\r\n", opts.databits, bits);
+	} else {
+		fd_printf(STO, "*** databits: %d\r\n", opts.databits);
+	}
+	if ( stopbits != opts.stopbits ) {
+		fd_printf(STO, "*** stopbits: %d (%d)\r\n", opts.stopbits, stopbits);
+	} else {
+		fd_printf(STO, "*** stopbits: %d\r\n", opts.stopbits);
+	}
+	fd_printf(STO, "*** dtr: %s\r\n", dtr_up ? "up" : "down");
 }
+
+void
+show_keys()
+{
+#ifndef NO_HELP
+	fd_printf(STO, "\r\n");
+	fd_printf(STO, "*** Picocom commands (all prefixed by [C-%c])\r\n",
+			  KEYC(opts.escape));
+	fd_printf(STO, "\r\n");
+	fd_printf(STO, "*** [C-%c] : Exit picocom\r\n", 
+			  KEYC(KEY_EXIT));
+	fd_printf(STO, "*** [C-%c] : Exit without reseting serial port\r\n", 
+			  KEYC(KEY_QUIT));
+	fd_printf(STO, "*** [C-%c] : Increase baudrate (baud-up)\r\n", 
+			  KEYC(KEY_BAUD_UP));
+	fd_printf(STO, "*** [C-%c] : Decrease baudrate (baud-down)\r\n",
+			  KEYC(KEY_BAUD_DN));;
+	fd_printf(STO, "*** [C-%c] : Change number of databits\r\n",
+			  KEYC(KEY_BITS));
+	fd_printf(STO, "*** [C-%c] : Change number of stopbits\r\n",
+			  KEYC(KEY_STOP));
+	fd_printf(STO, "*** [C-%c] : Change flow-control mode\r\n",
+			  KEYC(KEY_FLOW));
+	fd_printf(STO, "*** [C-%c] : Change parity mode\r\n",
+			  KEYC(KEY_PARITY));
+	fd_printf(STO, "*** [C-%c] : Pulse DTR\r\n",
+			  KEYC(KEY_PULSE));
+	fd_printf(STO, "*** [C-%c] : Toggle DTR\r\n",
+			  KEYC(KEY_TOGGLE));
+	fd_printf(STO, "*** [C-%c] : Send break\r\n",
+			  KEYC(KEY_BREAK));
+	fd_printf(STO, "*** [C-%c] : Toggle local echo\r\n",
+			  KEYC(KEY_LECHO));
+	fd_printf(STO, "*** [C-%c] : Send file\r\n",
+			  KEYC(KEY_SEND));
+	fd_printf(STO, "*** [C-%c] : Receive file\r\n",
+			  KEYC(KEY_RECEIVE));
+	fd_printf(STO, "*** [C-%c] : Show port settings\r\n",
+			  KEYC(KEY_STATUS));
+	fd_printf(STO, "*** [C-%c] : Show this message\r\n",
+			  KEYC(KEY_HELP));
+	fd_printf(STO, "\r\n");
+#else /* defined NO_HELP */
+	fd_printf(STO, "*** Help is disabled.\r\n");
+#endif /* of NO_HELP */
+}
+
+/**********************************************************************/
+
+#define RUNCMD_ARGS_MAX 32
+#define RUNCMD_EXEC_FAIL 126
 
 void
 establish_child_signal_handlers (void)
 {
-	struct sigaction empty_action;
+	struct sigaction dfl_action;
+
+	/* Set up the structure to specify the default action. */
+	dfl_action.sa_handler = SIG_DFL;
+	sigemptyset (&dfl_action.sa_mask);
+	dfl_action.sa_flags = 0;
 	
-	/* Set up the structure to specify the "empty" action. */
-    empty_action.sa_handler = child_empty_handler;
-	sigemptyset (&empty_action.sa_mask);
-	empty_action.sa_flags = 0;
-	
-	sigaction (SIGINT, &empty_action, NULL);
-	sigaction (SIGTERM, &empty_action, NULL);
+	sigaction (SIGINT, &dfl_action, NULL);
+	sigaction (SIGTERM, &dfl_action, NULL);
 }
 
 int
-run_cmd(int fd, ...)
+run_cmd(int fd, const char *cmd, const char *args_extra)
 {
 	pid_t pid;
 	sigset_t sigm, sigm_old;
@@ -676,35 +744,40 @@ run_cmd(int fd, ...)
 	pid = fork();
 	if ( pid < 0 ) {
 		sigprocmask(SIG_SETMASK, &sigm_old, NULL);
-		fd_printf(STO, "*** cannot fork: %s\n", strerror(errno));
+		fd_printf(STO, "*** cannot fork: %s ***\r\n", strerror(errno));
 		return -1;
 	} else if ( pid ) {
 		/* father: picocom */
-		int r;
+		int status, r;
 
 		/* reset the mask */
 		sigprocmask(SIG_SETMASK, &sigm_old, NULL);
 		/* wait for child to finish */
-		waitpid(pid, &r, 0);
+		do {
+			r = waitpid(pid, &status, 0);
+		} while ( r < 0 && errno == EINTR );
 		/* reset terminal (back to raw mode) */
 		term_apply(STI);
 		/* check and report child return status */
-		if ( WIFEXITED(r) ) { 
-			fd_printf(STO, "\r\n*** exit status: %d\r\n", 
-					  WEXITSTATUS(r));
-			return WEXITSTATUS(r);
+		if ( WIFEXITED(status) ) { 
+			fd_printf(STO, "\r\n*** exit status: %d ***\r\n", 
+					  WEXITSTATUS(status));
+			return WEXITSTATUS(status);
+		} else if ( WIFSIGNALED(status) ) {
+			fd_printf(STO, "\r\n*** killed by signal: %d ***\r\n", 
+					  WTERMSIG(status));
+			return -1;
 		} else {
-			fd_printf(STO, "\r\n*** abnormal termination: 0x%x\r\n", r);
+			fd_printf(STO, "\r\n*** abnormal termination: 0x%x ***\r\n", r);
 			return -1;
 		}
 	} else {
 		/* child: external program */
-		int r;
 		long fl;
-		char cmd[512];
-
-		establish_child_signal_handlers();
-		sigprocmask(SIG_SETMASK, &sigm_old, NULL);
+		int argc;
+		char *argv[RUNCMD_ARGS_MAX + 1];
+		int r;
+			
 		/* unmanage terminal, and reset it to canonical mode */
 		term_remove(STI);
 		/* unmanage serial port fd, without reset */
@@ -718,43 +791,184 @@ run_cmd(int fd, ...)
 		close(STO);
 		dup2(fd, STI);
 		dup2(fd, STO);
-		{
-			/* build command-line */
-			char *c, *ce;
-			const char *s;
-			int n;
-			va_list vls;
-			
-			c = cmd;
-			ce = cmd + sizeof(cmd) - 1;
-			va_start(vls, fd);
-			while ( (s = va_arg(vls, const char *)) ) {
-				n = strlen(s);
-				if ( c + n + 1 >= ce ) break;
-				memcpy(c, s, n); c += n;
-				*c++ = ' ';
-			}
-			va_end(vls);
-			*c = '\0';
+		
+		/* build command arguments vector */
+		argc = 0;
+		r = split_quoted(cmd, &argc, argv, RUNCMD_ARGS_MAX);
+		if ( r < 0 ) {
+			fd_printf(STDERR_FILENO, "Cannot parse command\n");
+			exit(RUNCMD_EXEC_FAIL);
 		}
+		r = split_quoted(args_extra, &argc, argv, RUNCMD_ARGS_MAX);
+		if ( r < 0 ) {
+			fd_printf(STDERR_FILENO, "Cannot parse extra args\n");
+			exit(RUNCMD_EXEC_FAIL);
+		}
+		if ( argc < 1 ) {
+			fd_printf(STDERR_FILENO, "No command given\n");
+			exit(RUNCMD_EXEC_FAIL);
+		}	
+		argv[argc] = NULL;
+			
 		/* run extenral command */
-		fd_printf(STDERR_FILENO, "%s\n", cmd);
-		r = system(cmd);
-		if ( WIFEXITED(r) ) exit(WEXITSTATUS(r));
-		else exit(128);
+		fd_printf(STDERR_FILENO, "$ %s %s\n", cmd, args_extra);
+		establish_child_signal_handlers();
+		sigprocmask(SIG_SETMASK, &sigm_old, NULL);
+		execvp(argv[0], argv);
+
+		fd_printf(STDERR_FILENO, "exec: %s\n", strerror(errno));
+		exit(RUNCMD_EXEC_FAIL);
 	}
 }
 
 /**********************************************************************/
 
-#ifndef TTY_Q_SZ
-#define TTY_Q_SZ 256
-#endif
+/* Process command key. Returns non-zero if command results in picocom
+   exit, zero otherwise. */
+int
+do_command (unsigned char c)
+{
+	static int dtr_up = 0;
+	int newbaud, newflow, newparity, newbits, newstopbits;
+	const char *xfr_cmd;
+	char *fname;
+	int r;
 
-struct tty_q {
-	int len;
-	unsigned char buff[TTY_Q_SZ];
-} tty_q;
+	switch (c) {
+	case KEY_EXIT:
+		return 1;
+	case KEY_QUIT:
+		term_set_hupcl(tty_fd, 0);
+		term_flush(tty_fd);
+		term_apply(tty_fd);
+		term_erase(tty_fd);
+		return 1;
+	case KEY_STATUS:
+		show_status(dtr_up);
+		break;
+	case KEY_HELP:
+	case KEY_KEYS:
+		show_keys();
+		break;
+	case KEY_PULSE:
+		fd_printf(STO, "\r\n*** pulse DTR ***\r\n");
+		if ( term_pulse_dtr(tty_fd) < 0 )
+			fd_printf(STO, "*** FAILED\r\n");
+		break;
+	case KEY_TOGGLE:
+		if ( dtr_up )
+			r = term_lower_dtr(tty_fd);
+		else
+			r = term_raise_dtr(tty_fd);
+		if ( r >= 0 ) dtr_up = ! dtr_up;
+		fd_printf(STO, "\r\n*** DTR: %s ***\r\n", 
+				  dtr_up ? "up" : "down");
+		break;
+	case KEY_BAUD_UP:
+	case KEY_BAUD_DN:
+		if (c == KEY_BAUD_UP)
+			opts.baud = baud_up(opts.baud);
+		else 
+			opts.baud = baud_down(opts.baud);
+		term_set_baudrate(tty_fd, opts.baud);
+		tty_q.len = 0; term_flush(tty_fd);
+		term_apply(tty_fd);
+		newbaud = term_get_baudrate(tty_fd, NULL);
+		if ( opts.baud != newbaud ) {
+			fd_printf(STO, "\r\n*** baud: %d (%d) ***\r\n", 
+					  opts.baud, newbaud);
+		} else {
+			fd_printf(STO, "\r\n*** baud: %d ***\r\n", opts.baud);
+		}
+		set_tty_write_sz(newbaud);
+		break;
+	case KEY_FLOW:
+		opts.flow = flow_next(opts.flow);
+		term_set_flowcntrl(tty_fd, opts.flow);
+		tty_q.len = 0; term_flush(tty_fd);
+		term_apply(tty_fd);
+		newflow = term_get_flowcntrl(tty_fd);
+		if ( opts.flow != newflow ) {
+			fd_printf(STO, "\r\n*** flow: %s (%s) ***\r\n", 
+					  flow_str[opts.flow], flow_str[newflow]);
+		} else {
+			fd_printf(STO, "\r\n*** flow: %s ***\r\n", 
+					  flow_str[opts.flow]);
+		}
+		break;
+	case KEY_PARITY:
+		opts.parity = parity_next(opts.parity);
+		term_set_parity(tty_fd, opts.parity);
+		tty_q.len = 0; term_flush(tty_fd);
+		term_apply(tty_fd);
+		newparity = term_get_parity(tty_fd);
+		if (opts.parity != newparity ) {
+			fd_printf(STO, "\r\n*** parity: %s (%s) ***\r\n",
+					  parity_str[opts.parity], 
+					  parity_str[newparity]);
+		} else {
+			fd_printf(STO, "\r\n*** parity: %s ***\r\n", 
+					  parity_str[opts.parity]);
+		}
+		break;
+	case KEY_BITS:
+		opts.databits = bits_next(opts.databits);
+		term_set_databits(tty_fd, opts.databits);
+		tty_q.len = 0; term_flush(tty_fd);
+		term_apply(tty_fd);
+		newbits = term_get_databits(tty_fd);
+		if (opts.databits != newbits ) {
+			fd_printf(STO, "\r\n*** databits: %d (%d) ***\r\n",
+					  opts.databits, newbits);
+		} else {
+			fd_printf(STO, "\r\n*** databits: %d ***\r\n", 
+					  opts.databits);
+		}
+		break;
+	case KEY_STOP:
+		opts.stopbits = stopbits_next(opts.stopbits);
+		term_set_stopbits(tty_fd, opts.stopbits);
+		tty_q.len = 0; term_flush(tty_fd);
+		term_apply(tty_fd);
+		newstopbits = term_get_stopbits(tty_fd);
+		if (opts.stopbits != newstopbits ) {
+			fd_printf(STO, "\r\n*** stopbits: %d (%d) ***\r\n",
+					  opts.stopbits, newstopbits);
+		} else {
+			fd_printf(STO, "\r\n*** stopbits: %d ***\r\n", 
+					  opts.stopbits);
+		}
+		break;
+	case KEY_LECHO:
+		opts.lecho = ! opts.lecho;
+		fd_printf(STO, "\r\n*** local echo: %s ***\r\n", 
+				  opts.lecho ? "yes" : "no");
+		break;
+	case KEY_SEND:
+	case KEY_RECEIVE:
+		xfr_cmd = (c == KEY_SEND) ? opts.send_cmd : opts.receive_cmd;
+		if ( xfr_cmd[0] == '\0' ) {
+			fd_printf(STO, "\r\n*** command disabled ***\r\n");
+			break;
+		}
+		fname = read_filename();
+		if (fname == NULL) {
+			fd_printf(STO, "*** cannot read filename ***\r\n");
+			break;
+		}
+		run_cmd(tty_fd, xfr_cmd, fname);
+		free(fname);
+		break;
+	case KEY_BREAK:
+		term_break(tty_fd);
+		fd_printf(STO, "\r\n*** break sent ***\r\n");
+		break;
+	default:
+		break;
+	}
+
+	return 0;
+}
 
 /**********************************************************************/
 
@@ -765,32 +979,27 @@ loop(void)
 		ST_COMMAND,
 		ST_TRANSPARENT
 	} state;
-	int dtr_up;
 	fd_set rdset, wrset;
-	int newbaud, newflow, newparity, newbits;
-	char *newflow_str, *newparity_str;
-#ifndef LINENOISE
-	char fname[128];
-#else
-	char *fname;
-#endif
 	int r, n;
 	unsigned char c;
 
-
 	tty_q.len = 0;
 	state = ST_TRANSPARENT;
-	dtr_up = 0;
 
-	for (;;) {
+	while ( ! sig_exit ) {
 		FD_ZERO(&rdset);
 		FD_ZERO(&wrset);
 		FD_SET(STI, &rdset);
 		FD_SET(tty_fd, &rdset);
 		if ( tty_q.len ) FD_SET(tty_fd, &wrset);
 
-		if (select(tty_fd + 1, &rdset, &wrset, NULL, NULL) < 0)
-			fatal("select failed: %d : %s", errno, strerror(errno));
+		r = select(tty_fd + 1, &rdset, &wrset, NULL, NULL);
+		if ( r < 0 )  {
+			if ( errno == EINTR )
+				continue;
+			else
+				fatal("select failed: %d : %s", errno, strerror(errno));
+		}
 
 		if ( FD_ISSET(STI, &rdset) ) {
 
@@ -810,10 +1019,8 @@ loop(void)
 			}
 
 			switch (state) {
-
 			case ST_COMMAND:
 				if ( c == opts.escape ) {
-					state = ST_TRANSPARENT;
 					/* pass the escape character down */
 					if (tty_q.len + M_MAXMAP <= TTY_Q_SZ) {
 						n = do_map((char *)tty_q.buff + tty_q.len, 
@@ -821,154 +1028,17 @@ loop(void)
 						tty_q.len += n;
 						if ( opts.lecho ) 
 							map_and_write(STO, opts.emap, c);
-					} else 
+					} else {
 						fd_printf(STO, "\x07");
-					break;
+					}
+				} else {
+					/* process command key */
+					if ( do_command(c) )
+						/* picocom exit */
+						return;
 				}
 				state = ST_TRANSPARENT;
-				switch (c) {
-				case KEY_EXIT:
-					return;
-				case KEY_QUIT:
-					term_set_hupcl(tty_fd, 0);
-					term_flush(tty_fd);
-					term_apply(tty_fd);
-					term_erase(tty_fd);
-					return;
-				case KEY_STATUS:
-					fd_printf(STO, "\r\n");
-					fd_printf(STO, "*** baud: %d\r\n", opts.baud);
-					fd_printf(STO, "*** flow: %s\r\n", opts.flow_str);
-					fd_printf(STO, "*** parity: %s\r\n", opts.parity_str);
-					fd_printf(STO, "*** databits: %d\r\n", opts.databits);
-					fd_printf(STO, "*** dtr: %s\r\n", dtr_up ? "up" : "down");
-					break;
-				case KEY_PULSE:
-					fd_printf(STO, "\r\n*** pulse DTR ***\r\n");
-					if ( term_pulse_dtr(tty_fd) < 0 )
-						fd_printf(STO, "*** FAILED\r\n");
-					break;
-				case KEY_TOGGLE:
-					if ( dtr_up )
-						r = term_lower_dtr(tty_fd);
-					else
-						r = term_raise_dtr(tty_fd);
-					if ( r >= 0 ) dtr_up = ! dtr_up;
-					fd_printf(STO, "\r\n*** DTR: %s ***\r\n", 
-							  dtr_up ? "up" : "down");
-					break;
-				case KEY_BAUD_UP:
-					newbaud = baud_up(opts.baud);
-					term_set_baudrate(tty_fd, newbaud);
-					tty_q.len = 0; term_flush(tty_fd);
-					if ( term_apply(tty_fd) >= 0 ) opts.baud = newbaud;
-					fd_printf(STO, "\r\n*** baud: %d ***\r\n", opts.baud);
-					break;
-				case KEY_BAUD_DN:
-					newbaud = baud_down(opts.baud);
-					term_set_baudrate(tty_fd, newbaud);
-					tty_q.len = 0; term_flush(tty_fd);
-					if ( term_apply(tty_fd) >= 0 ) opts.baud = newbaud;
-					fd_printf(STO, "\r\n*** baud: %d ***\r\n", opts.baud);
-					break;
-				case KEY_FLOW:
-					newflow = flow_next(opts.flow, &newflow_str);
-					term_set_flowcntrl(tty_fd, newflow);
-					tty_q.len = 0; term_flush(tty_fd);
-					if ( term_apply(tty_fd) >= 0 ) {
-						opts.flow = newflow;
-						opts.flow_str = newflow_str;
-					}
-					fd_printf(STO, "\r\n*** flow: %s ***\r\n", opts.flow_str);
-					break;
-				case KEY_PARITY:
-					newparity = parity_next(opts.parity, &newparity_str);
-					term_set_parity(tty_fd, newparity);
-					tty_q.len = 0; term_flush(tty_fd);
-					if ( term_apply(tty_fd) >= 0 ) {
-						opts.parity = newparity;
-						opts.parity_str = newparity_str;
-					}
-					fd_printf(STO, "\r\n*** parity: %s ***\r\n", 
-							  opts.parity_str);
-					break;
-				case KEY_BITS:
-					newbits = bits_next(opts.databits);
-					term_set_databits(tty_fd, newbits);
-					tty_q.len = 0; term_flush(tty_fd);
-					if ( term_apply(tty_fd) >= 0 ) opts.databits = newbits;
-					fd_printf(STO, "\r\n*** databits: %d ***\r\n", 
-							  opts.databits);
-					break;
-				case KEY_LECHO:
-					opts.lecho = ! opts.lecho;
-					fd_printf(STO, "\r\n*** local echo: %s ***\r\n", 
-							  opts.lecho ? "yes" : "no");
-					break;
-				case KEY_SEND:
-#ifndef LINENOISE
-					fd_printf(STO, "\r\n*** file: ");
-					r = fd_readline(STI, STO, fname, sizeof(fname));
-					fd_printf(STO, "\r\n");
-					if ( r <= -1 ) {
-						if ( errno == EINTR ) {
-							fd_printf(STO, "Cannot read filename!\r\n");
-							break;
-						} else {
-							fatal("cannot read filename: %s", strerror(errno));
-						}
-					}
-					run_cmd(tty_fd, opts.send_cmd, fname, NULL);
-#else
-					fname = read_send_filename();
-					if (fname == NULL) {
-						fd_printf(STO, "Cannot read filename!\r\n");
-						break;
-					}
-					run_cmd(tty_fd, opts.send_cmd, fname, NULL);
-					free(fname);
-#endif		
-					break;
-				case KEY_RECEIVE:
-#ifndef LINENOISE
-					fd_printf(STO, "*** file: ");
-					r = fd_readline(STI, STO, fname, sizeof(fname));
-					fd_printf(STO, "\r\n");
-
-					if ( r <= -1 ) {
-						if ( errno == EINTR ) {
-							fd_printf(STO, "Cannot read filename!\r\n");
-							break;
-						} else {
-							fatal("cannot read filename: %s", strerror(errno));
-						}
-					}
-					if ( fname[0] )
-						run_cmd(tty_fd, opts.receive_cmd, fname, NULL);
-					else
-						run_cmd(tty_fd, opts.receive_cmd, NULL);
-#else
-					fname = read_receive_filename();
-					if (fname == NULL) {
-						fd_printf(STO, "Cannot read filename!\r\n");
-						break;
-					}
-					if ( fname[0] )
-						run_cmd(tty_fd, opts.receive_cmd, fname, NULL);
-					else
-						run_cmd(tty_fd, opts.receive_cmd, NULL);
-					free(fname);
-#endif
-					break;
-				case KEY_BREAK:
-					term_break(tty_fd);
-					fd_printf(STO, "\r\n*** break sent ***\r\n");
-					break;
-				default:
-					break;
-				}
 				break;
-
 			case ST_TRANSPARENT:
 				if ( c == opts.escape ) {
 					state = ST_COMMAND;
@@ -983,7 +1053,6 @@ loop(void)
 						fd_printf(STO, "\x07");
 				}
 				break;
-
 			default:
 				assert(0);
 				break;
@@ -1012,12 +1081,14 @@ loop(void)
 
 			/* write to port */
 
+			int sz;
+			sz = (tty_q.len < tty_write_sz) ? tty_q.len : tty_write_sz;
 			do {
-				n = write(tty_fd, tty_q.buff, tty_q.len);
+				n = write(tty_fd, tty_q.buff, sz);
 			} while ( n < 0 && errno == EINTR );
 			if ( n <= 0 )
 				fatal("write to term failed: %s", strerror(errno));
-			memcpy(tty_q.buff, tty_q.buff + n, tty_q.len - n);
+			memmove(tty_q.buff, tty_q.buff + n, tty_q.len - n);
 			tty_q.len -= n;
 		}
 	}
@@ -1028,12 +1099,10 @@ loop(void)
 void
 deadly_handler(int signum)
 {
-	kill(0, SIGTERM);
-	sleep(1);
-#ifdef UUCP_LOCK_DIR
-	uucp_unlock();
-#endif
-	exit(EXIT_FAILURE);
+	if ( ! sig_exit ) {
+		sig_exit = 1;
+		kill(0, SIGTERM);
+	}
 }
 
 void
@@ -1055,6 +1124,7 @@ establish_signal_handlers (void)
 
         sigaction (SIGINT, &ign_action, NULL); 
         sigaction (SIGHUP, &ign_action, NULL);
+		sigaction (SIGQUIT, &ign_action, NULL);
         sigaction (SIGALRM, &ign_action, NULL);
         sigaction (SIGUSR1, &ign_action, NULL);
         sigaction (SIGUSR2, &ign_action, NULL);
@@ -1066,6 +1136,7 @@ establish_signal_handlers (void)
 void
 show_usage(char *name)
 {
+#ifndef NO_HELP
 	char *s;
 
 	s = strrchr(name, '/');
@@ -1086,15 +1157,16 @@ show_usage(char *name)
 #endif
 #ifdef LINENOISE
 	printf("  LINENOISE is enabled\n");
-	printf("  SEND_RECEIVE_HISTFILE is: %s\n", SEND_RECEIVE_HISTFILE);
+	printf("  HISTFILE is: %s\n", HISTFILE);
 #endif
 	
 	printf("\nUsage is: %s [options] <tty device>\n", s);
 	printf("Options are:\n");
 	printf("  --<b>aud <baudrate>\n");
 	printf("  --<f>low s (=soft) | h (=hard) | n (=none)\n");
-	printf("  --<p>arity o (=odd) | e (=even) | n (=none)\n");
+	printf("  --parit<y> o (=odd) | e (=even) | n (=none)\n");
 	printf("  --<d>atabits 5 | 6 | 7 | 8\n");
+	printf("  --sto<p>bits 1 | 2\n");
 	printf("  --<e>scape <char>\n");
 	printf("  --e<c>ho\n");
 	printf("  --no<i>nit\n");
@@ -1117,6 +1189,9 @@ show_usage(char *name)
 	printf("  delbs : map DEL --> BS\n");
 	printf("<?> indicates the equivalent short option.\n");
 	printf("Short options are prefixed by \"-\" instead of by \"--\".\n");
+#else /* defined NO_HELP */
+	printf("Help disabled.\n");
+#endif /* of NO_HELP */
 }
 
 /**********************************************************************/
@@ -1124,6 +1199,8 @@ show_usage(char *name)
 void
 parse_args(int argc, char *argv[])
 {
+	int r;
+
 	static struct option longOptions[] =
 	{
 		{"receive-cmd", required_argument, 0, 'v'},
@@ -1138,12 +1215,14 @@ parse_args(int argc, char *argv[])
 		{"nolock", no_argument, 0, 'l'},
 		{"flow", required_argument, 0, 'f'},
 		{"baud", required_argument, 0, 'b'},
-		{"parity", required_argument, 0, 'p'},
+		{"parity", required_argument, 0, 'y'},
 		{"databits", required_argument, 0, 'd'},
+		{"stopbits", required_argument, 0, 'p'},
 		{"help", no_argument, 0, 'h'},
 		{0, 0, 0, 0}
 	};
 
+	r = 0;
 	while (1) {
 		int optionIndex = 0;
 		int c;
@@ -1152,7 +1231,7 @@ parse_args(int argc, char *argv[])
 		/* no default error messages printed. */
 		opterr = 0;
 
-		c = getopt_long(argc, argv, "hirlcv:s:r:e:f:b:p:d:",
+		c = getopt_long(argc, argv, "hirlcv:s:r:e:f:b:y:d:p:",
 						longOptions, &optionIndex);
 
 		if (c < 0)
@@ -1170,17 +1249,17 @@ parse_args(int argc, char *argv[])
 		case 'I':
 			map = parse_map(optarg);
 			if (map >= 0) opts.imap = map;
-			else fprintf(stderr, "Invalid imap, ignored\n");
+			else { fprintf(stderr, "Invalid --imap\n"); r = -1; }
 			break;
 		case 'O':
 			map = parse_map(optarg);
 			if (map >= 0) opts.omap = map;
-			else fprintf(stderr, "Invalid omap, ignored\n");
+			else { fprintf(stderr, "Invalid --omap\n"); r = -1; }
 			break;
 		case 'E':
 			map = parse_map(optarg);
 			if (map >= 0) opts.emap = map;
-			else fprintf(stderr, "Invalid emap, ignored\n");
+			else { fprintf(stderr, "Invalid --emap\n"); r = -1; }
 			break;
 		case 'c':
 			opts.lecho = 1;
@@ -1197,51 +1276,45 @@ parse_args(int argc, char *argv[])
 #endif
 			break;
 		case 'e':
-			opts.escape = optarg[0] & 0x1f;
+			opts.escape = CKEY(optarg[0]);
 			break;
 		case 'f':
 			switch (optarg[0]) {
 			case 'X':
 			case 'x':
-				opts.flow_str = "xon/xoff";
 				opts.flow = FC_XONXOFF;
 				break;
 			case 'H':
 			case 'h':
-				opts.flow_str = "RTS/CTS";
 				opts.flow = FC_RTSCTS;
 				break;
 			case 'N':
 			case 'n':
-				opts.flow_str = "none";
 				opts.flow = FC_NONE;
 				break;
 			default:
-				fprintf(stderr, "--flow '%c' ignored.\n", optarg[0]);
-				fprintf(stderr, "--flow can be one off: 'x', 'h', or 'n'\n");
+				fprintf(stderr, "Invalid --flow: %c\n", optarg[0]);
+				r = -1;
 				break;
 			}
 			break;
 		case 'b':
 			opts.baud = atoi(optarg);
 			break;
-		case 'p':
+		case 'y':
 			switch (optarg[0]) {
 			case 'e':
-				opts.parity_str = "even";
 				opts.parity = P_EVEN;
 				break;
 			case 'o':
-				opts.parity_str = "odd";
 				opts.parity = P_ODD;
 				break;
 			case 'n':
-				opts.parity_str = "none";
 				opts.parity = P_NONE;
 				break;
 			default:
-				fprintf(stderr, "--parity '%c' ignored.\n", optarg[0]);
-				fprintf(stderr, "--parity can be one off: 'o', 'e', or 'n'\n");
+				fprintf(stderr, "Invalid --parity: %c\n", optarg[0]);
+				r = -1;
 				break;
 			}
 			break;
@@ -1260,8 +1333,22 @@ parse_args(int argc, char *argv[])
 				opts.databits = 8;
 				break;
 			default:
-				fprintf(stderr, "--databits '%c' ignored.\n", optarg[0]);
-				fprintf(stderr, "--databits can be one off: 5, 6, 7 or 8\n");
+				fprintf(stderr, "Invalid --databits: %c\n", optarg[0]);
+				r = -1;
+				break;
+			}
+			break;
+		case 'p':
+			switch (optarg[0]) {
+			case '1':
+				opts.stopbits = 1;
+				break;
+			case '2':
+				opts.stopbits = 2;
+				break;
+			default:
+				fprintf(stderr, "Invalid --stopbits: %c\n", optarg[0]);
+				r = -1;
 				break;
 			}
 			break;
@@ -1270,7 +1357,11 @@ parse_args(int argc, char *argv[])
 			exit(EXIT_SUCCESS);
 		case '?':
 		default:
-			fprintf(stderr, "Unrecognized option.\n");
+			fprintf(stderr, "Unrecognized option(s)\n");
+			r = -1;
+			break;
+		}
+		if ( r < 0 ) {
 			fprintf(stderr, "Run with '--help'.\n");
 			exit(EXIT_FAILURE);
 		}
@@ -1278,31 +1369,37 @@ parse_args(int argc, char *argv[])
 
 	if ( (argc - optind) < 1) {
 		fprintf(stderr, "No port given\n");
+		fprintf(stderr, "Run with '--help'.\n");
 		exit(EXIT_FAILURE);
 	}
 	strncpy(opts.port, argv[optind], sizeof(opts.port) - 1);
 	opts.port[sizeof(opts.port) - 1] = '\0';
 
+#ifndef NO_HELP
 	printf("picocom v%s\n", VERSION_STR);
 	printf("\n");
 	printf("port is        : %s\n", opts.port);
-	printf("flowcontrol    : %s\n", opts.flow_str);
+	printf("flowcontrol    : %s\n", flow_str[opts.flow]);
 	printf("baudrate is    : %d\n", opts.baud);
-	printf("parity is      : %s\n", opts.parity_str);
+	printf("parity is      : %s\n", parity_str[opts.parity]);
 	printf("databits are   : %d\n", opts.databits);
-	printf("escape is      : C-%c\n", 'a' + opts.escape - 1);
+	printf("stopbits are   : %d\n", opts.stopbits);
+	printf("escape is      : C-%c\n", KEYC(opts.escape));
 	printf("local echo is  : %s\n", opts.lecho ? "yes" : "no");
 	printf("noinit is      : %s\n", opts.noinit ? "yes" : "no");
 	printf("noreset is     : %s\n", opts.noreset ? "yes" : "no");
 #if defined (UUCP_LOCK_DIR) || defined (USE_FLOCK)
 	printf("nolock is      : %s\n", opts.nolock ? "yes" : "no");
 #endif
-	printf("send_cmd is    : %s\n", opts.send_cmd);
-	printf("receive_cmd is : %s\n", opts.receive_cmd);
+	printf("send_cmd is    : %s\n", 
+		   (opts.send_cmd[0] == '\0') ? "disabled" : opts.send_cmd);
+	printf("receive_cmd is : %s\n", 
+		   (opts.receive_cmd[0] == '\0') ? "disabled" : opts.receive_cmd);
 	printf("imap is        : "); print_map(opts.imap);
 	printf("omap is        : "); print_map(opts.omap);
 	printf("emap is        : "); print_map(opts.emap);
 	printf("\n");
+#endif /* of NO_HELP */
 }
 
 /**********************************************************************/
@@ -1347,6 +1444,7 @@ main(int argc, char *argv[])
 					 opts.baud,      /* baud rate. */
 					 opts.parity,    /* parity. */
 					 opts.databits,  /* data bits. */
+					 opts.stopbits,  /* stop bits. */
 					 opts.flow,      /* flow control. */
 					 1,              /* local or modem */
 					 !opts.noreset); /* hup-on-close. */
@@ -1358,6 +1456,8 @@ main(int argc, char *argv[])
 	if ( r < 0 )
 		fatal("failed to config device %s: %s", 
 			  opts.port, term_strerror(term_errno, errno));
+
+	set_tty_write_sz(term_get_baudrate(tty_fd, NULL));
 	
 	r = term_add(STI);
 	if ( r < 0 )
@@ -1370,14 +1470,18 @@ main(int argc, char *argv[])
 			  term_strerror(term_errno, errno));
 
 #ifdef LINENOISE
-	init_send_receive_history();
+	init_history();
 #endif
 
+#ifndef NO_HELP
+	fd_printf(STO, "Type [C-%c] [C-%c] to see available commands\r\n\r\n",
+			  KEYC(opts.escape), KEYC(KEY_HELP));
+#endif
 	fd_printf(STO, "Terminal ready\r\n");
 	loop();
 
 #ifdef LINENOISE
-	cleanup_send_receive_history();
+	cleanup_history();
 #endif
 
 	fd_printf(STO, "\r\n");
@@ -1386,7 +1490,10 @@ main(int argc, char *argv[])
 		term_erase(tty_fd);
 	}
 
-	fd_printf(STO, "Thanks for using picocom\r\n");
+	if ( sig_exit )
+		fd_printf(STO, "Picocom was killed\r\n");
+	else
+		fd_printf(STO, "Thanks for using picocom\r\n");
 	/* wait a bit for output to drain */
 	sleep(1);
 

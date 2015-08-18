@@ -68,8 +68,10 @@ static const char * const term_err_str[] = {
 	[TERM_EBAUD]      = "Invalid baud rate",
 	[TERM_ESETOSPEED] = "Cannot set the output speed",
 	[TERM_ESETISPEED] = "Cannot set the input speed",
+	[TERM_EGETSPEED]  = "Cannot decode speed",
 	[TERM_EPARITY]    = "Invalid parity mode",
 	[TERM_EDATABITS]  = "Invalid number of databits",
+	[TERM_ESTOPBITS]  = "Invalid number of stopbits",
 	[TERM_EFLOW]      = "Invalid flowcontrol mode",
     [TERM_EDTRDOWN]   = "Cannot lower DTR",
     [TERM_EDTRUP]     = "Cannot raise DTR",
@@ -106,6 +108,7 @@ term_strerror (int terrnum, int errnum)
 	case TERM_EBAUD:
 	case TERM_EPARITY:
 	case TERM_EDATABITS:
+	case TERM_ESTOPBITS:
 	case TERM_EFLOW:
 	case TERM_EDTRDOWN:
 	case TERM_EDTRUP:
@@ -192,7 +195,7 @@ struct baud_codes {
 	{ 3500000, B3500000 },
 #endif
 #ifdef B4000000
-	{ 4000000, 4000000 },
+	{ 4000000, B4000000 },
 #endif
 #endif /* of HIGH_BAUD */
 };
@@ -246,6 +249,20 @@ Bcode(int speed)
 		}
 	}
 	return code;
+}
+
+static int
+Bspeed(speed_t code)
+{
+	int speed = -1, i;
+
+	for (i = 0; i < BAUD_TABLE_SZ; i++) {
+		if ( baud_table[i].code == code ) {
+			speed = baud_table[i].speed;
+			break;
+		}
+	}
+	return speed;
 }
 
 /**************************************************************************/
@@ -320,12 +337,10 @@ term_exitfunc (void)
 		for (i = 0; i < MAX_TERMS; i++) {
 			if (term.fd[i] == -1)
 				continue;
-			do { /* dummy */
-				r = tcflush(term.fd[i], TCIOFLUSH);
-				if ( r < 0 ) break;
+			tcflush(term.fd[i], TCIOFLUSH);
+			do {
 				r = tcsetattr(term.fd[i], TCSAFLUSH, &term.origtermios[i]);
-				if ( r < 0 ) break;
-			} while (0);
+			} while ( r < 0 && errno == EINTR );
 			if ( r < 0 ) {
 				char *tname;
 
@@ -354,12 +369,10 @@ term_lib_init (void)
 			for (i = 0; i < MAX_TERMS; i++) {
 				if (term.fd[i] == -1)
 					continue;
+				tcflush(term.fd[i], TCIOFLUSH);
 				do {
-					r = tcflush(term.fd[i], TCIOFLUSH);
-					if ( r < 0 ) break;
 					r = tcsetattr(term.fd[i], TCSAFLUSH, &term.origtermios[i]);
-					if ( r < 0 ) break;
-				} while (0);
+				} while ( r < 0 && errno == EINTR );
 				if ( r < 0 ) {
 					char *tname;
  
@@ -513,6 +526,12 @@ term_replace (int oldfd, int newfd)
 			rval = -1;
 			break;
 		}
+		r = tcgetattr(newfd, &term.currtermios[i]);
+		if ( r < 0 ) {
+			term_errno = TERM_EGETATTR;
+			rval = -1;
+			break;
+		}
 
 		term.fd[i] = newfd;
 
@@ -550,9 +569,14 @@ term_reset (int fd)
 			rval = -1;
 			break;
 		}
+		r = tcgetattr(term.fd[i], &term.currtermios[i]);
+		if ( r < 0 ) {
+			term_errno = TERM_EGETATTR;
+			rval = -1;
+			break;
+		}
 
-		term.currtermios[i] = term.origtermios[i];
-		term.nexttermios[i] = term.origtermios[i];
+		term.nexttermios[i] = term.currtermios[i];
 	} while (0);
 
 	return rval;
@@ -634,7 +658,13 @@ term_apply (int fd)
 			rval = -1;
 			break;
 		}
-		
+		r = tcgetattr(term.fd[i], &term.nexttermios[i]);
+		if ( r < 0 ) {
+			term_errno = TERM_EGETATTR;
+			rval = -1;
+			break;
+		}
+
 		term.currtermios[i] = term.nexttermios[i];
 
 	} while (0);
@@ -718,6 +748,34 @@ term_set_baudrate (int fd, int baudrate)
 	return rval;
 }
 
+int 
+term_get_baudrate (int fd, int *ispeed)
+{
+	speed_t code;
+	int i, ospeed;
+
+	do { /* dummy */
+
+		i = term_find(fd);
+		if ( i < 0 ) {
+			ospeed = -1;
+			break;
+		}
+
+		if ( ispeed ) {
+			code = cfgetispeed(&term.currtermios[i]);
+			*ispeed = Bspeed(code);
+		}
+		code = cfgetospeed(&term.currtermios[i]);
+		ospeed = Bspeed(code);
+		if ( ospeed < 0 )
+			term_errno = TERM_EGETSPEED;
+
+	} while (0);
+
+	return ospeed;
+}
+
 /***************************************************************************/
 
 int
@@ -740,14 +798,22 @@ term_set_parity (int fd, enum parity_e parity)
 
 		switch (parity) {
 		case P_EVEN:
-			tiop->c_cflag &= ~PARODD;
+			tiop->c_cflag &= ~(PARODD | CMSPAR);
 			tiop->c_cflag |= PARENB;
 			break;
 		case P_ODD:
+			tiop->c_cflag &= ~CMSPAR;
 			tiop->c_cflag |= PARENB | PARODD;
 			break;
+		case P_MARK:
+			tiop->c_cflag |= PARENB | PARODD | CMSPAR;
+			break;
+		case P_SPACE:
+			tiop->c_cflag &= ~PARODD;
+			tiop->c_cflag |= PARENB | CMSPAR;
+			break;
 		case P_NONE:
-			tiop->c_cflag &= ~(PARENB | PARODD); 
+			tiop->c_cflag &= ~(PARENB | PARODD | CMSPAR); 
 			break;
 		default:
 			term_errno = TERM_EPARITY;
@@ -759,6 +825,34 @@ term_set_parity (int fd, enum parity_e parity)
 	} while (0);
 
 	return rval;
+}
+
+enum parity_e
+term_get_parity (int fd)
+{
+	tcflag_t flg;
+	int i, parity;
+
+	do { /* dummy */
+
+		i = term_find(fd);
+		if ( i < 0 ) {
+			parity = -1;
+			break;
+		}
+
+		flg = term.currtermios[i].c_cflag;
+		if ( ! (flg & PARENB) ) {
+			parity = P_NONE;
+		} else if ( flg & CMSPAR ) {
+			parity = (flg & PARODD) ? P_MARK : P_SPACE;
+		} else {
+			parity = (flg & PARODD) ? P_ODD : P_EVEN;
+		}
+
+	} while (0);
+	
+	return parity;
 }
 
 /***************************************************************************/
@@ -806,6 +900,101 @@ term_set_databits (int fd, int databits)
 	return rval;
 }
 
+int
+term_get_databits (int fd)
+{
+	tcflag_t flg;
+	int i, bits;
+
+	do { /* dummy */
+
+		i = term_find(fd);
+		if ( i < 0 ) {
+			bits = -1;
+			break;
+		}
+
+		flg = term.currtermios[i].c_cflag & CSIZE;
+		switch (flg) {
+		case CS5:
+			bits = 5;
+			break;
+		case CS6:
+			bits = 6;
+			break;
+		case CS7:
+			bits = 7;
+			break;
+		case CS8:
+		default:
+			bits = 8;
+			break;
+		}
+
+	} while (0);
+
+	return bits;
+}
+
+/***************************************************************************/
+
+int
+term_set_stopbits (int fd, int stopbits)
+{
+	int rval, i;
+	struct termios *tiop;
+
+	rval = 0;
+
+	do { /* dummy */
+
+		i = term_find(fd);
+		if ( i < 0 ) {
+			rval = -1;
+			break;
+		}
+
+		tiop = &term.nexttermios[i];
+				
+		switch (stopbits) {
+		case 1:
+			tiop->c_cflag &= ~CSTOPB;
+			break;
+		case 2:
+			tiop->c_cflag |= CSTOPB;
+			break;
+		default:
+			term_errno = TERM_ESTOPBITS;
+			rval = -1;
+			break;
+		}
+		if ( rval < 0 ) break;
+
+	} while (0);
+
+	return rval;
+}
+
+int
+term_get_stopbits (int fd)
+{
+	int i, bits;
+
+	do { /* dummy */
+
+		i = term_find(fd);
+		if ( i < 0 ) {
+			bits = -1;
+			break;
+		}
+
+		bits = (term.currtermios[i].c_cflag & CSTOPB) ? 2 : 1;
+
+	} while (0);
+
+	return bits;
+}
+
 /***************************************************************************/
 
 int
@@ -849,6 +1038,39 @@ term_set_flowcntrl (int fd, enum flowcntrl_e flowcntl)
 	} while (0);
 
 	return rval;
+}
+
+enum flowcntrl_e
+term_get_flowcntrl (int fd)
+{
+	int i, flow;
+	int rtscts, xoff, xon;
+
+	do { /* dummy */
+
+		i = term_find(fd);
+		if ( i < 0 ) {
+			flow = -1;
+			break;
+		}
+
+		rtscts = (term.currtermios[i].c_cflag & CRTSCTS) ? 1 : 0;
+		xoff = (term.currtermios[i].c_iflag & IXOFF) ? 1 : 0;
+		xon = (term.currtermios[i].c_iflag & (IXON | IXANY)) ? 1 : 0;
+
+		if ( rtscts && ! xoff && ! xon ) {
+			flow = FC_RTSCTS;
+		} else if ( ! rtscts && xoff && xon ) {
+			flow = FC_XONXOFF;
+		} else if ( ! rtscts && ! xoff && ! xon ) {
+			flow = FC_NONE;
+		} else {
+			flow = FC_OTHER;
+		}
+
+	} while (0);
+	
+	return flow;
 }
 
 /***************************************************************************/
@@ -916,7 +1138,10 @@ term_set_hupcl (int fd, int on)
 int
 term_set(int fd,
 		 int raw,
-		 int baud, enum parity_e parity, int bits, enum flowcntrl_e fc,
+		 int baud, 
+		 enum parity_e parity, 
+		 int databits, int stopbits,
+		 enum flowcntrl_e fc,
 		 int local, int hup_close)
 {
 	int rval, r, i, ni;
@@ -952,7 +1177,10 @@ term_set(int fd,
 			r = term_set_parity(fd, parity);
 			if ( r < 0 ) { rval = -1; break; }
 			
-			r = term_set_databits(fd, bits);
+			r = term_set_databits(fd, databits);
+			if ( r < 0 ) { rval = -1; break; }
+
+			r = term_set_stopbits(fd, stopbits);
 			if ( r < 0 ) { rval = -1; break; }
 			
 			r = term_set_flowcntrl(fd, fc);

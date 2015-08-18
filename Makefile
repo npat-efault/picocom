@@ -1,11 +1,11 @@
 
-VERSION=1.9a
+VERSION=2.0a
 
-# CC = gcc
+#CC = gcc
 CPPFLAGS=-DVERSION_STR=\"$(VERSION)\"
 CFLAGS = -Wall -g
 
-# LD = gcc
+#LD = gcc
 LDFLAGS = -g
 LDLIBS =
 
@@ -27,18 +27,23 @@ CPPFLAGS += -DUSE_FLOCK
 #CPPFLAGS += -DUUCP_LOCK_DIR=\"$(UUCP_LOCK_DIR)\"
 
 ## Comment these out to disable "linenoise"-library support
-SEND_RECEIVE_HISTFILE = .picocom_send_receive
-CPPFLAGS += -DSEND_RECEIVE_HISTFILE=\"$(SEND_RECEIVE_HISTFILE)\" \
+HISTFILE = .picocom_history
+CPPFLAGS += -DHISTFILE=\"$(HISTFILE)\" \
 	    -DLINENOISE
 picocom : linenoise-1.0/linenoise.o
 linenoise-1.0/linenoise.o : linenoise-1.0/linenoise.c linenoise-1.0/linenoise.h
 
+## Comment this IN to remove help strings (saves ~ 4-6 Kb).
+#CPPFLAGS += -DNO_HELP
 
-picocom : picocom.o term.o
+
+picocom : picocom.o term.o fdio.o split.o
 #	$(LD) $(LDFLAGS) -o $@ $+ $(LDLIBS)
 
 picocom.o : picocom.c term.h
 term.o : term.c term.h
+split.o : split.c split.h
+fdio.o : fdio.c fdio.h
 
 
 doc : picocom.8 picocom.8.html picocom.8.ps
@@ -56,7 +61,7 @@ picocom.8.ps : picocom.8
 	groff -mandoc -Tps $< > $@
 
 clean:
-	rm -f picocom.o term.o linenoise-1.0/linenoise.o
+	rm -f picocom.o term.o fdio.o split.o linenoise-1.0/linenoise.o
 	rm -f *~
 	rm -f \#*\#
 

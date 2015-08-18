@@ -8,30 +8,30 @@
  *
  * Principles of operation:
  *
- * After the library is initialized one or more file-descriptors, can
+ * After the library is initialized, one or more file-descriptors can
  * be added to (and latter removed from) the list managed by the
- * library (framework). These file descriptors must be opened on
- * terminal devices. For every fd, the original settings of the
- * associated terminal device are saved by the library. These settings
- * are restored when the fd is removed from the framework, or at
- * program termination [by means of an atexit(3) handler installed by
- * the library], or at user request. The library maintains three
- * structures for every fd in the framework: The original settings
- * structure ("origtermios"), keeping the settings of the terminal
- * device when the respective filedes was added to the framework. The
- * current settings structure ("currtermios"), keeping the current
- * settings of the associated terminal device; and the next settings
- * structure ("nexttermios") which keeps settings to be applied to the
- * associated terminal device at a latter time, upon user request.
- * The "term_set_*" functions can be used to modify the device
- * settings stored in the nexttermios structure. Using functions
- * provided by the library the user can: Apply the nexttermios
- * settings to the device. Revert all changes made on nexttermios by
- * copying the currtermios structure to nexttermios. Reset the device,
- * by configuring it to the original settings, and copying origtermios
- * to currtermios and nexttermios. Refresh the device by rereading the
- * current settings from it and updating currtermios (to catch up with
- * changes made to the device by means outside of this framework).
+ * it. These file descriptors must be opened on terminal devices. For
+ * every fd, the original settings of the associated terminal device
+ * are saved by the library. These settings are restored when the fd
+ * is removed from the framework, or at program termination [by means
+ * of an atexit(3) handler installed by the library], or at user
+ * request. The library maintains three structures for every fd in the
+ * framework: The original settings structure ("origtermios"), keeping
+ * the settings of the terminal device when the respective filedes was
+ * added to the framework. The current settings structure
+ * ("currtermios"), keeping the current settings of the associated
+ * terminal device; and the next settings structure ("nexttermios")
+ * which keeps settings to be applied to the associated terminal
+ * device at a latter time, upon user request.  The "term_set_*"
+ * functions can be used to modify the device settings stored in the
+ * nexttermios structure. Using functions provided by the library the
+ * user can: Apply the nexttermios settings to the device. Revert all
+ * changes made on nexttermios by copying the currtermios structure to
+ * nexttermios. Reset the device, by configuring it to the original
+ * settings, and copying origtermios to currtermios and
+ * nexttermios. Refresh the device by rereading the current settings
+ * from it and updating currtermios (to catch up with changes made to
+ * the device by means outside of this framework).
  *
  * Interface summary:
  *
@@ -48,10 +48,15 @@
  * F term_set_baudrate - set the baudrate in "nexttermios"
  * F term_set_parity - set the parity mode in "nexttermios"
  * F term_set_databits - set the databits in "nexttermios"
+ * F term_set_stopbits - set the stopbits in "nexttermios"
  * F term_set_flowcntrl - set the flowcntl mode in "nexttermios"
  * F term_set_hupcl - enable or disable hupcl in "nexttermios"
  * F term_set_local - set "nexttermios" to local or non-local mode
  * F term_set - set all params of "nexttermios" in a single stroke
+ * F term_get_baudrate - return the baudrate set in "currtermios"
+ * F term_get_parity - return the parity setting in "currtermios"
+ * F term_get_databits - return the data-bits setting in "currtermios"
+ * F term_get_flowcntrl - return the flow-control setting in "currtermios"
  * F term_pulse_dtr - pulse the DTR line a device
  * F term_lower_dtr - lower the DTR line of a device
  * F term_raise_dtr - raise the DTR line of a device
@@ -126,8 +131,10 @@ enum term_errno_e {
 	TERM_EBAUD,
 	TERM_ESETOSPEED,
 	TERM_ESETISPEED,
+	TERM_EGETSPEED,
 	TERM_EPARITY,
 	TERM_EDATABITS,
+	TERM_ESTOPBITS,
 	TERM_EFLOW,
 	TERM_EDTRDOWN,
 	TERM_EDTRUP,
@@ -139,14 +146,18 @@ enum term_errno_e {
  *
  * Parity modes supported by the library:
  *
- * P_NONE - no patiry
- * P_EVEN - even parity
- * P_ODD  - odd parity
+ * P_NONE  - no patiry
+ * P_EVEN  - even parity
+ * P_ODD   - odd parity
+ * P_MARK  - mark parity (parity bit always 1)
+ * P_SPACE - space parity (parity bit always 0)
  */
 enum parity_e {
-	P_NONE, 
+	P_NONE = 0, 
 	P_EVEN, 
-	P_ODD
+	P_ODD,
+	P_MARK,
+	P_SPACE
 };
 
 /* 
@@ -160,9 +171,10 @@ enum parity_e {
  * FC_XONXOFF  - xon/xoff flow control. 
  */
 enum flowcntrl_e {
-	FC_NONE, 
+	FC_NONE = 0, 
 	FC_RTSCTS, 
-	FC_XONXOFF
+	FC_XONXOFF,
+	FC_OTHER
 };
 
 /***************************************************************************/
@@ -265,7 +277,10 @@ int term_erase (int fd);
  * removed from the framework without the associated device beign
  * reset (it is most-likely no longer connected to a device anyway,
  * and reset would fail). The device associated with "newfd" is
- * configured with "oldfd"s current settings.
+ * configured with "oldfd"s current settings (stored in the
+ * "currtermios" structure). After applying the settings to "newfd",
+ * the "currtermios" structure is re-read from the device, so that it
+ * corresponds to the actual device settings.
  *
  * Returns negative on failure, non-negative on success. In case of
  * failure "oldfd" is not removed from the framework, and no
@@ -276,21 +291,24 @@ int term_erase (int fd);
  * you a way to do transparent "open"s and "close"s: Before you close
  * a device, it has certain settings managed by the library. When you
  * close it and then re-open it many of these settings are lost, since
- * the device reverts to system-default settings. By calling movefd,
- * you conceptually _maintain_ the old (pre-close) settings to the new
- * (post-open) filedes.
+ * the device reverts to system-default settings. By calling
+ * term_replace, you conceptually _maintain_ the old (pre-close)
+ * settings to the new (post-open) filedes.
  */
 int term_replace (int oldfd, int newfd);
 
 /*
  * F term_apply 
  *
- * Applies the settings stored in the nexttermios structure associated
- * with the managed filedes "fd", to the respective terminal device.
- * It then copies nexttermios to currtermios.
+ * Applies the settings stored in the "nexttermios" structure
+ * associated with the managed filedes "fd", to the respective
+ * terminal device.  It then re-reads the settings form the device and
+ * stores them in "nexttermios". Finally it copies "nexttermios" to
+ * "currtermios".
  *
  * Returns negative on failure, non negative on success. In case of
- * failure the currtermios structure is not affected.
+ * failure the "nexttermios" and "currtermios" structures are not
+ * affected.
  */
 int term_apply (int fd);
 
@@ -311,9 +329,9 @@ int term_revert (int fd);
  *
  * Reset the terminal device associated with the managed filedes "fd"
  * to its "original" settings. This function applies the settings in
- * the "origtermios" structure to the actual device. It also discards
- * the settings in the "currtermios" and "nexttermios" stuctures by
- * making them equal to "origtermios".
+ * the "origtermios" structure to the actual device. It then reads the
+ * settings from the device and stores them in both the "currtermios"
+ * and "nexttermios" stuctures.
  *
  * Returns negative on failure, non-negative of success. On failure
  * the the "origtermios", "currtermios", and "nexttermios" stuctures
@@ -397,6 +415,20 @@ int term_set_parity (int fd, enum parity_e parity);
  */
 int term_set_databits (int fd, int databits);
 
+/* F term_set_stopbits
+ * 
+ * Sets the stopbits number in the "nexttermios" structure associated
+ * with the managed filedes "fd" to "stopbits". The effective settings
+ * of the device are not affected by this function.
+ *
+ * 1 and 2 stopbits are supported by the library.
+ *
+ * Returns negative on failure, non negative on success. Returns
+ * failure only to indicate invalid arguments, so the return value can
+ * be safely ignored.
+ */
+int term_set_stopbits (int fd, int stopbits);
+
 /* F term_set_flowcntrl
  *
  * Sets the folwcontrol mode in the "nexttermios" structure associated
@@ -466,8 +498,63 @@ int term_set_local (int fd, int local);
 int term_set (int fd, 
               int raw, 
               int baud, 
-              enum parity_e parity, int bits, enum flowcntrl_e fc,
+              enum parity_e parity, 
+			  int databits, int stopbits, 
+			  enum flowcntrl_e fc,
 			  int local, int hupcl);
+
+/* F term_get_baudrate
+ *
+ * Reads and decodes the current baudrate settings in the
+ * "currtermios" structure of the managed filedes "fd".
+ *
+ * Returns the decoded output baudrate (as bits-per-second), or -1 if
+ * the output baudrate cannot be decoded, or if "fd" does not
+ * correspond to a managed filedes. If "ispeed" is not NULL, it writes
+ * the decoded input baudrate to the integer pointed-to by "ispeed";
+ * if the input baudrate cannot be decoded in writes -1 instead.
+ */
+int term_get_baudrate (int fd, int *ispeed);
+
+/* F term_get_parity
+ *
+ * Reads and decodes the current parity settings in the
+ * "currtermios" structure of the managed filedes "fd".
+ *
+ * Returns one of the "enum parity_e" members, or -1 if "fd" does not
+ * correspond to a managed filedes.
+ */
+enum parity_e term_get_parity (int fd);
+
+/* F term_get_databits
+ *
+ * Reads and decodes the current databits settings in the
+ * "currtermios" structure of the managed filedes "fd".
+ *
+ * Returns the number of databits (5..8), or -1 if "fd" does not
+ * correspond to a managed filedes.
+ */
+int term_get_databits (int fd);
+
+/* F term_get_stopbits
+ *
+ * Reads and decodes the current stopbits settings in the
+ * "currtermios" structure of the managed filedes "fd".
+ *
+ * Returns the number of databits (1 or 2), or -1 if "fd" does not
+ * correspond to a managed filedes.
+ */
+int term_get_stopbits (int fd);
+
+/* F term_get_flowcntrl
+ *
+ * Reads and decodes the current flow-control settings in the
+ * "currtermios" structure of the managed filedes "fd".
+ *
+ * Returns one of the "enum flowcntrl_e" members, or -1 if "fd" does
+ * not correspond to a managed filedes.
+ */
+enum flowcntrl_e term_get_flowcntrl (int fd);
 
 /* F term_pulse_dtr
  *

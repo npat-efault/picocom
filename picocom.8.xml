@@ -13,25 +13,24 @@
   <description>
 
     <p>
-      As its name suggests, <b>picocom</b> is a minimal
-      dumb-terminal emulation program. It is, in principle, very much
-      like <manref name="minicom" section="1"/>, only it's "pico"
-      instead of "mini"! It was designed to serve as a simple, manual,
-      modem configuration, testing, and debugging tool. It has also
-      served (quite well) as a low-tech "terminal-window" to allow
-      operator intervention in PPP connection scripts (something like
-      the ms-windows "open terminal window before / after dialing"
-      feature). It could also prove useful in many other similar
+      As its name suggests, <b>picocom</b> is a minimal dumb-terminal
+      emulation program. It is, in principle, very much like <manref
+      name="minicom" section="1"/>, only it's "pico" instead of
+      "mini"! It was designed to serve as a simple, manual, modem
+      configuration, testing, and debugging tool. It has also served
+      (quite well) as a low-tech serial communications program to
+      allow access to all types of devices that provide serial
+      consoles. It could also prove useful in many other similar
       tasks.
     </p>
 
     <p>
       When <b>picocom</b> starts it opens the terminal (serial
       device) given as its non-option argument. Unless the
-      <arg>--noinit</arg> option is given, it configures the device to
+      <opt>--noinit</opt> option is given, it configures the device to
       the settings specified by the option-arguments (or to some
       default settings), and sets it to "raw" mode. If
-      <arg>--noinit</arg> is given, the initialization and
+      <opt>--noinit</opt> is given, the initialization and
       configuration is skipped; the device is just opened. Following
       this, <b>picocom</b> sets the standard-input and
       standard-output to raw mode. Having done so, it goes in a loop
@@ -63,20 +62,18 @@
       and return to "transparent" mode. This means that if the escape
       character ("C-a", by default) is typed twice, the program sends
       the escape character to the serial port, and remains in
-      transparent mode. This is a new behavior implemented in
-      v1.4. Previously picocom used to ignore the escape-character
-      when it was entered as a function character.
+      transparent mode.
     </p>
 
     <p>
-      [C-x]: Exit the program: if the <arg>--noreset</arg> option was
+      [C-x]: Exit the program: if the <opt>--noreset</opt> option was
       not given then the serial port is reset to its original settings
       before exiting; if it was given the serial port is not reset.
     </p>
 
     <p>
       [C-q]: Quit the program *without* reseting the serial port,
-      regardless of the <arg>--noreset</arg> option.
+      regardless of the <opt>--noreset</opt> option.
     </p>
 	
     <p>
@@ -127,14 +124,34 @@
     </p>
 
     <p>
+      [C-j]: Cycle through stopbits-number settings (1, 2).
+    </p>
+
+    <p>
       [C-c]: Toggle local-echo mode.
     </p>
 
     <p>
-      [C-v]: Show program options (like baud rate, data bits,
-      etc). Only the options that can be modified online (through
-      commands) are shown, not those that can only be set at the
-      command-line.
+      [C-v]: Show program options (like baud rate, data bits, etc) as
+      well as the actual serial port settings. Only the options and
+      port settings that can be modified online (through commands) are
+      shown, not those that can only be set at the command-line. If an
+      actual port setting is different than the current value of the
+      respective option (for whatever reason) then the value of the
+      option is shown, followed by the value of the actual port
+      setting in parenthesis. Example: "*** baud: 115200 (9600)". This
+      means that a baud rate of 115200bps has been selected (from the
+      command line, or using commands) but the serial port is actually
+      operating at 9600bps (the driver may not support the higher
+      setting, and has silently replaced it with a safe default, or
+      the setting may have been changed from outside picocom). If the
+      option and the corresponding port setting are the same, only a
+      single value is shown. Example: "*** baud: 9600".
+    </p>
+
+    <p>
+      [C-h] or [C-k]: Show help or show keys. Prints a short
+      description of all available function (command) keys.
     </p>
 
     <p>
@@ -158,6 +175,16 @@
     <p>
       assuming of-course that "C-a" is the escape character.
     </p>
+
+    <p> 
+      Commands that change program options ([C-u], [C-d], [C-f], etc)
+      also display a message showing the new option value. If the new
+      option value cannot be applied succesfully to the serial port
+      (for whatever reason), then the respective actual current port
+      setting is also shown. See the description of the [C-v] command,
+      above, for more on this.
+    </p>
+ 
   </section>
 
   <section name = "SENDING AND RECEIVING FILES">
@@ -185,15 +212,27 @@
     <p>
       The name of, and the command-line options to, the program to be
       used for transmitting files are given by the
-      <arg>--send-cmd</arg> option. Similarly the program to receive
+      <opt>--send-cmd</opt> option. Similarly the program to receive
       files, and its argumets, are given by the
-      <arg>--receive-cmd</arg> option. For example, in order to start
+      <opt>--receive-cmd</opt> option. For example, in order to start
       a <b>picocom</b> session that uses "sz" to transmit files, and
-      "rz" to receive, you have to say something like this:
+      "rz" to receive files, you have to say something like this:
     </p>
 
     <p>
       picocom --send-cmd "sz -vv" --receive-cmd "rz -vv"
+    </p>
+
+    <p>
+      If the argument to the <opt>--send-cmd</opt> option, or the
+      argument to the <opt>--receive-cmd</opt> option is the empty
+      string, then the respective command is disabled. For example, in
+      order to disable both the "send" and the "receive" commands you
+      can invoke picocom like this:
+    </p>
+
+    <p>
+      picocom --send-cmd '' --receive-cmd ''
     </p>
 
     <p>
@@ -210,7 +249,7 @@
       transmission or reception program arguments) and assuming you
       have not canceled the operation by pressing C-c, picocom will
       start the the external program as specified by the
-      <arg>--send-cmd</arg>, or <arg>--receive-cmd</arg> option, and
+      <opt>--send-cmd</opt>, or <opt>--receive-cmd</opt> option, and
       with any filenames and additional arguments you may have
       supplied. The standard input and output of the external program
       will be connected to the serial port. The standard error of the
@@ -226,13 +265,13 @@
 
   <section name = "INPUT, OUTPUT, AND ECHO MAPPING">
     <p>
-      Using the <arg>--imap</arg>, <arg>--omap</arg>, and
-      <arg>--emap</arg> options you can make <b>picocom</b> map
+      Using the <opt>--imap</opt>, <opt>--omap</opt>, and
+      <opt>--emap</opt> options you can make <b>picocom</b> map
       (tranlate, replace) certain special characters after being read
-      from the serial port (with <arg>--imap</arg>), before being
-      written to the serial port (with <arg>--omap</arg>), and before
+      from the serial port (with <opt>--imap</opt>), before being
+      written to the serial port (with <opt>--omap</opt>), and before
       being locally echoed to the terminal (standard output) if local
-      echo is enabled (with <arg>--emap</arg>). These mapping options
+      echo is enabled (with <opt>--emap</opt>). These mapping options
       take, each, a single argument which is a comma-separated list of
       one or more of the following identifiers: "crlf" (map CR to LF),
       "crcrlf" (map CR to CR + LF), "igncr" (ignore CR), "lfcr" (map
@@ -303,6 +342,16 @@
 	</p>
       </optdesc>
     </option>
+
+    <option>
+      <opt><p>--stopbits | -p</p></opt>
+      <optdesc>
+	<p>
+	  Defines the number of stop bits in every character. Must be
+	  one of: 1, or 2. (Default: 1)
+	</p>
+      </optdesc>
+    </option>
     
     <option>
       <opt><p>--esacpe | -e</p></opt>
@@ -322,7 +371,7 @@
 	  Enable local echo. Every character being read from the
 	  terminal (standard input) is echoed to the terminal
 	  (standard output) subject to the echo-mapping configuration
-	  (see <arg>--emap</arg> option. (Default: Disabled)
+	  (see <opt>--emap</opt> option. (Default: Disabled)
 	</p>
       </optdesc>
     </option>
@@ -350,9 +399,9 @@
 	  when exiting. It will just close the filedes and do nothing
 	  more. This is useful, for example, for leaving modems
 	  connected when exiting <b>picocom</b>. Regardless whether
-	  the <arg>--noreset</arg> option is given the user can exit
+	  the <opt>--noreset</opt> option is given the user can exit
 	  <b>picocom</b> using the "Quit" command (instead of "Exit"),
-	  which never resets the serial port. If <arg>--noreset</arg>
+	  which never resets the serial port. If <opt>--noreset</opt>
 	  is given then "Quit" and "Exit" behave essentially the same.
 	</p>
       </optdesc>
@@ -363,12 +412,15 @@
       <optdesc>
 	<p>
 	  If given, <b>picocom</b> will *not* attempt to lock the
-	  serial port before opening it. Normally picocom attempts to
-	  get a UUCP-style lock-file (e.g. "/var/lock/LCK..ttyS0")
-	  before opening the port. Failing to do so, results in the
+	  serial port before opening it. Normally, depending on how
+	  it's compiled, picocom attempts to get a UUCP-style
+	  lock-file (e.g. "/var/lock/LCK..ttyS0") before opening the
+	  port, or attempts to lock the port device-node using <manref
+	  name="flock" section="2"/>. Failing to do so, results in the
 	  program exiting after emitting an error-message. It is
-	  possible that your picocom binary is compiled without this
-	  option.
+	  possible that your picocom binary is compiled without
+	  support for locking. In this case the <opt>--nolock</opt>
+	  option is accepted, but has no effect.
 	</p>
       </optdesc>
     </option>
@@ -378,8 +430,9 @@
       <optdesc>
 	<p>
 	  Specifies the external program (and any arguments to it)
-	  that will be used for transmitting files. (Default: "sz
-	  -vv")
+	  that will be used for transmitting files. If the argument to
+	  <opt>--send-cmd</opt> is the empty string (''), the
+	  send-file command is disabled. (Default: "sz -vv")
 	</p>
       </optdesc>
     </option>
@@ -389,7 +442,9 @@
       <optdesc>
 	<p> 
 	  Specifies the external program (and any arguments to it)
-	  that will be used for receiving files. (Default: "rz -vv")
+	  that will be used for receiving files. If the argument to
+	  <opt>--receive-cmd</opt> is the empty string (''), the
+	  receive-file command is disabled. (Default: "rz -vv")
 	</p>
       </optdesc>
     </option>
@@ -433,7 +488,8 @@
       <optdesc>
 	<p>
 	  Print a short help message describing the command-line
-	  options.
+	  options. picocom's version, compile-time options, and enabled
+	  features are also shown.
 	</p>
       </optdesc>
     </option>
@@ -445,8 +501,8 @@
   </section>
 
   <section name="AVAILABILITY">
-    <p>The latest version of "picocom" can be downloaded from: <url
-	href="https://github.com/npat-efault/picocom/releases" />
+    <p>The latest release of "picocom" can be downloaded from: <url
+    href="https://github.com/npat-efault/picocom/releases" />
     </p>
   </section>
 
