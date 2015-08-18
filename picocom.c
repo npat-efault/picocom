@@ -87,6 +87,8 @@ const char *flow_str[] = {
 #define KEY_BITS    '\x02' /* C-b: change number of databits */ 
 #define KEY_LECHO   '\x03' /* C-c: toggle local echo */ 
 #define KEY_STATUS  '\x16' /* C-v: show program option */
+#define KEY_HELP    '\x08' /* C-h: show help (same as [C-k]) */
+#define KEY_KEYS    '\x0b' /* C-k: show available command keys */
 #define KEY_SEND    '\x13' /* C-s: send file */
 #define KEY_RECEIVE '\x12' /* C-r: receive file */
 #define KEY_BREAK   '\x1c' /* C-\: break */
@@ -759,6 +761,35 @@ show_status (int dtr_up)
 	fd_printf(STO, "*** dtr: %s\r\n", dtr_up ? "up" : "down");
 }
 
+void
+show_keys()
+{
+#ifndef NO_HELP
+	fd_printf(STO, "\r\n");
+	fd_printf(STO, "*** Picocom commands (all prefixed by [C-%c])\r\n",
+			  'a' + opts.escape - 1);
+	fd_printf(STO, "\r\n");
+	fd_printf(STO, "*** [C-x] : Exit picocom\r\n");
+	fd_printf(STO, "*** [C-q] : Exit without reseting serial port\r\n");
+	fd_printf(STO, "*** [C-u] : Increase baudrate (baud-up)\r\n");
+	fd_printf(STO, "*** [C-d] : Decrease baudrate (baud-down)\r\n");
+	fd_printf(STO, "*** [C-b] : Change number of databits\r\n");
+	fd_printf(STO, "*** [C-f] : Change flow-control mode\r\n");
+	fd_printf(STO, "*** [C-y] : Change parity mode\r\n");
+	fd_printf(STO, "*** [C-p] : Pulse DTR\r\n");
+	fd_printf(STO, "*** [C-t] : Toggle DTR\r\n");
+	fd_printf(STO, "*** [C-\\] : Send break\r\n");
+	fd_printf(STO, "*** [C-c] : Toggle local echo\r\n");
+	fd_printf(STO, "*** [C-s] : Send file\r\n");
+	fd_printf(STO, "*** [C-r] : Receive file\r\n");
+	fd_printf(STO, "*** [C-v] : Show port settings\r\n");
+	fd_printf(STO, "*** [C-h] : Show this message\r\n");
+	fd_printf(STO, "\r\n");
+#else /* defined NO_HELP */
+	fd_printf(STO, "*** Help is disabled.\r\n");
+#endif /* of NO_HELP */
+}
+
 /**********************************************************************/
 
 #define RUNCMD_ARGS_MAX 32
@@ -893,6 +924,10 @@ do_command (unsigned char c)
 		return 1;
 	case KEY_STATUS:
 		show_status(dtr_up);
+		break;
+	case KEY_HELP:
+	case KEY_KEYS:
+		show_keys();
 		break;
 	case KEY_PULSE:
 		fd_printf(STO, "\r\n*** pulse DTR ***\r\n");
@@ -1485,6 +1520,10 @@ main(int argc, char *argv[])
 	init_send_receive_history();
 #endif
 
+#ifndef NO_HELP
+	fd_printf(STO, "Type [C-%c] [C-h] to see available commands\r\n\r\n",
+			  'a' + opts.escape - 1);
+#endif
 	fd_printf(STO, "Terminal ready\r\n");
 	loop();
 
