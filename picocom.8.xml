@@ -124,6 +124,10 @@
     </p>
 
     <p>
+      [C-j]: Cycle through stopbits-number settings (1, 2).
+    </p>
+
+    <p>
       [C-c]: Toggle local-echo mode.
     </p>
 
@@ -335,6 +339,16 @@
 	<p>
 	  Defines the number of data bits in every character. Must be
 	  one of: 5, 6, 7, 8. (Default: 8)
+	</p>
+      </optdesc>
+    </option>
+
+    <option>
+      <opt><p>--stopbits | -p</p></opt>
+      <optdesc>
+	<p>
+	  Defines the number of stop bits in every character. Must be
+	  one of: 1, or 2. (Default: 1)
 	</p>
       </optdesc>
     </option>
