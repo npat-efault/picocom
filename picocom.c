@@ -76,27 +76,27 @@ const char *flow_str[] = {
 
 /**********************************************************************/
 
-#define KEY_EXIT    '\x18' /* C-x: exit picocom */
-#define KEY_QUIT    '\x11' /* C-q: exit picocom without reseting port */
-#define KEY_PULSE   '\x10' /* C-p: pulse DTR */
-#define KEY_TOGGLE  '\x14' /* C-t: toggle DTR */
-#define KEY_BAUD_UP '\x15' /* C-u: increase baudrate (up) */
-#define KEY_BAUD_DN '\x04' /* C-d: decrase baudrate (down) */ 
-#define KEY_FLOW    '\x06' /* C-f: change flowcntrl mode */ 
-#define KEY_PARITY  '\x19' /* C-y: change parity mode */ 
-#define KEY_BITS    '\x02' /* C-b: change number of databits */ 
-#define KEY_LECHO   '\x03' /* C-c: toggle local echo */ 
-#define KEY_STATUS  '\x16' /* C-v: show program option */
-#define KEY_HELP    '\x08' /* C-h: show help (same as [C-k]) */
-#define KEY_KEYS    '\x0b' /* C-k: show available command keys */
-#define KEY_SEND    '\x13' /* C-s: send file */
-#define KEY_RECEIVE '\x12' /* C-r: receive file */
-#define KEY_BREAK   '\x1c' /* C-\: break */
-
 /* control-key to printable character (lowcase) */
 #define KEYC(k) ((k) | 0x60)
 /* printable character to control-key */
 #define CKEY(c) ((c) & 0x1f)
+
+#define KEY_EXIT    CKEY('x') /* exit picocom */
+#define KEY_QUIT    CKEY('q') /* exit picocom without reseting port */
+#define KEY_PULSE   CKEY('p') /* pulse DTR */
+#define KEY_TOGGLE  CKEY('t') /* toggle DTR */
+#define KEY_BAUD_UP CKEY('u') /* increase baudrate (up) */
+#define KEY_BAUD_DN CKEY('d') /* decrase baudrate (down) */ 
+#define KEY_FLOW    CKEY('f') /* change flowcntrl mode */ 
+#define KEY_PARITY  CKEY('y') /* change parity mode */ 
+#define KEY_BITS    CKEY('b') /* change number of databits */ 
+#define KEY_LECHO   CKEY('c') /* toggle local echo */ 
+#define KEY_STATUS  CKEY('v') /* show program options */
+#define KEY_HELP    CKEY('h') /* show help (same as [C-k]) */
+#define KEY_KEYS    CKEY('k') /* show available command keys */
+#define KEY_SEND    CKEY('s') /* send file */
+#define KEY_RECEIVE CKEY('r') /* receive file */
+#define KEY_BREAK   CKEY('\\') /* break */
 
 /**********************************************************************/
 
@@ -198,7 +198,7 @@ struct {
 #if defined (UUCP_LOCK_DIR) || defined (USE_FLOCK)
 	.nolock = 0,
 #endif
-	.escape = '\x01',
+	.escape = CKEY('a'),
 	.send_cmd = "sz -vv",
 	.receive_cmd = "rz -vv",
 	.imap = M_I_DFL,
