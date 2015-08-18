@@ -1182,6 +1182,8 @@ show_usage(char *name)
 void
 parse_args(int argc, char *argv[])
 {
+	int r;
+
 	static struct option longOptions[] =
 	{
 		{"receive-cmd", required_argument, 0, 'v'},
@@ -1202,6 +1204,7 @@ parse_args(int argc, char *argv[])
 		{0, 0, 0, 0}
 	};
 
+	r = 0;
 	while (1) {
 		int optionIndex = 0;
 		int c;
@@ -1228,17 +1231,17 @@ parse_args(int argc, char *argv[])
 		case 'I':
 			map = parse_map(optarg);
 			if (map >= 0) opts.imap = map;
-			else fprintf(stderr, "Invalid imap, ignored\n");
+			else { fprintf(stderr, "Invalid --imap\n"); r = -1; }
 			break;
 		case 'O':
 			map = parse_map(optarg);
 			if (map >= 0) opts.omap = map;
-			else fprintf(stderr, "Invalid omap, ignored\n");
+			else { fprintf(stderr, "Invalid --omap\n"); r = -1; }
 			break;
 		case 'E':
 			map = parse_map(optarg);
 			if (map >= 0) opts.emap = map;
-			else fprintf(stderr, "Invalid emap, ignored\n");
+			else { fprintf(stderr, "Invalid --emap\n"); r = -1; }
 			break;
 		case 'c':
 			opts.lecho = 1;
@@ -1272,8 +1275,8 @@ parse_args(int argc, char *argv[])
 				opts.flow = FC_NONE;
 				break;
 			default:
-				fprintf(stderr, "--flow '%c' ignored.\n", optarg[0]);
-				fprintf(stderr, "--flow can be one off: 'x', 'h', or 'n'\n");
+				fprintf(stderr, "Invalid --flow: %c\n", optarg[0]);
+				r = -1;
 				break;
 			}
 			break;
@@ -1292,8 +1295,8 @@ parse_args(int argc, char *argv[])
 				opts.parity = P_NONE;
 				break;
 			default:
-				fprintf(stderr, "--parity '%c' ignored.\n", optarg[0]);
-				fprintf(stderr, "--parity can be one off: 'o', 'e', or 'n'\n");
+				fprintf(stderr, "Invalid --parity: %c\n", optarg[0]);
+				r = -1;
 				break;
 			}
 			break;
@@ -1312,8 +1315,8 @@ parse_args(int argc, char *argv[])
 				opts.databits = 8;
 				break;
 			default:
-				fprintf(stderr, "--databits '%c' ignored.\n", optarg[0]);
-				fprintf(stderr, "--databits can be one off: 5, 6, 7 or 8\n");
+				fprintf(stderr, "Invalid --databits: %c\n", optarg[0]);
+				r = -1;
 				break;
 			}
 			break;
@@ -1322,7 +1325,11 @@ parse_args(int argc, char *argv[])
 			exit(EXIT_SUCCESS);
 		case '?':
 		default:
-			fprintf(stderr, "Unrecognized option.\n");
+			fprintf(stderr, "Unrecognized option(s)\n");
+			r = -1;
+			break;
+		}
+		if ( r < 0 ) {
 			fprintf(stderr, "Run with '--help'.\n");
 			exit(EXIT_FAILURE);
 		}
@@ -1330,6 +1337,7 @@ parse_args(int argc, char *argv[])
 
 	if ( (argc - optind) < 1) {
 		fprintf(stderr, "No port given\n");
+		fprintf(stderr, "Run with '--help'.\n");
 		exit(EXIT_FAILURE);
 	}
 	strncpy(opts.port, argv[optind], sizeof(opts.port) - 1);
