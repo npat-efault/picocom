@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <ctype.h>
 #include <errno.h>
 #include <assert.h>
 #include <stdarg.h>
@@ -381,7 +382,35 @@ fatal (const char *format, ...)
 
 #ifndef LINENOISE
 
-int cput(int fd, char c) { return write(fd, &c, 1); }
+int 
+cput(int fd, char c) 
+{ 
+	return write(fd, &c, 1); 
+}
+
+int 
+cdel (int fd)
+{
+	const char del[] = "\b \b";
+	return write(fd, del, sizeof(del) - 1);
+}
+
+int 
+xput (int fd, unsigned char c)
+{
+	const char hex[] = "0123456789abcdef"; 
+	char b[4];
+
+	b[0] = '\\'; b[1] = 'x'; b[2] = hex[c >> 4]; b[3] = hex[c & 0x0f];
+	return write(fd, b, sizeof(b) - 1);
+}
+
+int 
+xdel (int fd)
+{
+	const char del[] = "\b\b\b\b    \b\b\b\b";
+	return write(fd, del, sizeof(del) - 1);
+}
 
 int
 fd_readline (int fdi, int fdo, char *b, int bsz)
@@ -402,7 +431,10 @@ fd_readline (int fdi, int fdo, char *b, int bsz)
 		case '\x7f':
 			if ( bp > (unsigned char *)b ) { 
 				bp--;
-				cput(fdo, '\b'); cput(fdo, ' '); cput(fdo, '\b');
+				if ( isprint(*bp) ) 
+					cdel(fdo);
+				else 
+					xdel(fdo);
 			} else {
 				cput(fdo, '\x07');
 			}
@@ -416,8 +448,15 @@ fd_readline (int fdi, int fdo, char *b, int bsz)
 			r = bp - (unsigned char *)b; 
 			goto out;
 		default:
-			if ( bp < bpe ) { *bp++ = c; cput(fdo, c); }
-			else { cput(fdo, '\x07'); }
+			if ( bp < bpe ) { 
+				*bp++ = c;
+				if ( isprint(c) ) 
+					cput(fdo, c); 
+				else 
+					xput(fdo, c);
+			} else { 
+				cput(fdo, '\x07'); 
+			}
 			break;
 		}
 	}
