@@ -146,6 +146,11 @@
     </p>
 
     <p>
+      [C-h] or [C-k]: Show help or show keys. Prints a short
+      description of all available function (command) keys.
+    </p>
+
+    <p>
       [C-s]: Send (upload) a file (see "Sending and Receiving Files"
       below)
     </p>
