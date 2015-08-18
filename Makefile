@@ -33,6 +33,10 @@ CPPFLAGS += -DSEND_RECEIVE_HISTFILE=\"$(SEND_RECEIVE_HISTFILE)\" \
 picocom : linenoise-1.0/linenoise.o
 linenoise-1.0/linenoise.o : linenoise-1.0/linenoise.c linenoise-1.0/linenoise.h
 
+## Comment this IN to remove help strings (saves ~ 4-6 Kb).
+#CPPFLAGS += -DNO_HELP
+
+
 picocom : picocom.o term.o split.o
 #	$(LD) $(LDFLAGS) -o $@ $+ $(LDLIBS)
 

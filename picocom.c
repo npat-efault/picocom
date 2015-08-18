@@ -1166,6 +1166,7 @@ establish_signal_handlers (void)
 void
 show_usage(char *name)
 {
+#ifndef NO_HELP
 	char *s;
 
 	s = strrchr(name, '/');
@@ -1217,6 +1218,9 @@ show_usage(char *name)
 	printf("  delbs : map DEL --> BS\n");
 	printf("<?> indicates the equivalent short option.\n");
 	printf("Short options are prefixed by \"-\" instead of by \"--\".\n");
+#else /* defined NO_HELP */
+	printf("Help disabled.\n");
+#endif /* of NO_HELP */
 }
 
 /**********************************************************************/
@@ -1385,6 +1389,7 @@ parse_args(int argc, char *argv[])
 	strncpy(opts.port, argv[optind], sizeof(opts.port) - 1);
 	opts.port[sizeof(opts.port) - 1] = '\0';
 
+#ifndef NO_HELP
 	printf("picocom v%s\n", VERSION_STR);
 	printf("\n");
 	printf("port is        : %s\n", opts.port);
@@ -1407,6 +1412,7 @@ parse_args(int argc, char *argv[])
 	printf("omap is        : "); print_map(opts.omap);
 	printf("emap is        : "); print_map(opts.emap);
 	printf("\n");
+#endif /* of NO_HELP */
 }
 
 /**********************************************************************/
