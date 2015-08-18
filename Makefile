@@ -27,8 +27,8 @@ CPPFLAGS += -DUSE_FLOCK
 #CPPFLAGS += -DUUCP_LOCK_DIR=\"$(UUCP_LOCK_DIR)\"
 
 ## Comment these out to disable "linenoise"-library support
-SEND_RECEIVE_HISTFILE = .picocom_send_receive
-CPPFLAGS += -DSEND_RECEIVE_HISTFILE=\"$(SEND_RECEIVE_HISTFILE)\" \
+HISTFILE = .picocom_history
+CPPFLAGS += -DHISTFILE=\"$(HISTFILE)\" \
 	    -DLINENOISE
 picocom : linenoise-1.0/linenoise.o
 linenoise-1.0/linenoise.o : linenoise-1.0/linenoise.c linenoise-1.0/linenoise.h

@@ -416,40 +416,39 @@ file_completion_cb (const char *buf, linenoiseCompletions *lc)
 	free(dirc);
 }
 
-static char *send_receive_history_file_path = NULL;
+static char *history_file_path = NULL;
 
 void 
-init_send_receive_history (void)
+init_history (void)
 {
 	char *home_directory;
 
 	home_directory = getenv("HOME");
 	if (home_directory) {
-		send_receive_history_file_path = 
-			malloc(strlen(home_directory) + 2 + 
-				   strlen(SEND_RECEIVE_HISTFILE));
-		strcpy(send_receive_history_file_path, home_directory);
+		history_file_path = malloc(strlen(home_directory) + 2 + 
+								   strlen(HISTFILE));
+		strcpy(history_file_path, home_directory);
 		if (home_directory[strlen(home_directory)-1] != '/') {
-			strcat(send_receive_history_file_path, "/");
+			strcat(history_file_path, "/");
 		}
-		strcat(send_receive_history_file_path, SEND_RECEIVE_HISTFILE);
-		linenoiseHistoryLoad(send_receive_history_file_path);
+		strcat(history_file_path, HISTFILE);
+		linenoiseHistoryLoad(history_file_path);
 	}
 }
 
 void 
-cleanup_send_receive_history (void)
+cleanup_history (void)
 {
-	if (send_receive_history_file_path)
-		free(send_receive_history_file_path);
+	if (history_file_path)
+		free(history_file_path);
 }
 
 void 
-add_send_receive_history (char *fname)
+add_history (char *fname)
 {
 	linenoiseHistoryAdd(fname);
-	if (send_receive_history_file_path)
-		linenoiseHistorySave(send_receive_history_file_path);
+	if (history_file_path)
+		linenoiseHistorySave(history_file_path);
 }
 
 char *
@@ -462,7 +461,7 @@ read_filename (void)
 	printf("\r\n");
 	linenoiseSetCompletionCallback(NULL);
 	if (fname != NULL)
-		add_send_receive_history(fname);
+		add_history(fname);
 	return fname;
 }
 
@@ -1158,7 +1157,7 @@ show_usage(char *name)
 #endif
 #ifdef LINENOISE
 	printf("  LINENOISE is enabled\n");
-	printf("  SEND_RECEIVE_HISTFILE is: %s\n", SEND_RECEIVE_HISTFILE);
+	printf("  HISTFILE is: %s\n", HISTFILE);
 #endif
 	
 	printf("\nUsage is: %s [options] <tty device>\n", s);
@@ -1471,7 +1470,7 @@ main(int argc, char *argv[])
 			  term_strerror(term_errno, errno));
 
 #ifdef LINENOISE
-	init_send_receive_history();
+	init_history();
 #endif
 
 #ifndef NO_HELP
@@ -1482,7 +1481,7 @@ main(int argc, char *argv[])
 	loop();
 
 #ifdef LINENOISE
-	cleanup_send_receive_history();
+	cleanup_history();
 #endif
 
 	fd_printf(STO, "\r\n");
