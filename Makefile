@@ -1,11 +1,11 @@
 
 VERSION=2.0a
 
-# CC = gcc
+#CC = gcc
 CPPFLAGS=-DVERSION_STR=\"$(VERSION)\"
 CFLAGS = -Wall -g
 
-# LD = gcc
+#LD = gcc
 LDFLAGS = -g
 LDLIBS =
 
@@ -56,7 +56,7 @@ picocom.8.ps : picocom.8
 	groff -mandoc -Tps $< > $@
 
 clean:
-	rm -f picocom.o term.o linenoise-1.0/linenoise.o
+	rm -f picocom.o term.o split.o linenoise-1.0/linenoise.o
 	rm -f *~
 	rm -f \#*\#
 
