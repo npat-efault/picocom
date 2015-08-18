@@ -380,7 +380,7 @@ fatal (const char *format, ...)
 
 #ifndef LINENOISE
 
-#define cput(fd, c) do { char cl = (c); write((fd), &cl, 1); } while(0)
+int cput(int fd, char c) { return write(fd, &c, 1); }
 
 int
 fd_readline (int fdi, int fdo, char *b, int bsz)
@@ -424,8 +424,6 @@ fd_readline (int fdi, int fdo, char *b, int bsz)
 out:
 	return r;
 }
-
-#undef cput
 
 char *
 read_filename (void)
