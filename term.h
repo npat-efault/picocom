@@ -48,6 +48,7 @@
  * F term_set_baudrate - set the baudrate in "nexttermios"
  * F term_set_parity - set the parity mode in "nexttermios"
  * F term_set_databits - set the databits in "nexttermios"
+ * F term_set_stopbits - set the stopbits in "nexttermios"
  * F term_set_flowcntrl - set the flowcntl mode in "nexttermios"
  * F term_set_hupcl - enable or disable hupcl in "nexttermios"
  * F term_set_local - set "nexttermios" to local or non-local mode
@@ -133,6 +134,7 @@ enum term_errno_e {
 	TERM_EGETSPEED,
 	TERM_EPARITY,
 	TERM_EDATABITS,
+	TERM_ESTOPBITS,
 	TERM_EFLOW,
 	TERM_EDTRDOWN,
 	TERM_EDTRUP,
@@ -413,6 +415,20 @@ int term_set_parity (int fd, enum parity_e parity);
  */
 int term_set_databits (int fd, int databits);
 
+/* F term_set_stopbits
+ * 
+ * Sets the stopbits number in the "nexttermios" structure associated
+ * with the managed filedes "fd" to "stopbits". The effective settings
+ * of the device are not affected by this function.
+ *
+ * 1 and 2 stopbits are supported by the library.
+ *
+ * Returns negative on failure, non negative on success. Returns
+ * failure only to indicate invalid arguments, so the return value can
+ * be safely ignored.
+ */
+int term_set_stopbits (int fd, int stopbits);
+
 /* F term_set_flowcntrl
  *
  * Sets the folwcontrol mode in the "nexttermios" structure associated
@@ -482,7 +498,9 @@ int term_set_local (int fd, int local);
 int term_set (int fd, 
               int raw, 
               int baud, 
-              enum parity_e parity, int bits, enum flowcntrl_e fc,
+              enum parity_e parity, 
+			  int databits, int stopbits, 
+			  enum flowcntrl_e fc,
 			  int local, int hupcl);
 
 /* F term_get_baudrate
@@ -517,6 +535,16 @@ enum parity_e term_get_parity (int fd);
  * correspond to a managed filedes.
  */
 int term_get_databits (int fd);
+
+/* F term_get_stopbits
+ *
+ * Reads and decodes the current stopbits settings in the
+ * "currtermios" structure of the managed filedes "fd".
+ *
+ * Returns the number of databits (1 or 2), or -1 if "fd" does not
+ * correspond to a managed filedes.
+ */
+int term_get_stopbits (int fd);
 
 /* F term_get_flowcntrl
  *

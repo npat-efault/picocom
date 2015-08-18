@@ -71,6 +71,7 @@ static const char * const term_err_str[] = {
 	[TERM_EGETSPEED]  = "Cannot decode speed",
 	[TERM_EPARITY]    = "Invalid parity mode",
 	[TERM_EDATABITS]  = "Invalid number of databits",
+	[TERM_ESTOPBITS]  = "Invalid number of stopbits",
 	[TERM_EFLOW]      = "Invalid flowcontrol mode",
     [TERM_EDTRDOWN]   = "Cannot lower DTR",
     [TERM_EDTRUP]     = "Cannot raise DTR",
@@ -107,6 +108,7 @@ term_strerror (int terrnum, int errnum)
 	case TERM_EBAUD:
 	case TERM_EPARITY:
 	case TERM_EDATABITS:
+	case TERM_ESTOPBITS:
 	case TERM_EFLOW:
 	case TERM_EDTRDOWN:
 	case TERM_EDTRUP:
@@ -937,6 +939,65 @@ term_get_databits (int fd)
 /***************************************************************************/
 
 int
+term_set_stopbits (int fd, int stopbits)
+{
+	int rval, i;
+	struct termios *tiop;
+
+	rval = 0;
+
+	do { /* dummy */
+
+		i = term_find(fd);
+		if ( i < 0 ) {
+			rval = -1;
+			break;
+		}
+
+		tiop = &term.nexttermios[i];
+				
+		switch (stopbits) {
+		case 1:
+			tiop->c_cflag &= ~CSTOPB;
+			break;
+		case 2:
+			tiop->c_cflag |= CSTOPB;
+			break;
+		default:
+			term_errno = TERM_ESTOPBITS;
+			rval = -1;
+			break;
+		}
+		if ( rval < 0 ) break;
+
+	} while (0);
+
+	return rval;
+}
+
+int
+term_get_stopbits (int fd)
+{
+	int i, bits;
+
+	do { /* dummy */
+
+		i = term_find(fd);
+		if ( i < 0 ) {
+			bits = -1;
+			break;
+		}
+
+		bits = (term.currtermios[i].c_cflag & CSTOPB) ? 2 : 1;
+
+	} while (0);
+
+	return bits;
+}
+
+/***************************************************************************/
+
+int
 term_set_flowcntrl (int fd, enum flowcntrl_e flowcntl)
 {
 	int rval, i;
@@ -1077,7 +1138,10 @@ term_set_hupcl (int fd, int on)
 int
 term_set(int fd,
 		 int raw,
-		 int baud, enum parity_e parity, int bits, enum flowcntrl_e fc,
+		 int baud, 
+		 enum parity_e parity, 
+		 int databits, int stopbits,
+		 enum flowcntrl_e fc,
 		 int local, int hup_close)
 {
 	int rval, r, i, ni;
@@ -1113,7 +1177,10 @@ term_set(int fd,
 			r = term_set_parity(fd, parity);
 			if ( r < 0 ) { rval = -1; break; }
 			
-			r = term_set_databits(fd, bits);
+			r = term_set_databits(fd, databits);
+			if ( r < 0 ) { rval = -1; break; }
+
+			r = term_set_stopbits(fd, stopbits);
 			if ( r < 0 ) { rval = -1; break; }
 			
 			r = term_set_flowcntrl(fd, fc);

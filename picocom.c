@@ -90,6 +90,7 @@ const char *flow_str[] = {
 #define KEY_FLOW    CKEY('f') /* change flowcntrl mode */ 
 #define KEY_PARITY  CKEY('y') /* change parity mode */ 
 #define KEY_BITS    CKEY('b') /* change number of databits */ 
+#define KEY_STOP    CKEY('j') /* change number of stopbits */ 
 #define KEY_LECHO   CKEY('c') /* toggle local echo */ 
 #define KEY_STATUS  CKEY('v') /* show program options */
 #define KEY_HELP    CKEY('h') /* show help (same as [C-k]) */
@@ -174,6 +175,7 @@ struct {
 	enum flowcntrl_e flow;
 	enum parity_e parity;
 	int databits;
+	int stopbits;
 	int lecho;
 	int noinit;
 	int noreset;
@@ -192,6 +194,7 @@ struct {
 	.flow = FC_NONE,
 	.parity = P_NONE,
 	.databits = 8,
+	.stopbits = 1,
 	.lecho = 0,
 	.noinit = 0,
 	.noreset = 0,
@@ -606,10 +609,20 @@ bits_next (int bits)
 	return bits;
 }
 
+int
+stopbits_next (int bits)
+{
+	bits++;
+	if (bits > 2) bits = 1;
+
+	return bits;
+}
+
+
 void
 show_status (int dtr_up) 
 {
-	int baud, bits;
+	int baud, bits, stopbits;
 	enum flowcntrl_e flow;
 	enum parity_e parity;
 
@@ -619,6 +632,7 @@ show_status (int dtr_up)
 	flow = term_get_flowcntrl(tty_fd);
 	parity = term_get_parity(tty_fd);
 	bits = term_get_databits(tty_fd);
+	stopbits = term_get_stopbits(tty_fd);
 	
 	fd_printf(STO, "\r\n");
  
@@ -644,6 +658,11 @@ show_status (int dtr_up)
 	} else {
 		fd_printf(STO, "*** databits: %d\r\n", opts.databits);
 	}
+	if ( stopbits != opts.stopbits ) {
+		fd_printf(STO, "*** stopbits: %d (%d)\r\n", opts.stopbits, stopbits);
+	} else {
+		fd_printf(STO, "*** stopbits: %d\r\n", opts.stopbits);
+	}
 	fd_printf(STO, "*** dtr: %s\r\n", dtr_up ? "up" : "down");
 }
 
@@ -665,6 +684,8 @@ show_keys()
 			  KEYC(KEY_BAUD_DN));;
 	fd_printf(STO, "*** [C-%c] : Change number of databits\r\n",
 			  KEYC(KEY_BITS));
+	fd_printf(STO, "*** [C-%c] : Change number of stopbits\r\n",
+			  KEYC(KEY_STOP));
 	fd_printf(STO, "*** [C-%c] : Change flow-control mode\r\n",
 			  KEYC(KEY_FLOW));
 	fd_printf(STO, "*** [C-%c] : Change parity mode\r\n",
@@ -809,7 +830,7 @@ int
 do_command (unsigned char c)
 {
 	static int dtr_up = 0;
-	int newbaud, newflow, newparity, newbits;
+	int newbaud, newflow, newparity, newbits, newstopbits;
 	const char *xfr_cmd;
 	char *fname;
 	int r;
@@ -903,6 +924,20 @@ do_command (unsigned char c)
 		} else {
 			fd_printf(STO, "\r\n*** databits: %d ***\r\n", 
 					  opts.databits);
+		}
+		break;
+	case KEY_STOP:
+		opts.stopbits = stopbits_next(opts.stopbits);
+		term_set_stopbits(tty_fd, opts.stopbits);
+		tty_q.len = 0; term_flush(tty_fd);
+		term_apply(tty_fd);
+		newstopbits = term_get_stopbits(tty_fd);
+		if (opts.stopbits != newstopbits ) {
+			fd_printf(STO, "\r\n*** stopbits: %d (%d) ***\r\n",
+					  opts.stopbits, newstopbits);
+		} else {
+			fd_printf(STO, "\r\n*** stopbits: %d ***\r\n", 
+					  opts.stopbits);
 		}
 		break;
 	case KEY_LECHO:
@@ -1130,8 +1165,9 @@ show_usage(char *name)
 	printf("Options are:\n");
 	printf("  --<b>aud <baudrate>\n");
 	printf("  --<f>low s (=soft) | h (=hard) | n (=none)\n");
-	printf("  --<p>arity o (=odd) | e (=even) | n (=none)\n");
+	printf("  --parit<y> o (=odd) | e (=even) | n (=none)\n");
 	printf("  --<d>atabits 5 | 6 | 7 | 8\n");
+	printf("  --sto<p>bits 1 | 2\n");
 	printf("  --<e>scape <char>\n");
 	printf("  --e<c>ho\n");
 	printf("  --no<i>nit\n");
@@ -1180,8 +1216,9 @@ parse_args(int argc, char *argv[])
 		{"nolock", no_argument, 0, 'l'},
 		{"flow", required_argument, 0, 'f'},
 		{"baud", required_argument, 0, 'b'},
-		{"parity", required_argument, 0, 'p'},
+		{"parity", required_argument, 0, 'y'},
 		{"databits", required_argument, 0, 'd'},
+		{"stopbits", required_argument, 0, 'p'},
 		{"help", no_argument, 0, 'h'},
 		{0, 0, 0, 0}
 	};
@@ -1195,7 +1232,7 @@ parse_args(int argc, char *argv[])
 		/* no default error messages printed. */
 		opterr = 0;
 
-		c = getopt_long(argc, argv, "hirlcv:s:r:e:f:b:p:d:",
+		c = getopt_long(argc, argv, "hirlcv:s:r:e:f:b:y:d:p:",
 						longOptions, &optionIndex);
 
 		if (c < 0)
@@ -1265,7 +1302,7 @@ parse_args(int argc, char *argv[])
 		case 'b':
 			opts.baud = atoi(optarg);
 			break;
-		case 'p':
+		case 'y':
 			switch (optarg[0]) {
 			case 'e':
 				opts.parity = P_EVEN;
@@ -1302,6 +1339,20 @@ parse_args(int argc, char *argv[])
 				break;
 			}
 			break;
+		case 'p':
+			switch (optarg[0]) {
+			case '1':
+				opts.stopbits = 1;
+				break;
+			case '2':
+				opts.stopbits = 2;
+				break;
+			default:
+				fprintf(stderr, "Invalid --stopbits: %c\n", optarg[0]);
+				r = -1;
+				break;
+			}
+			break;
 		case 'h':
 			show_usage(argv[0]);
 			exit(EXIT_SUCCESS);
@@ -1333,6 +1384,7 @@ parse_args(int argc, char *argv[])
 	printf("baudrate is    : %d\n", opts.baud);
 	printf("parity is      : %s\n", parity_str[opts.parity]);
 	printf("databits are   : %d\n", opts.databits);
+	printf("stopbits are   : %d\n", opts.stopbits);
 	printf("escape is      : C-%c\n", KEYC(opts.escape));
 	printf("local echo is  : %s\n", opts.lecho ? "yes" : "no");
 	printf("noinit is      : %s\n", opts.noinit ? "yes" : "no");
@@ -1393,6 +1445,7 @@ main(int argc, char *argv[])
 					 opts.baud,      /* baud rate. */
 					 opts.parity,    /* parity. */
 					 opts.databits,  /* data bits. */
+					 opts.stopbits,  /* stop bits. */
 					 opts.flow,      /* flow control. */
 					 1,              /* local or modem */
 					 !opts.noreset); /* hup-on-close. */
