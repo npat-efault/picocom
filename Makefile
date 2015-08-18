@@ -37,12 +37,13 @@ linenoise-1.0/linenoise.o : linenoise-1.0/linenoise.c linenoise-1.0/linenoise.h
 #CPPFLAGS += -DNO_HELP
 
 
-picocom : picocom.o term.o split.o
+picocom : picocom.o term.o fdio.o split.o
 #	$(LD) $(LDFLAGS) -o $@ $+ $(LDLIBS)
 
 picocom.o : picocom.c term.h
 term.o : term.c term.h
 split.o : split.c split.h
+fdio.o : fdio.c fdio.h
 
 
 doc : picocom.8 picocom.8.html picocom.8.ps
@@ -60,7 +61,7 @@ picocom.8.ps : picocom.8
 	groff -mandoc -Tps $< > $@
 
 clean:
-	rm -f picocom.o term.o split.o linenoise-1.0/linenoise.o
+	rm -f picocom.o term.o fdio.o split.o linenoise-1.0/linenoise.o
 	rm -f *~
 	rm -f \#*\#
 

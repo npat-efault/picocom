@@ -27,7 +27,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-#include <ctype.h>
 #include <errno.h>
 #include <assert.h>
 #include <stdarg.h>
@@ -49,6 +48,7 @@
 #define _GNU_SOURCE
 #include <getopt.h>
 
+#include "fdio.h"
 #include "split.h"
 #include "term.h"
 #ifdef LINENOISE
@@ -313,42 +313,6 @@ uucp_unlock(void)
 
 /**********************************************************************/
 
-ssize_t
-writen_ni(int fd, const void *buff, size_t n)
-{
-	size_t nl; 
-	ssize_t nw;
-	const char *p;
-
-	p = buff;
-	nl = n;
-	while (nl > 0) {
-		do {
-			nw = write(fd, p, nl);
-		} while ( nw < 0 && errno == EINTR );
-		if ( nw <= 0 ) break;
-		nl -= nw;
-		p += nw;
-	}
-	
-	return n - nl;
-}
-
-int
-fd_printf (int fd, const char *format, ...)
-{
-	char buf[256];
-	va_list args;
-	int len;
-	
-	va_start(args, format);
-	len = vsnprintf(buf, sizeof(buf), format, args);
-	buf[sizeof(buf) - 1] = '\0';
-	va_end(args);
-	
-	return writen_ni(fd, buf, len);
-}
-
 void
 fatal (const char *format, ...)
 {
@@ -383,89 +347,6 @@ fatal (const char *format, ...)
 /**********************************************************************/
 
 #ifndef LINENOISE
-
-int 
-cput(int fd, char c) 
-{ 
-	return write(fd, &c, 1); 
-}
-
-int 
-cdel (int fd)
-{
-	const char del[] = "\b \b";
-	return write(fd, del, sizeof(del) - 1);
-}
-
-int 
-xput (int fd, unsigned char c)
-{
-	const char hex[] = "0123456789abcdef"; 
-	char b[4];
-
-	b[0] = '\\'; b[1] = 'x'; b[2] = hex[c >> 4]; b[3] = hex[c & 0x0f];
-	return write(fd, b, sizeof(b) - 1);
-}
-
-int 
-xdel (int fd)
-{
-	const char del[] = "\b\b\b\b    \b\b\b\b";
-	return write(fd, del, sizeof(del) - 1);
-}
-
-int
-fd_readline (int fdi, int fdo, char *b, int bsz)
-{
-	int r;
-	unsigned char c;
-	unsigned char *bp, *bpe;
-	
-	bp = (unsigned char *)b;
-	bpe = (unsigned char *)b + bsz - 1;
-
-	while (1) {
-		r = read(fdi, &c, 1);
-		if ( r <= 0 ) { r = -1; goto out; }
-
-		switch (c) {
-		case '\b':
-		case '\x7f':
-			if ( bp > (unsigned char *)b ) { 
-				bp--;
-				if ( isprint(*bp) ) 
-					cdel(fdo);
-				else 
-					xdel(fdo);
-			} else {
-				cput(fdo, '\x07');
-			}
-			break;
-		case '\x03': /* CTRL-c */
-			r = -1;
-			errno = EINTR;
-			goto out;
-		case '\r':
-			*bp = '\0';
-			r = bp - (unsigned char *)b; 
-			goto out;
-		default:
-			if ( bp < bpe ) { 
-				*bp++ = c;
-				if ( isprint(c) ) 
-					cput(fdo, c); 
-				else 
-					xput(fdo, c);
-			} else { 
-				cput(fdo, '\x07'); 
-			}
-			break;
-		}
-	}
-
-out:
-	return r;
-}
 
 char *
 read_filename (void)
