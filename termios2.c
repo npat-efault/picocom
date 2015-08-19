@@ -27,7 +27,6 @@
 #error "Linux specific code!"
 #endif /* of __linux__ */
 
-#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
