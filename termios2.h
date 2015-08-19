@@ -55,11 +55,16 @@ speed_t cf2getispeed(struct termios *tios);
 int cf2setispeed_custom(struct termios *tios, int speed);
 int cf2setospeed_custom(struct termios *tios, int speed);
 
-/* Helpers for debugging */
-
-void cf2showspeed(struct termios *tios);
-void tc2showspeed(int fd) ;
-
+/***************************************************************************/
 
 #endif /* of TERMIOS2_H */
 
+/***************************************************************************/
+
+/*
+ * Local Variables:
+ * mode:c
+ * tab-width: 4
+ * c-basic-offset: 4
+ * End:
+ */

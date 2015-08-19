@@ -207,30 +207,12 @@ cf2setispeed_custom(struct termios *tios, int speed)
 	return 0;
 }
 
-/* Helpers for debugging */
+/***************************************************************************/
 
-void
-cf2showspeed(struct termios *tios)
-{
-	printf("CB: %08o, CIB: %08o, ospeed = %d, ispeed = %d\r\n",
-		   tios->c_cflag & (CBAUD | CBAUDEX),
-		   (tios->c_cflag >> IBSHIFT) & (CBAUD | CBAUDEX),
-		   tios->c_ospeed,
-		   tios->c_ispeed);
-}
-
-void 
-tc2showspeed(int fd) 
-{
-	struct termios tios;
-	int r;
-
-	r = tc2getattr(fd, &tios);
-	if (r < 0) {
-		printf("%d: Failed to get attrs: %s", fd, strerror(errno));
-		return;
-	}
-
-	printf("%d: ", fd);
-	cf2showspeed(&tios);
-}
+/*
+ * Local Variables:
+ * mode:c
+ * tab-width: 4
+ * c-basic-offset: 4
+ * End:
+ */
