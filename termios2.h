@@ -26,10 +26,22 @@
 
 #include <termios.h>
 
+/* Replace termios function, with termios2 functions */
+#define tcsetattr tc2setattr
+#define tcgetattr tc2getattr
+#define cfsetispeed cf2setispeed
+#define cfgetispeed cf2getispeed
+
+/* And define these new ones */
+#define cfsetospeed_custom cf2setospeed_custom
+#define cfsetispeed_custom cf2setispeed_custom
+#define cfgetospeed_custom(tiop) ((tiop)->c_ospeed)
+#define cfgetispeed_custom(tiop) ((tiop)->c_ispeed)
+
 /* Replacements for the standard tcsetattr(3), tcgetattr(3)
- * functions. Same interface, but these use the new termios2 kernel
- * interface (new ioctl's) which allow custom baud-rate
- * definitions. */
+ * functions. Same user interface, but these use the new termios2
+ * kernel interface (new ioctl's) which allow custom baud-rate
+ * setting. */
 
 int tc2setattr(int fd, int optional_actions, const struct termios *tios);
 int tc2getattr(int fd, struct termios *tios);
