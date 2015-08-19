@@ -147,7 +147,8 @@ cf2setospeed_custom(struct termios *tios, int speed)
 		errno = EINVAL;
 		return -1;
 	}		
-	tios->c_cflag = (tios->c_cflag & ~CBAUD) | BOTHER;
+	tios->c_cflag &= ~(CBAUD | CBAUDEX);
+	tios->c_cflag |= BOTHER;
 	tios->c_ospeed = speed;
 
 	return 0;
@@ -164,11 +165,11 @@ cf2setispeed_custom(struct termios *tios, int speed)
 		/* Special case: ispeed == 0 means "same as ospeed". Kernel
 		 * does this if it sees B0 in the "CIBAUD" field (i.e. in
 		 * CBAUD << IBSHIFT) */
-		tios->c_cflag = 
-			(tios->c_cflag & ~(CBAUD << IBSHIFT)) | (B0 << IBSHIFT);
+		tios->c_cflag &= ~((CBAUD | CBAUDEX) << IBSHIFT);
+		tios->c_cflag |= (B0 << IBSHIFT);
 	} else {
-		tios->c_cflag = 
-			(tios->c_cflag & ~(CBAUD << IBSHIFT)) | (BOTHER << IBSHIFT);
+		tios->c_cflag &= ~((CBAUD | CBAUDEX) << IBSHIFT);
+		tios->c_cflag |= (BOTHER << IBSHIFT);
 		tios->c_ispeed = speed;
 	}
 
