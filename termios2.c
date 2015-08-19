@@ -5,7 +5,7 @@
  *
  * by Nick Patavalis (npat@efault.net)
  *
- * ATTENTION: Very linux-specific kludge!
+ * ATTENTION: Very linux-specific kludge! 
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -29,52 +29,16 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 #include <errno.h>
 #include <termios.h>
 #include <sys/ioctl.h>
 
-/* These definitions must correspond to the kernel structures as
-   defined in:
-
-     <linux-kernel>/arch/<arch>/include/uapi/asm/termbits.h
-     or <linux-kernel>/include/uapi/asm-generic/termbits.h
-
-   which is the same as:
-
-     /usr/include/<arch>/asm/termbits.h
-     or /usr/include/asm-generic/termbits.h
-
-  Unfortunatelly, we cannot just include <asm/termbits.h> or
-  <asm/termios.h> or <linux/termios.h> (all would do the trick)
-  because then "struct termios" would be re-defined to the kernel
-  version, which is not the same as the libc version. In effect, you
-  cannot both include <termios.h> and <linux/termios.h> because both
-  define a "struct termios" which may or maynot be the same. We want
-  our "struct termios" here to be the libc version (as defined in
-  <termios.h>), because that's what our callers use. As a result we
-  cannot get the definion of "struct termios2" from the above header
-  files since this would also bring-in the clashing definition of the
-  kernel version of "struct termios". If you have an idea for a better
-  way out of this mess, I would REALLY like to hear it.
-*/
-
-/* These (especially NCCS) *may* need to be ifdef'ed according to
-   architecture. */
-
-#define K_NCCS 19
-struct termios2 {
-        tcflag_t c_iflag;               /* input mode flags */
-        tcflag_t c_oflag;               /* output mode flags */
-        tcflag_t c_cflag;               /* control mode flags */
-        tcflag_t c_lflag;               /* local mode flags */
-        cc_t c_line;                    /* line discipline */
-        cc_t c_cc[K_NCCS];              /* control characters */
-        speed_t c_ispeed;               /* input speed */
-        speed_t c_ospeed;               /* output speed */
-};
-
-#define BOTHER 0010000
-#define IBSHIFT 16
+/* Contains the definition of the termios2 structure and some
+   associated constants that we should normally include from kernel
+   sources. But unfortunatelly, we can't. See comments in
+   "termbits2.h" for more. */
+#include "termbits2.h"
 
 /* GLIBC termios use an (otherwise unused) bit in c_iflags to
    internally record the fact that ispeed was set to zero (which is
@@ -122,12 +86,13 @@ int
 tc2getattr(int fd, struct termios *tios)
 {
 	struct termios2 t2;
+	size_t i;
 	int r;
 
 	r = ioctl(fd, TCGETS2, &t2);
 	if (r < 0) return r;
 
-	tios->c_iflag = t2.c_iflag & ~IBAUD0;
+	tios->c_iflag = t2.c_iflag;
 	tios->c_oflag = t2.c_oflag;
 	tios->c_cflag = t2.c_cflag;
 	tios->c_lflag = t2.c_lflag;
@@ -135,6 +100,9 @@ tc2getattr(int fd, struct termios *tios)
 	tios->c_ispeed = t2.c_ispeed;
 	tios->c_ospeed = t2.c_ospeed;
 	memcpy(&tios->c_cc[0], &t2.c_cc[0], K_NCCS * sizeof (cc_t));
+	
+	for (i = K_NCCS; i < NCCS; i++)
+		tios->c_cc[i] = _POSIX_VDISABLE;
 
 	return 0;
 }
