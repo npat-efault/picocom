@@ -1,0 +1,149 @@
+
+Linux and custom serial-port baudrates (the gory details)
+=========================================================
+
+Support for custom baudrate setting and reading in Linux is done
+through the "new" "termios2" terminal-attributes structure, and the
+respective ioctls: TCSETS2, TCSETSW2, TCSETSF2, and TCGETS2.
+
+The "termios2" structure is defined in:
+  
+     <linux-kernel>/arch/<arch>/include/uapi/asm/termbits.h
+  or <linux-kernel>/include/uapi/asm-generic/termbits.h
+
+which may have been coppied in your system headers directories as:
+
+     /usr/include/<arch>/asm/termbits.h
+     or /usr/include/asm-generic/termbits.h
+
+The termios2 structure looks like this:
+
+  #define NCCS 19
+  struct termios2 {
+        tcflag_t c_iflag;               /* input mode flags */
+        tcflag_t c_oflag;               /* output mode flags */
+        tcflag_t c_cflag;               /* control mode flags */
+        tcflag_t c_lflag;               /* local mode flags */
+        cc_t c_line;                    /* line discipline */
+        cc_t c_cc[NCCS];                /* control characters */
+        speed_t c_ispeed;               /* input speed */
+        speed_t c_ospeed;               /* output speed */
+  };
+
+In the same files you will also find defined some relevant macros
+(constants, flags, and bit-fields, for the "termios2" "c_*flag"
+fields).
+
+Important aside: Unfortunatelly, we cannot include the above-mentioned
+files in our code, since they clash badly with stuff defined in the
+LIBC-provided <termios.h> header files (where the user-visible
+"termios" structure is defined). Because of this clash between LIBC
+and the linux headers, we have to manually copy the "termios2"
+definition (and a few relevant constants) into our sources for the
+whole thing to work. This is definitely very klugy, but I can see no
+better way to make it work (after all, GLIBC does the same
+thing---replicates the kernel definitions itself---for the older
+"termios" interface).
+
+End aside, on with it...
+
+The new ioctls TCSETS2, TCSETSW2, TCSETSF2 pass a "termios2" structure
+to the kernel in order to set the tty attributes (among which the
+serial port's baudrate). The corresponding TCGETS2 ioctl retrieves a
+"termios2" structure from the kernel corresponding to the actual,
+effective tty settings.
+
+These ioctls are used by the "tc2setattr()" and "tc2getattr()"
+functions (see file "termios2.c"). These functions are passed a
+userspace, LIBC-defined "termios" structure (which is very similar,
+but not necessarily identical to the kernel's "termios2"), call the
+respective ioctls, and copy the relevant information to or from the
+"termios2" structure (as expected or returned by the kernel).
+
+The game between the kernel and the "termios2" structure, regarding
+how baudrate-related information is interpretted, is played like this:
+
+Bits "c_cflags & (CBAUD | CBAUDEX)" (they are sometimes called: "the
+CBAUD field"), together with field "c_ospeed" control the output
+baudrate.
+
+Bits "c_cflags & ((CBAUD | CBAUDEX) << IBSHIFT)" (they are sometimes
+called: "the CIBAUD field"), together with field "c_ispeed" control
+the input baudrate.
+
+BTW: Usually CBAUD & CBAUDEX == CBAUD. That is, CBAUDEX *is*
+one of the CBAUD bits.
+
+When issuing one of the TCSETS*2 ioctls, everything contained in the
+"termios2" structure is copied to a kernel-resident structure and the
+respective serial driver is notified. Upon the serial driver's
+request, the kernel determines the output baudrate. If the kernel sees
+that:
+
+    c_cflag & CBAUD == BOTHER
+
+then "c_ospeed" is passed to the serial driver as the output
+baudrate. Otherwise "c_cflag & (CBAUD | CBAUDEX)" is matched against a
+table of standard baudrates (coresponding to the "Bxxxx" macros). The
+matching baudrate is located and passed to the serial driver as the
+output baudrate.
+
+You can see the respective code in "drivers/tty/tty_ioctl.c" (all
+files form now on relative to the linux-kernel source tree base),
+function "tty_termios_baud_rate()", which is what the serial drivers
+call to determine the output baudrate.
+
+If the driver requests it, the kernel also determines the input
+baudrate by checking (c_cflag >> IBSHIFT) & CBAUD. If it sees that:
+
+   (c_cflag >> IBSHIFT) & CBAUD == B0
+
+then the *output* baudrate is passed to the driver (as the input
+baudrate) determined as described above. If, on the other hand the
+kernel sees that:
+
+   (c_cflag >> IBSHIFT) & CBAUD == BOTHER
+
+then "c_ispeed" is passed to the serial driver as the input
+baudrate. If, finaly, neither is true (i.e. the input baudate bits in
+"c_cflag" are neither B0, nor BOTHER), then "(c_cflag >> IBSHIFT) &
+(CBAUD|CBAUDEX)" is mached against the table of standard baudrates.
+The matching baudrate is located and passed to the serial driver as
+the input baudrate.
+
+You can see all these happen in "drivers/tty/tty_ioctl.c", function
+"tty_termios_input_baud_rate()", which is what the serial drivers call
+to determine the input baudrate.
+
+The serial driver, once it receives the requested baudrate values, it
+may choose to alter them (e.g because the requested values are not
+supported by the hardware). If it does so, it then passes-back to the
+kernel the actual, effective, baudrate values, so that the kernel can
+update its internal structure. As a result, the user will read the
+*effective* baudrate values with the next TCGETS2 ioctl (which may be
+different than the requested ones).
+
+The kernel updates the "termios2" structure with the effective
+baudrate values supplied by the serial driver by following a rather
+complicated procedure, which I will not describe in full detail
+here. The gist of it is this: If the user has requested a baudrate
+using one of the standard "Bxxx" values (i.e. by setting the CBAUD /
+CIBAUD fields in "c_cflag"), then the kernel will also try to
+report-back the effective baudrate as a standard "Bxxx" value (by
+setting the CBAUF / CIBAUD fields in "c_cflag"), *even* if it has to
+lie a little about the baudrate value. If lying "a little" is not
+enough, or if the user has requested a non-standard baudrate through
+"c_ispeed / c_ospeed", then the kernel will set the CBAUD / CIBAUD
+fields in "c_cflag" to BOTHER, and report the effective baudrate
+(numerically) using "c_ispeed" / "c_ospeed". Actually, the "c_ispeed"
+/ "c_ospeed" fields are *always* updated by the kernel with the
+effective baudrate values, even if these values are also reported by
+setting the CBAUD / CIBAUD fields in "c_cflag" to one of the "Bxxx"
+values.
+
+The details of how the kernel updates the termios2 structure with the
+baudrate values supplied by the serial drivers can be seen in file
+"drivers/tty/tty_ioctl.c", function "tty_termios_encode_baud_rate()"
+which is what the serial drivers call to notify the kernel about the
+effective baudrate.
+
