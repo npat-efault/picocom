@@ -33,6 +33,12 @@ CPPFLAGS += -DHISTFILE=\"$(HISTFILE)\" \
 picocom : linenoise-1.0/linenoise.o
 linenoise-1.0/linenoise.o : linenoise-1.0/linenoise.c linenoise-1.0/linenoise.h
 
+## Comment these IN to enable custom baudrate support.
+## Currently works *only* with Linux (kernels > 2.6).
+CPPFLAGS += -DUSE_CUSTOM_BAUD
+picocom : termios2.o
+termios2.o : termios2.c termios2.h termbits2.h
+
 ## Comment this IN to remove help strings (saves ~ 4-6 Kb).
 #CPPFLAGS += -DNO_HELP
 
@@ -62,6 +68,7 @@ picocom.8.ps : picocom.8
 
 clean:
 	rm -f picocom.o term.o fdio.o split.o linenoise-1.0/linenoise.o
+	rm -f termios2.o
 	rm -f *~
 	rm -f \#*\#
 

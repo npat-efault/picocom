@@ -1159,6 +1159,9 @@ show_usage(char *name)
 	printf("  LINENOISE is enabled\n");
 	printf("  HISTFILE is: %s\n", HISTFILE);
 #endif
+#ifdef USE_CUSTOM_BAUD
+	printf("  USE_CUSTOM_BAUD is enabled\n");
+#endif
 	
 	printf("\nUsage is: %s [options] <tty device>\n", s);
 	printf("Options are:\n");
