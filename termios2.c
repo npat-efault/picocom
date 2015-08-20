@@ -5,7 +5,7 @@
  *
  * by Nick Patavalis (npat@efault.net)
  *
- * ATTENTION: Very linux-specific kludge! 
+ * ATTENTION: Linux-specific kludge! 
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,10 +33,10 @@
 #include <termios.h>
 #include <sys/ioctl.h>
 
-/* Contains the definition of the termios2 structure and some
-   associated constants that we should normally include from kernel
-   sources. But unfortunatelly, we can't. See comments in
-   "termbits2.h" for more. */
+/* Contains the definition of the termios2 structure and some related
+   constants that we should normally include from system
+   headers. Unfortunatelly, we can't. See comments in "termbits2.h"
+   for more. */
 #include "termbits2.h"
 
 /* GLIBC termios use an (otherwise unused) bit in c_iflags to
@@ -107,15 +107,15 @@ tc2getattr(int fd, struct termios *tios)
 }
 
 /* The termios2 interface supports separate input and output
-   speeds. Old termios supported only one terminal speed. So the
+   speeds. GLIBC's termios support only one terminal speed. So the
    standard tcsetispeed(3), actually sets the output-speed field, not
    the input-speed field (or does nothing if speed == B0). Use
-   tc2setispeed if you want to set a standard input speed (one of the
-   Bxxxxx speeds) that may be different from the output speed. Also if
-   someone, somehow, has set the input speed to something other than
-   B0, then you *must* use c2setispeed() to change it. Using the
-   standard cfsetispeed() obviously won't do (since it affects only
-   the output-speed field).
+   cf2setispeed if you want to set a *standard* input speed (one of
+   the Bxxxxx speeds) that may be different from the output
+   speed. Also if someone, somehow, has set the input speed to
+   something other than B0, then you *must* use cf2setispeed() to
+   change it. Using the standard cfsetispeed() obviously won't do
+   (since it affects only the output-speed field).
 */
 
 int
@@ -138,6 +138,9 @@ cf2getispeed(struct termios *tios)
 {
 	return (tios->c_cflag >> IBSHIFT) & (CBAUD | CBAUDEX);
 }
+
+/* Use these to set custom input or output speeds (i.e. speeds that do
+   not necessarily correspond to one of the Bxxx macros. */
 
 int
 cf2setospeed_custom(struct termios *tios, int speed)
@@ -162,8 +165,8 @@ cf2setispeed_custom(struct termios *tios, int speed)
 	}
 	if ( speed == 0 ) {
 		/* Special case: ispeed == 0 means "same as ospeed". Kernel
-		 * does this if it sees B0 in the "CIBAUD" field (i.e. in
-		 * CBAUD << IBSHIFT) */
+		   does this if it sees B0 in the "CIBAUD" field (i.e. in
+		   CBAUD << IBSHIFT) */
 		tios->c_cflag &= ~((CBAUD | CBAUDEX) << IBSHIFT);
 		tios->c_cflag |= (B0 << IBSHIFT);
 	} else {
