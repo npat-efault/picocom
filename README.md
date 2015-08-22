@@ -29,7 +29,7 @@ library.
 
 For a description of picocom's operation, its command line options,
 and usage examples, see the manual page included in the source
-distribution as "picocom.8", and also html-ized as "picocom.8.html".
+distribution as "picocom.1", and also html-ized as "picocom.1.html".
 
 People who have contibuted to picocom, by offering feature
 implementations, bug-fixes, corrections, and suggestions are listed in
@@ -62,7 +62,7 @@ example:
 
 ```
   cp picocom ~/bin
-  cp picocom.8 ~/man/man8
+  cp picocom.1 ~/man/man1
 ```
 
 Again, this is not strictly necessary. You can run picocom and read
@@ -188,7 +188,7 @@ page. It can be accessed like this (assuming you are inside the
 picocom distribution source directory):
 
 ```
-man ./picocom.8
+man ./picocom.1
 ```
 
 or (assuming you have installed the manual page to a suitable place):

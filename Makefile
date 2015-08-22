@@ -52,19 +52,26 @@ split.o : split.c split.h
 fdio.o : fdio.c fdio.h
 
 
-doc : picocom.8 picocom.8.html picocom.8.ps
+doc : picocom.1.html picocom.1 picocom.1.pdf
 
 changes :
 	svn log -v . > CHANGES
 
-picocom.8 : picocom.8.xml
-	xmltoman $< > $@
+picocom.1 : picocom.1.md
+	sed 's/\*\*\[/\*\*/g;s/\]\*\*/\*\*/g' $< \
+	| pandoc -s -t man \
+            -Vfooter="Picocom $(VERSION)" -Vdate="`date -I`" \
+	    -o $@
 
-picocom.8.html : picocom.8.xml
-	xmlmantohtml $< > $@
+picocom.1.html : picocom.1.md
+	pandoc -s -t html \
+	    -c css/normalize-noforms.css -c css/manpage.css \
+            --self-contained \
+	    -o $@ $<
 
-picocom.8.ps : picocom.8
-	groff -mandoc -Tps $< > $@
+picocom.1.pdf : picocom.1
+	groff -man -Tpdf $< > $@
+
 
 clean:
 	rm -f picocom.o term.o fdio.o split.o linenoise-1.0/linenoise.o
@@ -76,7 +83,7 @@ distclean: clean
 	rm -f picocom
 
 realclean: distclean
-	rm -f picocom.8
-	rm -f picocom.8.html
-	rm -f picocom.8.ps
+	rm -f picocom.1
+	rm -f picocom.1.html
+	rm -f picocom.1.pdf
 	rm -f CHANGES

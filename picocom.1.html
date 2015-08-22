@@ -1,0 +1,194 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title>PICOCOM(1)</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link href="data:text/css,%2F%2A%21%20normalize%2Ecss%20v3%2E0%2E2%20%7C%20MIT%20License%20%7C%20git%2Eio%2Fnormalize%20%2A%2F%0A%0A%2F%2A%2A%0A%20%2A%201%2E%20Set%20default%20font%20family%20to%20sans%2Dserif%2E%0A%20%2A%202%2E%20Prevent%20iOS%20text%20size%20adjust%20after%20orientation%20change%2C%20without%20disabling%0A%20%2A%20%20%20%20user%20zoom%2E%0A%20%2A%2F%0A%0Ahtml%20%7B%0A%20%20font%2Dfamily%3A%20sans%2Dserif%3B%20%2F%2A%201%20%2A%2F%0A%20%20%2Dms%2Dtext%2Dsize%2Dadjust%3A%20100%25%3B%20%2F%2A%202%20%2A%2F%0A%20%20%2Dwebkit%2Dtext%2Dsize%2Dadjust%3A%20100%25%3B%20%2F%2A%202%20%2A%2F%0A%7D%0A%0A%2F%2A%2A%0A%20%2A%20Remove%20default%20margin%2E%0A%20%2A%2F%0A%0Abody%20%7B%0A%20%20margin%3A%200%3B%0A%7D%0A%0A%2F%2A%20HTML5%20display%20definitions%0A%20%20%20%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%20%2A%2F%0A%0A%2F%2A%2A%0A%20%2A%20Correct%20%60block%60%20display%20not%20defined%20for%20any%20HTML5%20element%20in%20IE%208%2F9%2E%0A%20%2A%20Correct%20%60block%60%20display%20not%20defined%20for%20%60details%60%20or%20%60summary%60%20in%20IE%2010%2F11%0A%20%2A%20and%20Firefox%2E%0A%20%2A%20Correct%20%60block%60%20display%20not%20defined%20for%20%60main%60%20in%20IE%2011%2E%0A%20%2A%2F%0A%0Aarticle%2C%0Aaside%2C%0Adetails%2C%0Afigcaption%2C%0Afigure%2C%0Afooter%2C%0Aheader%2C%0Ahgroup%2C%0Amain%2C%0Amenu%2C%0Anav%2C%0Asection%2C%0Asummary%20%7B%0A%20%20display%3A%20block%3B%0A%7D%0A%0A%2F%2A%2A%0A%20%2A%201%2E%20Correct%20%60inline%2Dblock%60%20display%20not%20defined%20in%20IE%208%2F9%2E%0A%20%2A%202%2E%20Normalize%20vertical%20alignment%20of%20%60progress%60%20in%20Chrome%2C%20Firefox%2C%20and%20Opera%2E%0A%20%2A%2F%0A%0Aaudio%2C%0Acanvas%2C%0Aprogress%2C%0Avideo%20%7B%0A%20%20display%3A%20inline%2Dblock%3B%20%2F%2A%201%20%2A%2F%0A%20%20vertical%2Dalign%3A%20baseline%3B%20%2F%2A%202%20%2A%2F%0A%7D%0A%0A%2F%2A%2A%0A%20%2A%20Prevent%20modern%20browsers%20from%20displaying%20%60audio%60%20without%20controls%2E%0A%20%2A%20Remove%20excess%20height%20in%20iOS%205%20devices%2E%0A%20%2A%2F%0A%0Aaudio%3Anot%28%5Bcontrols%5D%29%20%7B%0A%20%20display%3A%20none%3B%0A%20%20height%3A%200%3B%0A%7D%0A%0A%2F%2A%2A%0A%20%2A%20Address%20%60%5Bhidden%5D%60%20styling%20not%20present%20in%20IE%208%2F9%2F10%2E%0A%20%2A%20Hide%20the%20%60template%60%20element%20in%20IE%208%2F9%2F11%2C%20Safari%2C%20and%20Firefox%20%3C%2022%2E%0A%20%2A%2F%0A%0A%5Bhidden%5D%2C%0Atemplate%20%7B%0A%20%20display%3A%20none%3B%0A%7D%0A%0A%2F%2A%20Links%0A%20%20%20%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%20%2A%2F%0A%0A%2F%2A%2A%0A%20%2A%20Remove%20the%20gray%20background%20color%20from%20active%20links%20in%20IE%2010%2E%0A%20%2A%2F%0A%0Aa%20%7B%0A%20%20background%2Dcolor%3A%20transparent%3B%0A%7D%0A%0A%2F%2A%2A%0A%20%2A%20Improve%20readability%20when%20focused%20and%20also%20mouse%20hovered%20in%20all%20browsers%2E%0A%20%2A%2F%0A%0Aa%3Aactive%2C%0Aa%3Ahover%20%7B%0A%20%20outline%3A%200%3B%0A%7D%0A%0A%2F%2A%20Text%2Dlevel%20semantics%0A%20%20%20%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%20%2A%2F%0A%0A%2F%2A%2A%0A%20%2A%20Address%20styling%20not%20present%20in%20IE%208%2F9%2F10%2F11%2C%20Safari%2C%20and%20Chrome%2E%0A%20%2A%2F%0A%0Aabbr%5Btitle%5D%20%7B%0A%20%20border%2Dbottom%3A%201px%20dotted%3B%0A%7D%0A%0A%2F%2A%2A%0A%20%2A%20Address%20style%20set%20to%20%60bolder%60%20in%20Firefox%204%2B%2C%20Safari%2C%20and%20Chrome%2E%0A%20%2A%2F%0A%0Ab%2C%0Astrong%20%7B%0A%20%20font%2Dweight%3A%20bold%3B%0A%7D%0A%0A%2F%2A%2A%0A%20%2A%20Address%20styling%20not%20present%20in%20Safari%20and%20Chrome%2E%0A%20%2A%2F%0A%0Adfn%20%7B%0A%20%20font%2Dstyle%3A%20italic%3B%0A%7D%0A%0A%2F%2A%2A%0A%20%2A%20Address%20variable%20%60h1%60%20font%2Dsize%20and%20margin%20within%20%60section%60%20and%20%60article%60%0A%20%2A%20contexts%20in%20Firefox%204%2B%2C%20Safari%2C%20and%20Chrome%2E%0A%20%2A%2F%0A%0Ah1%20%7B%0A%20%20font%2Dsize%3A%202em%3B%0A%20%20margin%3A%200%2E67em%200%3B%0A%7D%0A%0A%2F%2A%2A%0A%20%2A%20Address%20styling%20not%20present%20in%20IE%208%2F9%2E%0A%20%2A%2F%0A%0Amark%20%7B%0A%20%20background%3A%20%23ff0%3B%0A%20%20color%3A%20%23000%3B%0A%7D%0A%0A%2F%2A%2A%0A%20%2A%20Address%20inconsistent%20and%20variable%20font%20size%20in%20all%20browsers%2E%0A%20%2A%2F%0A%0Asmall%20%7B%0A%20%20font%2Dsize%3A%2080%25%3B%0A%7D%0A%0A%2F%2A%2A%0A%20%2A%20Prevent%20%60sub%60%20and%20%60sup%60%20affecting%20%60line%2Dheight%60%20in%20all%20browsers%2E%0A%20%2A%2F%0A%0Asub%2C%0Asup%20%7B%0A%20%20font%2Dsize%3A%2075%25%3B%0A%20%20line%2Dheight%3A%200%3B%0A%20%20position%3A%20relative%3B%0A%20%20vertical%2Dalign%3A%20baseline%3B%0A%7D%0A%0Asup%20%7B%0A%20%20top%3A%20%2D0%2E5em%3B%0A%7D%0A%0Asub%20%7B%0A%20%20bottom%3A%20%2D0%2E25em%3B%0A%7D%0A%0A%2F%2A%20Embedded%20content%0A%20%20%20%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%20%2A%2F%0A%0A%2F%2A%2A%0A%20%2A%20Remove%20border%20when%20inside%20%60a%60%20element%20in%20IE%208%2F9%2F10%2E%0A%20%2A%2F%0A%0Aimg%20%7B%0A%20%20border%3A%200%3B%0A%7D%0A%0A%2F%2A%2A%0A%20%2A%20Correct%20overflow%20not%20hidden%20in%20IE%209%2F10%2F11%2E%0A%20%2A%2F%0A%0Asvg%3Anot%28%3Aroot%29%20%7B%0A%20%20overflow%3A%20hidden%3B%0A%7D%0A%0A%2F%2A%20Grouping%20content%0A%20%20%20%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%20%2A%2F%0A%0A%2F%2A%2A%0A%20%2A%20Address%20margin%20not%20present%20in%20IE%208%2F9%20and%20Safari%2E%0A%20%2A%2F%0A%0Afigure%20%7B%0A%20%20margin%3A%201em%2040px%3B%0A%7D%0A%0A%2F%2A%2A%0A%20%2A%20Address%20differences%20between%20Firefox%20and%20other%20browsers%2E%0A%20%2A%2F%0A%0Ahr%20%7B%0A%20%20%2Dmoz%2Dbox%2Dsizing%3A%20content%2Dbox%3B%0A%20%20box%2Dsizing%3A%20content%2Dbox%3B%0A%20%20height%3A%200%3B%0A%7D%0A%0A%2F%2A%2A%0A%20%2A%20Contain%20overflow%20in%20all%20browsers%2E%0A%20%2A%2F%0A%0Apre%20%7B%0A%20%20overflow%3A%20auto%3B%0A%7D%0A%0A%2F%2A%2A%0A%20%2A%20Address%20odd%20%60em%60%2Dunit%20font%20size%20rendering%20in%20all%20browsers%2E%0A%20%2A%2F%0A%0Acode%2C%0Akbd%2C%0Apre%2C%0Asamp%20%7B%0A%20%20font%2Dfamily%3A%20monospace%2C%20monospace%3B%0A%20%20font%2Dsize%3A%201em%3B%0A%7D%0A%0A%2F%2A%20Tables%0A%20%20%20%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%20%2A%2F%0A%0A%2F%2A%2A%0A%20%2A%20Remove%20most%20spacing%20between%20table%20cells%2E%0A%20%2A%2F%0A%0Atable%20%7B%0A%20%20border%2Dcollapse%3A%20collapse%3B%0A%20%20border%2Dspacing%3A%200%3B%0A%7D%0A%0Atd%2C%0Ath%20%7B%0A%20%20padding%3A%200%3B%0A%7D%0A" rel="stylesheet" type="text/css" />
+  <link href="data:text/css,%0Ahtml%20%7B%0A%20%20%20%20background%3A%20%23cccccc%3B%0A%7D%0A%0Abody%20%7B%0A%20%20%20%20font%2Dfamily%3A%20%22Open%20Sans%22%2C%20sans%2Dserif%3B%0A%20%20%20%20max%2Dwidth%3A45em%3B%0A%20%20%20%20padding%3A%201em%203em%201em%203em%3B%0A%20%20%20%20margin%3A%201em%203em%201em%203em%3B%0A%20%20%20%20background%3A%20%23ffffff%3B%0A%7D%0A%0Apre%2Ccode%2Ckbd%2Csamp%2Ctt%20%7B%0A%20%20%20%20font%2Dfamily%3A%20%22Inconsolata%22%2C%20monospace%3B%0A%7D%0A%0Ap%2Cpre%20%7B%0A%20%20%20%20margin%2Dtop%3A%2E5em%3B%0A%20%20%20%20margin%2Dbottom%3A%2E5em%3B%0A%7D%0A%0Apre%2Cblockquote%20%7B%0A%20%20%20%20border%3A1px%20solid%20%23ddd%3B%0A%20%20%20%20background%2Dcolor%3A%23f1f1f1%3B%0A%20%20%20%20%2Dwebkit%2Dborder%2Dradius%3A6px%3B%0A%20%20%20%20%2Dmoz%2Dborder%2Dradius%3A6px%3B%0A%20%20%20%20border%2Dradius%3A6px%3B%0A%20%20%20%20padding%3A10px%3B%0A%7D%0A%0Ablockquote%20%7B%0A%20%20%20%20margin%3A1em%202%2E5em%3B%0A%7D%0A%0Apre%20%7B%0A%20%20%20%20margin%2Dtop%3A%201em%3B%0A%20%20%20%20margin%2Dbottom%3A%201em%3B%0A%7D%0A%0Acode%20%7B%0A%20%20%20%20color%3A%2320639b%3B%0A%20%20%20%20background%3A%23f1f1f1%3B%0A%7D%0A%0Aa%20%7B%0A%20%20%20%20color%3A%20blue%3B%0A%7D%0A%0Aa%3Avisited%20%7B%0A%20%20%20%20color%3A%20darkblue%3B%0A%7D%0A%0Ah1%2Ch2%2Ch3%2Ch4%2Ch5%2Ch6%20%7B%0A%20%20%20%20font%2Dweight%3A%20bold%3B%0A%20%20%20%20color%3A%20%2320639b%3B%0A%20%20%20%20margin%3A%201em%200%3B%0A%7D%0A%0Ah1%20%7B%0A%20%20%20%20font%2Dsize%3A140%25%3B%0A%20%20%20%20border%2Dbottom%3A2px%20dotted%20%23ddd%3B%0A%7D%0A%0Ah2%20%7B%0A%20%20%20%20font%2Dsize%3A120%25%3B%0A%7D%0A%0Ah3%20%7B%0A%20%20%20%20font%2Dsize%3A110%25%3B%0A%7D%0A%0Ah4%20%7B%0A%20%20%20%20font%2Dsize%3A100%25%3B%0A%7D%0A%0Ah5%20%7B%0A%20%20%20%20font%2Dsize%3A95%25%3B%0A%7D%0A%0Ah6%20%7B%0A%20%20%20%20font%2Dsize%3A90%25%3B%0A%20%20%20%20color%3A%23999%3B%0A%7D%0A%0Aol%2Cul%20%7B%0A%20%20%20%20list%2Dstyle%3Anone%3B%0A%20%20%20%20padding%3A%200%3B%0A%20%20%20%20margin%3A1em%3B%0A%20%20%20%20margin%2Dleft%3A2em%3B%0A%7D%0A%0Aol%20%7B%0A%20%20%20%20list%2Dstyle%3Adecimal%20outside%3B%0A%7D%0A%0Aul%20%7B%0A%20%20%20%20list%2Dstyle%3Adisc%20outside%3B%0A%7D%0A%0Adl%20%7B%0A%20%20%20%20margin%3A0%200%201%2E125em%3B%0A%7D%0A%0Adl%20dd%20%7B%0A%20%20%20%20margin%2Dleft%3A2em%3B%0A%7D%0A%0Adt%20%7B%0A%20%20%20%20line%2Dheight%3A1%2E125em%3B%0A%7D%0A%0A%2F%2A%0Add%20%7B%0A%20%20%20%20line%2Dheight%3A1%2E125em%3B%0A%7D%0A%2A%2F%0A%0Aol%5Btype%3D1%5D%20%7B%0A%20%20%20%20list%2Dstyle%2Dtype%3Adecimal%3B%0A%7D%0A%0Aol%5Btype%3Da%5D%20%7B%0A%20%20%20%20list%2Dstyle%2Dtype%3Alower%2Dalpha%3B%0A%7D%0A%0Aol%5Btype%3DA%5D%20%7B%0A%20%20%20%20list%2Dstyle%2Dtype%3Aupper%2Dalpha%3B%0A%7D%0A%0Aol%5Btype%3DI%5D%20%7B%0A%20%20%20%20list%2Dstyle%2Dtype%3Aupper%2Droman%3B%0A%7D%0A%0Aol%5Btype%3Di%5D%20%7B%0A%20%20%20%20list%2Dstyle%2Dtype%3Alower%2Droman%3B%0A%7D%0A" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<div id="header">
+<h1 class="title">PICOCOM(1)</h1>
+</div>
+<h1 id="name">NAME</h1>
+<p>picocom - minimal dumb-terminal emulation program</p>
+<h1 id="synopsis">SYNOPSIS</h1>
+<p><strong>picocom</strong> [ <em>options</em> ] <em>device</em></p>
+<h1 id="description">DESCRIPTION</h1>
+<p>As its name suggests, <strong>picocom(1)</strong> is a minimal dumb-terminal emulation program. It is, in principle, very much like <strong>minicom(1)</strong>, only it's &quot;pico&quot; instead of &quot;mini&quot;! It was designed to serve as a simple, manual, modem configuration, testing, and debugging tool. It has also served (quite well) as a low-tech serial communications program to allow access to all types of devices that provide serial consoles. It could also prove useful in many other similar tasks.</p>
+<p>When picocom starts it opens the terminal (serial device) given as its non-option argument. Unless the <strong>--noinit</strong> option is given, it configures the device to the settings specified by the option-arguments (or to some default settings), and sets it to &quot;raw&quot; mode. If <strong>--noinit</strong> is given, the initialization and configuration is skipped; the device is just opened. Following this, picocom sets the standard-input and standard-output to raw mode. Having done so, it goes in a loop where it listens for input from stdin, or from the serial port. Input from the serial port is copied to the standard output while input from the standard input is copied to the serial port. Picocom also scans its input stream for a user-specified control character, called the <em>escape character</em> (being by default <strong>C-a</strong>). If the escape character is seen, then instead of sending it to the serial-device, the program enters &quot;command mode&quot; and waits for the next character (which is called the &quot;function character&quot;). Depending on the value of the function character, picocom performs one of the operations described in the <strong><a href="#commands">COMMANDS</a></strong> section below.</p>
+<h1 id="commands">COMMANDS</h1>
+<p>Commands are given to picocom by first keying the <em>espace character</em> which by default is <strong>C-a</strong> (see <strong><a href="#options">OPTIONS</a></strong> below for how to change it), and then keying one of the function (command) characters shown here.</p>
+<dl>
+<dt><em>escape character</em></dt>
+<dd><p>Send the escape character to the serial port and return to &quot;transparent&quot; mode. This means that if the escape character (<strong>C-a</strong>, by default) is typed twice, the program sends the escape character to the serial port, and remains in transparent mode.</p>
+</dd>
+<dt><strong>C-x</strong></dt>
+<dd><p>Exit the program: if the <strong>--noreset</strong> option was not given then the serial port is reset to its original settings before exiting; if it was given the serial port is not reset.</p>
+</dd>
+<dt><strong>C-q</strong></dt>
+<dd><p>Quit the program <em>without</em> reseting the serial port, regardless of the <strong>--noreset</strong> option.</p>
+</dd>
+<dt><strong>C-p</strong></dt>
+<dd><p>Pulse the DTR line. Lower it for 1 sec, and then raise it again.</p>
+</dd>
+<dt><strong>C-t</strong></dt>
+<dd><p>Toggle the DTR line. If DTR is up, then lower it. If it is down, then raise it.</p>
+</dd>
+<dt><strong>C-backslash</strong></dt>
+<dd><p>Generate a break sequence on the serial line. A break sequence is usually generated by marking (driving to logical one) the serial Tx line for an amount of time coresponding to several character durations.</p>
+</dd>
+<dt><strong>C-u</strong></dt>
+<dd><p>Baud up. Increase the baud-rate. The list of baud-rates stepped-through by this command is: 50, 75, 110, 134, 150, 200, 300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200. If <code>HIGH_BAUD</code> support is compiled-in, then the following baud-rates are also added to the list: 230400, 460800, 500000, 576000, 921600, 1000000, 1152000, 1500000, 2000000, 2500000, 3000000, 3500000, 4000000. Depending on you system, any of the higher baud rates may be missing.</p>
+</dd>
+<dt><strong>C-d</strong></dt>
+<dd><p>Baud down. Decrease the baud-rate. The list of baud-rates stepped-through by this command is the same as for the &quot;baud-up&quot; command.</p>
+</dd>
+<dt><strong>C-f</strong></dt>
+<dd><p>Cycle through flow-control settings (RTS/CTS, XON/XOFF, none).</p>
+</dd>
+<dt><strong>C-y</strong></dt>
+<dd><p>Cycle through parity settings (even, odd, none).</p>
+</dd>
+<dt><strong>C-b</strong></dt>
+<dd><p>Cycle through databits-number settings (5, 6, 7, 8).</p>
+</dd>
+<dt><strong>C-j</strong></dt>
+<dd><p>Cycle through stopbits-number settings (1, 2).</p>
+</dd>
+<dt><strong>C-c</strong></dt>
+<dd><p>Toggle local-echo mode.</p>
+</dd>
+<dt><strong>C-v</strong></dt>
+<dd><p>Show program options (like baud rate, data bits, etc) as well as the actual serial port settings. Only the options and port settings that can be modified online (through commands) are shown, not those that can only be set at the command-line. See <strong><a href="#display-of-options-and-port-settings">DISPLAY OF OPTIONS AND PORT SETTINGS</a></strong> for details.</p>
+</dd>
+<dt><strong>C-h</strong> or <strong>C-k</strong></dt>
+<dd><p>Show help or show keys. Prints a short description of all available function (command) keys.</p>
+</dd>
+<dt><strong>C-s</strong></dt>
+<dd><p>Send (upload) a file. See <strong><a href="#sending-and-receiving-files">SENDING AND RECEIVING FILES</a></strong> below.</p>
+</dd>
+<dt><strong>C-r</strong></dt>
+<dd><p>Receive (download) a file. See <strong><a href="#sending-and-receiving-files">SENDING AND RECEIVING FILES</a></strong> below.</p>
+</dd>
+</dl>
+<p>After performing one of the above operations, the program leaves the command mode and enters transparent mode. Example: To increase the baud-rate by two steps, you have to type:</p>
+<blockquote>
+<p><strong>C-a</strong>, <strong>C-u</strong>, <strong>C-a</strong>, <strong>C-u</strong></p>
+</blockquote>
+<p>assuming of-course that <strong>C-a</strong> is the escape character.</p>
+<h1 id="options">OPTIONS</h1>
+<p>Picocom accepts the following command-line options.</p>
+<dl>
+<dt><strong>--baud</strong> | <strong>-b</strong></dt>
+<dd><p>Defines the baud-rate to set the serial-port (terminal) to.</p>
+</dd>
+<dt><strong>--flow</strong> | <strong>-f</strong></dt>
+<dd><p>Defines the flow-control mode to set the serial-port to. Must be one of: <strong>x</strong> for xon/xoff (software) mode, <strong>h</strong> for hardware flow control (RTS/CTS), <strong>n</strong> for no flow control. (Default: <strong>n</strong>)</p>
+</dd>
+<dt><strong>--parity</strong> | <strong>-y</strong></dt>
+<dd><p>Defines the parity mode to set the serial-port to. Must be one of: <strong>o</strong> for odd parity mode, <strong>e</strong> for even parity mode, <strong>n</strong> for no parity mode. (Default: <strong>n</strong>)</p>
+</dd>
+<dt><strong>--databits</strong> | <strong>-d</strong></dt>
+<dd><p>Defines the number of data bits in every character. Must be one of: <strong>5</strong>, <strong>6</strong>, <strong>7</strong>, <strong>8</strong>. (Default: <strong>8</strong>)</p>
+</dd>
+<dt><strong>--stopbits</strong> | <strong>-p</strong></dt>
+<dd><p>Defines the number of stop bits in every character. Must be one of: <strong>1</strong>, or <strong>2</strong>. (Default: <strong>1</strong>)</p>
+</dd>
+<dt><strong>--esacpe</strong> | <strong>-e</strong></dt>
+<dd><p>Defines the character that will make picocom enter command-mode (see description above). If <strong>x</strong> is given, then <strong>C-x</strong> will make picocom enter command mode. (Default: <strong>a</strong>)</p>
+</dd>
+<dt><strong>--echo</strong> | <strong>-c</strong></dt>
+<dd><p>Enable local echo. Every character being read from the terminal (standard input) is echoed to the terminal (standard output) subject to the echo-mapping configuration (see <strong>--emap</strong> option). (Default: Disabled)</p>
+</dd>
+<dt><strong>--noinit</strong> | <strong>-i</strong></dt>
+<dd><p>If given, picocom will not initialize, reset, or otherwise meddle with the serial port at start-up. It will just open it. This is useful, for example, for connecting picocom to already-connected modems, or already configured ports without terminating the connection, or altering the settings. If required, serial port parameters can then be adjusted at run-time by commands. (Default: Disabled)</p>
+</dd>
+<dt><strong>--noreset</strong> | <strong>-r</strong></dt>
+<dd><p>If given, picocom will not reset the serial port when exiting. It will just close the filedes and do nothing more. This is useful, for example, for leaving modems connected when exiting picocom. Regardless whether the <strong>--noreset</strong> option is given, the user can exit picocom using the &quot;Quit&quot; command (instead of &quot;Exit&quot;), which never resets the serial port. If <strong>--noreset</strong> is given then &quot;Quit&quot; and &quot;Exit&quot; behave essentially the same. (Default: Disabled)</p>
+</dd>
+<dt><strong>--nolock</strong> | <strong>-l</strong></dt>
+<dd><p>If given, picocom will <em>not</em> attempt to lock the serial port before opening it. Normally, depending on how it's compiled, picocom attempts to get a UUCP-style lock-file (e.g. '/var/lock/LCK..ttyS0') before opening the port, or attempts to lock the port device-node using <strong>flock(2)</strong>. Failing to do so, results in the program exiting after emitting an error-message. It is possible that your picocom binary is compiled without support for locking. In this case the <strong>--nolock</strong> option is accepted, but has no effect. (Default: Disabled)</p>
+</dd>
+<dt><strong>--send-cmd</strong> | <strong>-s</strong></dt>
+<dd><p>Specifies the external program (and any arguments to it) that will be used for transmitting files. If the argument to <strong>--send-cmd</strong> is the empty string (''), the send-file command is disabled. See <strong><a href="#sending-and-receiving-files">SENDING AND RECEIVING FILES</a></strong>. (Default: <strong>sz -vv</strong>)</p>
+</dd>
+<dt><strong>--receive-cmd</strong> | <strong>-v</strong></dt>
+<dd><p>Specifies the external program (and any arguments to it) that will be used for receiving files. If the argument to <strong>--receive-cmd</strong> is the empty string (''), the receive-file command is disabled. See <strong><a href="#sending-and-receiving-files">SENDING AND RECEIVING FILES</a></strong>. (Default: <strong>rz -vv</strong>)</p>
+</dd>
+<dt><strong>--imap</strong></dt>
+<dd><p>Specifies the input character map (i.e. special characters to be replaced when read from the serial port). See <strong><a href="#input-output-and-echo-mapping">INPUT, OUTPUT, AND ECHO MAPPING</a></strong>. (Defaul: Empty)</p>
+</dd>
+<dt><strong>--omap</strong></dt>
+<dd><p>Specifies the output character map (i.e. special characters to be replaced before being written to serial port). See <strong><a href="#input-output-and-echo-mapping">INPUT, OUTPUT, AND ECHO MAPPING</a></strong>. (Defaul: Empty)</p>
+</dd>
+<dt><strong>--emap</strong></dt>
+<dd><p>Specifies the local-echo character map (i.e. special characters to be replaced before being echoed-back to the terminal, if local-echo is enabled). See <strong><a href="#input-output-and-echo-mapping">INPUT, OUTPUT, AND ECHO MAPPING</a></strong>. (Defaul: <strong>delbs,crcrlf</strong>)</p>
+</dd>
+<dt><strong>--help</strong> | <strong>-h</strong></dt>
+<dd><p>Print a short help message describing the command-line options. Picocom's version, ompile-time options, and enabled features are also shown.</p>
+</dd>
+</dl>
+<h1 id="display-of-options-and-port-settings">DISPLAY OF OPTIONS AND PORT SETTINGS</h1>
+<p>The &quot;show program options&quot; command (<strong>C-v</strong>), as well as the commands that change program options (<strong>C-u</strong>, <strong>C-d</strong>, <strong>C-f</strong>, etc) print messages showing the current values (or the new values, if they were changed) for the respective options. If picocom determines that an actual serial-port setting differs from the current value of the respective option (for whatever reason), then the value of the option is shown followed by the value of the actual serial-port setting in parenthesis. Example:</p>
+<pre><code>*** baud: 115200 (9600) </code></pre>
+<p>This means that a baud rate of 115200bps has been selected (from the command line, or using commands that change the baudrate) but the serial-port is actually operating at 9600bps (the driver may not support the higher setting, and has silently replaced it with a safe default, or the setting may have been changed from outside picocom). If the option and the corresponding serial-port setting are the same, only a single value is shown. Example:</p>
+<pre><code>*** baud: 9600</code></pre>
+<p>This behavioir was intriduced in picocom 2.0. Older releases displayed only the option values, not the actual serial-port settings corresponding to them.</p>
+<h1 id="sending-and-receiving-files">SENDING AND RECEIVING FILES</h1>
+<p>Picocom can send and receive files over the serial port using external programs that implement the respective protocols. In Linux typical programs for this purpose are:</p>
+<ul>
+<li><strong>rx(1)</strong> - receive using the X-MODEM protocol</li>
+<li><strong>rb(1)</strong> - receive using the Y-MODEM protocol</li>
+<li><strong>rz(1)</strong> - receive using the Z-MODEM protocol</li>
+<li><strong>sx(1)</strong> - send using the X-MODEM protocol</li>
+<li><strong>sb(1)</strong> - send using the Y-MODEM protocol</li>
+<li><strong>sz(1)</strong> - send using the Z-MODEM protocol</li>
+<li><strong>ascii-xfr(1)</strong> - receive or transmit ASCII files</li>
+</ul>
+<p>The name of, and the command-line options to, the program to be used for transmitting files are given by the <strong>--send-cmd</strong> option. Similarly the program to receive files, and its argumets, are given by the <strong>--receive-cmd</strong> option. For example, in order to start a picocom session that uses <strong>sz(1)</strong> to transmit files, and <strong>rz(1)</strong> to receive files, you have to say something like this:</p>
+<pre><code>picocom --send-cmd &quot;sz -vv&quot; --receive-cmd &quot;rz -vv&quot; ...</code></pre>
+<p>If the argument to the <strong>-send-cmd</strong> option, or the argument to the <strong>--receive-cmd</strong> option is the empty string, then the respective command is disabled. For example, in order to disable both the &quot;send&quot; and the &quot;receive&quot; commands you can invoke picocom like this:</p>
+<pre><code>picocom --send-cmd '' --receive-cmd '' ...</code></pre>
+<p>A picocom session with both, the send- and the receive-file commands disabled does not <strong>fork(2)</strong> and does not run any external programs.</p>
+<p>During the picocom session, if you key the &quot;send&quot; or &quot;receive&quot; commands (e.g. by pressing <strong>C-a</strong>, <strong>C-s</strong>, or <strong>C-a</strong>, <strong>C-r</strong>) you will be prompted for a filename. At this prompt you can enter one or more file-names, and any additional arguments to the transmission or reception program. Command-line editing and rudimentary pathname completion are available at this prompt, if you have compiled picocom with support for the linenoise library. Pressing <strong>C-c</strong> at this prompt will cancel the file transfer command and return to normal picocom operation. After entering a filename (and / or additional transmission or reception program arguments) and assuming you have not canceled the operation by pressing <strong>C-c</strong>, picocom will start the the external program as specified by the <strong>--send-cmd</strong>, or <strong>--receive-cmd</strong> option, and with any filenames and additional arguments you may have supplied. The standard input and output of the external program will be connected to the serial port. The standard error of the external program will be connected to the terminal which---while the program is running---will revert to canonical mode. Pressing <strong>C-c</strong> while the external program is running will prematurely terminate it (assuming that the program itself does not ignore SIGINT), and return control to picocom. Pressing <strong>C-c</strong> at any other time, has no special effect; the character is normally passed to the serial port.</p>
+<h1 id="input-output-and-echo-mapping">INPUT, OUTPUT, AND ECHO MAPPING</h1>
+<p>Using the <strong>--imap</strong>, <strong>--omap</strong>, and <strong>--emap</strong> options you can make picocom map (tranlate, replace) certain special characters after being read from the serial port (with <strong>--imap</strong>), before being written to the serial port (with <strong>--omap</strong>), and before being locally echoed to the terminal (standard output) if local echo is enabled (with <strong>--emap</strong>). These mapping options take, each, a single argument which is a comma-separated list of one or more of the following identifiers:</p>
+<ul>
+<li><strong>crlf</strong> (map CR to LF),</li>
+<li><strong>crcrlf</strong> (map CR to CR + LF),</li>
+<li><strong>igncr</strong> (ignore CR),</li>
+<li><strong>lfcr</strong> (map LF to CR),</li>
+<li><strong>lfcrlf</strong> (map LF to CR + LF),</li>
+<li><strong>ignlf</strong> (ignore LF),</li>
+<li><strong>bsdel</strong> (map BS to DEL),</li>
+<li><strong>delbs</strong> (map DEL to BS)</li>
+</ul>
+<p>For example the command:</p>
+<pre><code>picocom --omap crlf,delbs --imap inglf,bsdel --emap crcrlf ...</code></pre>
+<p>will:</p>
+<ul>
+<li><p>Replace every CR (carriage return, 0x0d) caracter with LF (line feed, 0x0a) and every DEL (delete, 0x7f) character with BS (backspace, 0x08) before writing it to the serial port.</p></li>
+<li><p>Ignore (not write to the terminal) every LF character read from the serial port, and replace every BS character read from the serial port with DEL.</p></li>
+<li><p>Replace every CR character with CR and LF when echoing to the terminal (if local-echo is enabled).</p></li>
+</ul>
+<h1 id="author">AUTHOR</h1>
+<p>Written by Nick Patavalis <script type="text/javascript">
+<!--
+h='&#x65;&#102;&#x61;&#x75;&#108;&#116;&#46;&#110;&#x65;&#116;';a='&#64;';n='&#110;&#112;&#x61;&#116;';e=n+a+h;
+document.write('<a h'+'ref'+'="ma'+'ilto'+':'+e+'">'+e+'<\/'+'a'+'>');
+// -->
+</script><noscript>npat at efault dot net</noscript></p>
+<h1 id="availability">AVAILABILITY</h1>
+<p>Download the latest release from: <a href="https://github.com/npat-efault/picocom/releases">https://github.com/npat-efault/picocom/releases</a></p>
+<h1 id="copyright">COPYRIGHT</h1>
+<p>Copyright (c) 2004-2015 Nick Patavalis</p>
+<p>This file is part of Picocom.</p>
+<p>Picocom is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.</p>
+<p>Picocom is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.</p>
+<p>You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA</p>
+</body>
+</html>
