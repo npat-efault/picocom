@@ -34,3 +34,13 @@ comments:
 - Salvatore Sanfilippo (https://github.com/antirez) is the author of
   the linenoise line-editing library. See:
   https://github.com/antirez/linenoise
+
+- From Cody Schafer's (https://gitbub.com/jmesmon) fork originated the
+  idea to add custom baudrate support to picocom. See:
+  https://github.com/jmesmon/picocom
+
+- From Paul Chakravarti's (https://github.com/paulchakravarti) fork
+  orignated the idea to add support for disabling the send- and
+  rceive-file commands, and for not using the shell when executing
+  external programs (to avoid shell escapes). See:
+  https://github.com/paulchakravarti/picocom-noexec
