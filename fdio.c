@@ -91,7 +91,7 @@ xput (int fd, unsigned char c)
     char b[4];
 
     b[0] = '\\'; b[1] = 'x'; b[2] = hex[c >> 4]; b[3] = hex[c & 0x0f];
-    return write(fd, b, sizeof(b) - 1);
+    return write(fd, b, sizeof(b));
 }
 
 static int 
