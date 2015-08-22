@@ -72,7 +72,13 @@ If something goes wrong and picocom can't compile cleanly, or if it's
 lacking a feature you need, take a look at the included Makefile. It's
 very simple and easy to understand. It allows you to select
 compile-time options and enable or disable some compile-time features
-by commenting in or out the respective lines.
+by commenting in or out the respective lines. Once you edit the
+Makefile, to recompile say:
+
+```
+  make clean
+  make
+```
 
 ## Using picocom
 
