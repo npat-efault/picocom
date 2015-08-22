@@ -270,6 +270,16 @@ Bspeed(speed_t code)
 	return speed;
 }
 
+int
+term_baud_ok(int baud)
+{
+#ifndef USE_CUSTOM_BAUD
+	return (Bcode(baud) != BNONE) ? 1 : 0;
+#else
+	return (baud >= 0);
+#endif
+}
+
 /**************************************************************************/
 
 static int

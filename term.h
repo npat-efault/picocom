@@ -65,6 +65,7 @@
  * F term_break - generate a break condition on a device
  * F term_baud_up - return next higher baudrate
  * F term_baud_down - return next lower baudrate
+ * F term_baud_ok - check if baudrate is valid
  * F term_strerror - return a string describing current error condition
  * F term_perror - print a string describing the current error condition
  * G term_errno - current error condition of the library
@@ -633,6 +634,12 @@ int term_baud_up (int baud);
  * no lower valid baudrate.
  */
 int term_baud_down (int baud);
+
+/* F term_baud_ok
+ *
+ * Returns non-zero if "baud" is a valid baudrate, zero otherwise.
+ */
+int term_baud_ok(int baud);
 
 /***************************************************************************/
 
