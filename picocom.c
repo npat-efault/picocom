@@ -203,7 +203,7 @@ struct {
 #endif
 	.escape = CKEY('a'),
 	.send_cmd = "sz -vv",
-	.receive_cmd = "rz -vv",
+	.receive_cmd = "rz -vv -E",
 	.imap = M_I_DFL,
 	.omap = M_O_DFL,
 	.emap = M_E_DFL
