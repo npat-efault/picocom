@@ -85,11 +85,12 @@ const char *flow_str[] = {
 #define KEY_QUIT    CKEY('q') /* exit picocom without reseting port */
 #define KEY_PULSE   CKEY('p') /* pulse DTR */
 #define KEY_TOGGLE  CKEY('t') /* toggle DTR */
+#define KEY_BAUD    CKEY('b') /* set baudrate */
 #define KEY_BAUD_UP CKEY('u') /* increase baudrate (up) */
 #define KEY_BAUD_DN CKEY('d') /* decrase baudrate (down) */ 
 #define KEY_FLOW    CKEY('f') /* change flowcntrl mode */ 
 #define KEY_PARITY  CKEY('y') /* change parity mode */ 
-#define KEY_BITS    CKEY('b') /* change number of databits */ 
+#define KEY_BITS    CKEY('i') /* change number of databits */ 
 #define KEY_STOP    CKEY('j') /* change number of stopbits */ 
 #define KEY_LECHO   CKEY('c') /* toggle local echo */ 
 #define KEY_STATUS  CKEY('v') /* show program options */
@@ -371,6 +372,28 @@ read_filename (void)
 		return strdup(fname);
 }
 
+int
+read_baud (void)
+{
+	char baudstr[9], *ep;
+	int baud = -1, r;
+
+	do {
+		fd_printf(STO, "\r\n*** baud: ");
+		r = fd_readline(STI, STO, baudstr, sizeof(baudstr));
+		fd_printf(STO, "\r\n");
+		if ( r < 0 )
+			break;
+		baud = strtol(baudstr, &ep, 0);
+		if ( ! ep || *ep != '\0' || ! term_baud_ok(baud) || baud == 0 ) {
+			fd_printf(STO, "*** Invalid baudrate!");
+			baud = -1;
+		}
+	} while (baud < 0);
+
+	return baud;
+}
+
 #else /* LINENOISE defined */
 
 void 
@@ -456,13 +479,39 @@ read_filename (void)
 {
 	char *fname;
 	linenoiseSetCompletionCallback(file_completion_cb);
-	printf("\r\n");
+	fd_printf(STO, "\r\n");
 	fname = linenoise("*** file: ");
-	printf("\r\n");
+	fd_printf(STO, "\r");
 	linenoiseSetCompletionCallback(NULL);
 	if (fname != NULL)
 		add_history(fname);
 	return fname;
+}
+
+int
+read_baud (void)
+{
+	char *baudstr, *ep;
+	int baud = -1;
+
+	do {
+		fd_printf(STO, "\r\n");
+		baudstr = linenoise("*** baud: ");
+		fd_printf(STO, "\r");
+		if ( baudstr == NULL )
+			break;
+		baud = strtol(baudstr, &ep, 0);
+		if ( ! ep || *ep != '\0' || ! term_baud_ok(baud) || baud == 0 ) {
+			fd_printf(STO, "*** Invalid baudrate!");
+			baud = -1;
+		}
+		free(baudstr);
+	} while (baud < 0);
+
+	if (baudstr != NULL)
+		add_history(baudstr);
+
+	return baud;
 }
 
 #endif /* of ifndef LINENOISE */
@@ -677,6 +726,8 @@ show_keys()
 			  KEYC(KEY_EXIT));
 	fd_printf(STO, "*** [C-%c] : Exit without reseting serial port\r\n", 
 			  KEYC(KEY_QUIT));
+	fd_printf(STO, "*** [C-%c] : Set baudrate\r\n", 
+			  KEYC(KEY_BAUD));
 	fd_printf(STO, "*** [C-%c] : Increase baudrate (baud-up)\r\n", 
 			  KEYC(KEY_BAUD_UP));
 	fd_printf(STO, "*** [C-%c] : Decrease baudrate (baud-down)\r\n",
@@ -864,12 +915,21 @@ do_command (unsigned char c)
 		fd_printf(STO, "\r\n*** DTR: %s ***\r\n", 
 				  dtr_up ? "up" : "down");
 		break;
+	case KEY_BAUD:
 	case KEY_BAUD_UP:
 	case KEY_BAUD_DN:
-		if (c == KEY_BAUD_UP)
+		if ( c== KEY_BAUD) {
+			newbaud = read_baud();
+			if ( newbaud < 0 ) {
+				fd_printf(STO, "*** cannot read baudrate ***\r\n");
+				break;
+			}
+			opts.baud = newbaud;
+		} else if (c == KEY_BAUD_UP) {
 			opts.baud = baud_up(opts.baud);
-		else 
+		} else {
 			opts.baud = baud_down(opts.baud);
+		}
 		term_set_baudrate(tty_fd, opts.baud);
 		tty_q.len = 0; term_flush(tty_fd);
 		term_apply(tty_fd);
