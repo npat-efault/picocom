@@ -1303,6 +1303,10 @@ parse_args(int argc, char *argv[])
 			break;
 		case 'b':
 			opts.baud = atoi(optarg);
+			if ( opts.baud == 0 || ! term_baud_ok(opts.baud) ) {
+				fprintf(stderr, "Invalid --baud: %d\n", opts.baud);
+				r = -1;
+			}
 			break;
 		case 'y':
 			switch (optarg[0]) {
