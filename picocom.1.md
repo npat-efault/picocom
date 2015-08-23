@@ -81,6 +81,11 @@ here.
     Tx line for an amount of time coresponding to several character
     durations.
 
+**C-b**
+
+:   Set baurdate. Prompts you to enter a baudrate numerically (in bps)
+    and configures the serial port accordingly.
+
 **C-u**
 
 :   Baud up. Increase the baud-rate. The list of baud-rates
@@ -106,7 +111,7 @@ here.
 
 :   Cycle through parity settings (even, odd, none).
 
-**C-b**
+**C-i**
 
 :   Cycle through databits-number settings (5, 6, 7, 8).
 
@@ -270,10 +275,10 @@ Picocom accepts the following command-line options.
 # DISPLAY OF OPTIONS AND PORT SETTINGS 
 
 The "show program options" command (**C-v**), as well as the commands
-that change program options (**C-u**, **C-d**, **C-f**, etc) print
-messages showing the current values (or the new values, if they were
-changed) for the respective options. If picocom determines that an
-actual serial-port setting differs from the current value of the
+that change program options (**C-b**, **C-u**, **C-d**, **C-f**, etc)
+print messages showing the current values (or the new values, if they
+were changed) for the respective options. If picocom determines that
+an actual serial-port setting differs from the current value of the
 respective option (for whatever reason), then the value of the option
 is shown followed by the value of the actual serial-port setting in
 parenthesis. Example:
