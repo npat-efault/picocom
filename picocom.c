@@ -666,11 +666,10 @@ stopbits_next (int bits)
 	return bits;
 }
 
-
 void
 show_status (int dtr_up) 
 {
-	int baud, bits, stopbits;
+	int baud, bits, stopbits, mctl;
 	enum flowcntrl_e flow;
 	enum parity_e parity;
 
@@ -711,7 +710,26 @@ show_status (int dtr_up)
 	} else {
 		fd_printf(STO, "*** stopbits: %d\r\n", opts.stopbits);
 	}
-	fd_printf(STO, "*** dtr: %s\r\n", dtr_up ? "up" : "down");
+
+	mctl = term_get_mctl(tty_fd);
+	if (mctl >= 0 && mctl != MCTL_UNAVAIL) {
+		if ( ((mctl & MCTL_DTR) ? 1 : 0) == dtr_up )  
+			fd_printf(STO, "*** dtr: %s\r\n", dtr_up ? "up" : "down");
+		else
+			fd_printf(STO, "*** dtr: %s (%s)\r\n", 
+					  dtr_up ? "up" : "down",
+					  (mctl & MCTL_DTR) ? "up" : "down");
+		fd_printf(STO, "*** mctl: ");
+		fd_printf(STO, "DTR:%c DSR:%c DCD:%c RTS:%c CTS:%c RI:%c\r\n",
+				  (mctl & MCTL_DTR) ? '1' : '0',
+				  (mctl & MCTL_DSR) ? '1' : '0',
+				  (mctl & MCTL_DCD) ? '1' : '0',
+				  (mctl & MCTL_RTS) ? '1' : '0',
+				  (mctl & MCTL_CTS) ? '1' : '0',
+				  (mctl & MCTL_RI) ? '1' : '0');
+	} else {
+		fd_printf(STO, "*** dtr: %s\r\n", dtr_up ? "up" : "down");
+	}
 }
 
 void
