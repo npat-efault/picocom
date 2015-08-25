@@ -305,13 +305,17 @@ int term_replace (int oldfd, int newfd);
  * associated with the managed filedes "fd", to the respective
  * terminal device.  It then re-reads the settings form the device and
  * stores them in "nexttermios". Finally it copies "nexttermios" to
- * "currtermios".
+ * "currtermios". If "now" is not zero, settings are applied
+ * immediatelly, otherwise setting are applied after the output
+ * buffers are drained and the input buffers are discarder. In this
+ * sense, term_apply(fd, 0) is equivalent to: term_drain(fd);
+ * term_flush(fd); term_apply(fd, 1);
  *
  * Returns negative on failure, non negative on success. In case of
  * failure the "nexttermios" and "currtermios" structures are not
  * affected.
  */
-int term_apply (int fd);
+int term_apply (int fd, int now);
 
 /*
  * F term_revert 

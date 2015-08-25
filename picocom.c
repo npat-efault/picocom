@@ -808,7 +808,7 @@ run_cmd(int fd, const char *cmd, const char *args_extra)
 			r = waitpid(pid, &status, 0);
 		} while ( r < 0 && errno == EINTR );
 		/* reset terminal (back to raw mode) */
-		term_apply(STI);
+		term_apply(STI, 0);
 		/* check and report child return status */
 		if ( WIFEXITED(status) ) { 
 			fd_printf(STO, "\r\n*** exit status: %d ***\r\n", 
@@ -891,7 +891,7 @@ do_command (unsigned char c)
 	case KEY_QUIT:
 		term_set_hupcl(tty_fd, 0);
 		term_flush(tty_fd);
-		term_apply(tty_fd);
+		term_apply(tty_fd, 1);
 		term_erase(tty_fd);
 		return 1;
 	case KEY_STATUS:
@@ -932,7 +932,7 @@ do_command (unsigned char c)
 		}
 		term_set_baudrate(tty_fd, opts.baud);
 		tty_q.len = 0; term_flush(tty_fd);
-		term_apply(tty_fd);
+		term_apply(tty_fd, 1);
 		newbaud = term_get_baudrate(tty_fd, NULL);
 		if ( opts.baud != newbaud ) {
 			fd_printf(STO, "\r\n*** baud: %d (%d) ***\r\n", 
@@ -946,7 +946,7 @@ do_command (unsigned char c)
 		opts.flow = flow_next(opts.flow);
 		term_set_flowcntrl(tty_fd, opts.flow);
 		tty_q.len = 0; term_flush(tty_fd);
-		term_apply(tty_fd);
+		term_apply(tty_fd, 1);
 		newflow = term_get_flowcntrl(tty_fd);
 		if ( opts.flow != newflow ) {
 			fd_printf(STO, "\r\n*** flow: %s (%s) ***\r\n", 
@@ -960,7 +960,7 @@ do_command (unsigned char c)
 		opts.parity = parity_next(opts.parity);
 		term_set_parity(tty_fd, opts.parity);
 		tty_q.len = 0; term_flush(tty_fd);
-		term_apply(tty_fd);
+		term_apply(tty_fd, 1);
 		newparity = term_get_parity(tty_fd);
 		if (opts.parity != newparity ) {
 			fd_printf(STO, "\r\n*** parity: %s (%s) ***\r\n",
@@ -975,7 +975,7 @@ do_command (unsigned char c)
 		opts.databits = bits_next(opts.databits);
 		term_set_databits(tty_fd, opts.databits);
 		tty_q.len = 0; term_flush(tty_fd);
-		term_apply(tty_fd);
+		term_apply(tty_fd, 1);
 		newbits = term_get_databits(tty_fd);
 		if (opts.databits != newbits ) {
 			fd_printf(STO, "\r\n*** databits: %d (%d) ***\r\n",
@@ -989,7 +989,7 @@ do_command (unsigned char c)
 		opts.stopbits = stopbits_next(opts.stopbits);
 		term_set_stopbits(tty_fd, opts.stopbits);
 		tty_q.len = 0; term_flush(tty_fd);
-		term_apply(tty_fd);
+		term_apply(tty_fd, 1);
 		newstopbits = term_get_stopbits(tty_fd);
 		if (opts.stopbits != newstopbits ) {
 			fd_printf(STO, "\r\n*** stopbits: %d (%d) ***\r\n",
@@ -1519,7 +1519,7 @@ main(int argc, char *argv[])
 	if ( r < 0 )
 		fatal("failed to add device %s: %s", 
 			  opts.port, term_strerror(term_errno, errno));
-	r = term_apply(tty_fd);
+	r = term_apply(tty_fd, 0);
 	if ( r < 0 )
 		fatal("failed to config device %s: %s", 
 			  opts.port, term_strerror(term_errno, errno));
@@ -1531,7 +1531,7 @@ main(int argc, char *argv[])
 		fatal("failed to add I/O device: %s", 
 			  term_strerror(term_errno, errno));
 	term_set_raw(STI);
-	r = term_apply(STI);
+	r = term_apply(STI, 0);
 	if ( r < 0 )
 		fatal("failed to set I/O device to raw mode: %s",
 			  term_strerror(term_errno, errno));

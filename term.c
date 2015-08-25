@@ -354,7 +354,7 @@ term_exitfunc (void)
 				continue;
 			tcflush(term.fd[i], TCIOFLUSH);
 			do {
-				r = tcsetattr(term.fd[i], TCSAFLUSH, &term.origtermios[i]);
+				r = tcsetattr(term.fd[i], TCSANOW, &term.origtermios[i]);
 			} while ( r < 0 && errno == EINTR );
 			if ( r < 0 ) {
 				char *tname;
@@ -386,7 +386,7 @@ term_lib_init (void)
 					continue;
 				tcflush(term.fd[i], TCIOFLUSH);
 				do {
-					r = tcsetattr(term.fd[i], TCSAFLUSH, &term.origtermios[i]);
+					r = tcsetattr(term.fd[i], TCSANOW, &term.origtermios[i]);
 				} while ( r < 0 && errno == EINTR );
 				if ( r < 0 ) {
 					char *tname;
@@ -482,7 +482,7 @@ term_remove(int fd)
 				rval = -1;
 				break;
 			}
-			r = tcsetattr(term.fd[i], TCSAFLUSH, &term.origtermios[i]);
+			r = tcsetattr(term.fd[i], TCSANOW, &term.origtermios[i]);
 			if ( r < 0 ) {
 				term_errno = TERM_ESETATTR;
 				rval = -1;
@@ -535,7 +535,7 @@ term_replace (int oldfd, int newfd)
 			break;
 		}
 
-		r = tcsetattr(newfd, TCSAFLUSH, &term.currtermios[i]);
+		r = tcsetattr(newfd, TCSANOW, &term.currtermios[i]);
 		if ( r < 0 ) {
 			term_errno = TERM_ESETATTR;
 			rval = -1;
@@ -578,7 +578,7 @@ term_reset (int fd)
 			rval = -1;
 			break;
 		}
-		r = tcsetattr(term.fd[i], TCSAFLUSH, &term.origtermios[i]);
+		r = tcsetattr(term.fd[i], TCSANOW, &term.origtermios[i]);
 		if ( r < 0 ) {
 			term_errno = TERM_ESETATTR;
 			rval = -1;
@@ -653,9 +653,11 @@ term_refresh (int fd)
 /***************************************************************************/
 
 int
-term_apply (int fd)
+term_apply (int fd, int now)
 {
-	int rval, r, i;
+	int when, rval, r, i;
+
+	when = now ? TCSANOW : TCSAFLUSH;
 
 	rval = 0;
 
@@ -667,7 +669,7 @@ term_apply (int fd)
 			break;
 		}
 		
-		r = tcsetattr(term.fd[i], TCSAFLUSH, &term.nexttermios[i]);
+		r = tcsetattr(term.fd[i], when, &term.nexttermios[i]);
 		if ( r < 0 ) {
 			term_errno = TERM_ESETATTR;
 			rval = -1;
