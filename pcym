@@ -1,4 +1,4 @@
 #!/bin/sh
 exec picocom \
-    --send-cmd="sb -vv" \
-    --receive-cmd="rb -vvv" "$@"
+    --send-cmd="sb -b -vv" \
+    --receive-cmd="rb -b -E -vv" "$@"
