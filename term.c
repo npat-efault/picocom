@@ -80,6 +80,7 @@ static const char * const term_err_str[] = {
 	[TERM_EFLOW]      = "Invalid flowcontrol mode",
     [TERM_EDTRDOWN]   = "Cannot lower DTR",
     [TERM_EDTRUP]     = "Cannot raise DTR",
+	[TERM_EMCTL]      = "Cannot get mctl status",
 	[TERM_EDRAIN]     = "Cannot drain the device",
 	[TERM_EBREAK]     = "Cannot send break sequence"
 };
@@ -117,6 +118,7 @@ term_strerror (int terrnum, int errnum)
 	case TERM_EFLOW:
 	case TERM_EDTRDOWN:
 	case TERM_EDTRUP:
+	case TERM_EMCTL:
 		snprintf(term_err_buff, sizeof(term_err_buff),
 				 "%s", term_err_str[terrnum]);
 		rval = term_err_buff;
@@ -1418,6 +1420,44 @@ term_lower_dtr(int fd)
 }
 
 /***************************************************************************/
+
+int
+term_get_mctl (int fd)
+{
+	int mctl, i;
+
+	do { /* dummy */
+
+		i = term_find(fd);
+		if ( i < 0 ) { 
+			mctl = -1;
+			break;
+		}
+
+#ifdef __linux__
+		{ 
+			int r, pmctl;
+			
+			r = ioctl(fd, TIOCMGET, &pmctl);
+			if (r < 0) {
+				mctl = -1;
+				break;
+			}
+			mctl = 0;
+			if (pmctl & TIOCM_DTR) mctl |= MCTL_DTR;
+			if (pmctl & TIOCM_DSR) mctl |= MCTL_DSR;
+			if (pmctl & TIOCM_CD) mctl |= MCTL_DCD;
+			if (pmctl & TIOCM_RTS) mctl |= MCTL_RTS;
+			if (pmctl & TIOCM_CTS) mctl |= MCTL_CTS;
+			if (pmctl & TIOCM_RI) mctl |= MCTL_RI;
+		}
+#else
+		mctl = MCTL_UNAVAIL;
+#endif
+	} while(0);
+
+	return mctl;
+}
 
 int
 term_drain(int fd)

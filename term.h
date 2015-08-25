@@ -60,6 +60,7 @@
  * F term_pulse_dtr - pulse the DTR line a device
  * F term_lower_dtr - lower the DTR line of a device
  * F term_raise_dtr - raise the DTR line of a device
+ * F term_get_mctl - Get modem control signals status
  * F term_drain - drain the output from the terminal buffer
  * F term_flush - discard terminal input and output queue contents
  * F term_break - generate a break condition on a device
@@ -139,6 +140,7 @@ enum term_errno_e {
 	TERM_EFLOW,
 	TERM_EDTRDOWN,
 	TERM_EDTRUP,
+	TERM_EMCTL,
 	TERM_EDRAIN,     /* see errno */
 	TERM_EBREAK
 };
@@ -177,6 +179,20 @@ enum flowcntrl_e {
 	FC_XONXOFF,
 	FC_OTHER
 };
+
+/* 
+ * C MCTL_xxx 
+ *
+ * Modem control line bits. Used against the return value of
+ * term_get_mctl().
+ */
+#define MCTL_DTR     (1<<1)  /* O: Data Terminal Ready */
+#define MCTL_DSR     (1<<2)  /* I: Data Set Ready */
+#define MCTL_DCD     (1<<3)  /* I: Data Carrier Detect */
+#define MCTL_RTS     (1<<4)  /* O: Request To Send */
+#define MCTL_CTS     (1<<5)  /* I: Clear To Send */
+#define MCTL_RI      (1<<6)  /* I: Ring Indicator */
+#define MCTL_UNAVAIL (1<<0)  /* MCTL lines (status) not available */
 
 /***************************************************************************/
 
@@ -588,6 +604,17 @@ int term_lower_dtr (int fd);
  * Returns negative on failure, non negative on success.
  */
 int term_raise_dtr (int fd);
+
+/* F term_get_mctl
+ *
+ * Get the status of the modem control lines of the serial port
+ * (terminal) associated with the managed filedes "fd".
+ *
+ * On error (fd is not managed) return a negative. If the feature is
+ * not available returns MCTL_UNAVAIL. Otherwise returns a word that
+ * can be checked against the MCTL_* flags.
+ */
+int term_get_mctl (int fd);
 
 /* F term_drain 
  *
