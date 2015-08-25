@@ -10,7 +10,7 @@ LDFLAGS = -g
 LDLIBS =
 
 ## Increase this to use larger input (e.g. copy-paste) buffer
-TTY_Q_SZ = 1024
+TTY_Q_SZ = 32768
 CPPFLAGS += -DTTY_Q_SZ=$(TTY_Q_SZ)
 
 ## Comment this out to disable high-baudrate support
