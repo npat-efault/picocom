@@ -80,6 +80,18 @@ Makefile, to recompile say:
   make
 ```
 
+If your system's default make(1) command is not GNU Make (or
+compatible enough), find out how you can run GNU Make on your
+system. For example:
+
+```
+  gmake clean
+  gmake
+```
+
+Alternatively, you might have to make some trivial edits to the
+Makefile for it to work with your system's make(1) command.
+
 ## Using picocom
 
 If your computer is a PC and has the standard on-board RS-233 ports
