@@ -1,13 +1,16 @@
 
-VERSION=2.1a
+VERSION = 2.1a
 
 #CC = gcc
-CPPFLAGS=-DVERSION_STR=\"$(VERSION)\"
+CPPFLAGS = -DVERSION_STR=\"$(VERSION)\"
 CFLAGS = -Wall -g
 
-#LD = gcc
+LD = $(CC)
 LDFLAGS = -g
 LDLIBS =
+
+all: picocom
+OBJS =
 
 ## Increase this to use larger input (e.g. copy-paste) buffer
 TTY_Q_SZ = 32768
@@ -30,35 +33,36 @@ CPPFLAGS += -DUSE_FLOCK
 HISTFILE = .picocom_history
 CPPFLAGS += -DHISTFILE=\"$(HISTFILE)\" \
 	    -DLINENOISE
-picocom : linenoise-1.0/linenoise.o
+OBJS += linenoise-1.0/linenoise.o
 linenoise-1.0/linenoise.o : linenoise-1.0/linenoise.c linenoise-1.0/linenoise.h
 
 ## Comment these IN to enable custom baudrate support.
 ## Currently works *only* with Linux (kernels > 2.6).
 #CPPFLAGS += -DUSE_CUSTOM_BAUD
-#picocom : termios2.o
+#OBJS += termios2.o
 #termios2.o : termios2.c termios2.h termbits2.h
 
 ## Comment this IN to remove help strings (saves ~ 4-6 Kb).
 #CPPFLAGS += -DNO_HELP
 
 
-picocom : picocom.o term.o fdio.o split.o
-#	$(LD) $(LDFLAGS) -o $@ $+ $(LDLIBS)
+OBJS += picocom.o term.o fdio.o split.o
+picocom : $(OBJS)
+	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
 
 picocom.o : picocom.c term.h
 term.o : term.c term.h
 split.o : split.c split.h
 fdio.o : fdio.c fdio.h
 
+.c.o :
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ -c $<
+
 
 doc : picocom.1.html picocom.1 picocom.1.pdf
 
-changes :
-	svn log -v . > CHANGES
-
 picocom.1 : picocom.1.md
-	sed 's/\*\*\[/\*\*/g;s/\]\*\*/\*\*/g' $< \
+	sed 's/\*\*\[/\*\*/g;s/\]\*\*/\*\*/g' $? \
 	| pandoc -s -t man \
             -Vfooter="Picocom $(VERSION)" -Vdate="`date -I`" \
 	    -o $@
@@ -67,14 +71,15 @@ picocom.1.html : picocom.1.md
 	pandoc -s -t html \
 	    -c css/normalize-noforms.css -c css/manpage.css \
             --self-contained \
-	    -o $@ $<
+	    -o $@ $?
 
 picocom.1.pdf : picocom.1
-	groff -man -Tpdf $< > $@
+	groff -man -Tpdf $? > $@
 
 
 clean:
-	rm -f picocom.o term.o fdio.o split.o linenoise-1.0/linenoise.o
+	rm -f picocom.o term.o fdio.o split.o
+	rm -f linenoise-1.0/linenoise.o
 	rm -f termios2.o
 	rm -f *~
 	rm -f \#*\#
