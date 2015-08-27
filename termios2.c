@@ -56,13 +56,13 @@ tc2setattr(int fd, int optional_actions, const struct termios *tios)
 
 	switch (optional_actions) {
 	case TCSANOW:
-		cmd = TCSETS2;
+		cmd = IOCTL_SETS;
 		break;
 	case TCSADRAIN:
-		cmd = TCSETSW2;
+		cmd = IOCTL_SETSW;
 		break;
 	case TCSAFLUSH:
-		cmd = TCSETSF2;
+		cmd = IOCTL_SETSF;
 		break;
 	default:
 		errno = EINVAL;
@@ -88,7 +88,7 @@ tc2getattr(int fd, struct termios *tios)
 	size_t i;
 	int r;
 
-	r = ioctl(fd, TCGETS2, &t2);
+	r = ioctl(fd, IOCTL_GETS, &t2);
 	if (r < 0) return r;
 
 	tios->c_iflag = t2.c_iflag;

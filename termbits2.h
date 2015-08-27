@@ -71,9 +71,34 @@
   the kernel header file in here, recompile, test, and send me a
   patch. */
 
-#if defined (__powerpc__) || defined (__alpha__)
+#if defined (__alpha__)
 
-#error "Architecure has no termios2"
+#error "Architecure has no termios2 support"
+
+
+#elif defined (__powerpc__) || defined (__powerpc64__)
+
+#define K_NCCS 19
+/* The "old" termios is the same with termios2 for powerpc's */
+struct termios2 {
+        tcflag_t c_iflag;               /* input mode flags */
+        tcflag_t c_oflag;               /* output mode flags */
+        tcflag_t c_cflag;               /* control mode flags */
+        tcflag_t c_lflag;               /* local mode flags */
+        cc_t c_cc[K_NCCS];              /* control characters */
+        cc_t c_line;                    /* line discipline */
+        speed_t c_ispeed;               /* input speed */
+        speed_t c_ospeed;               /* output speed */
+};
+
+#define BOTHER 00037
+#define IBSHIFT 16
+
+/* Use "old" ioctls for powerpc's as there are no TC*2 ones */
+#define IOCTL_SETS TCSETS
+#define IOCTL_SETSW TCSETSW
+#define IOCTL_SETSF TCSETSF
+#define IOCTL_GETS TCGETS
 
 
 #elif defined (__mips__)
@@ -93,6 +118,11 @@ struct termios2 {
 #define BOTHER  CBAUDEX
 #define IBSHIFT 16
 
+#define IOCTL_SETS TCSETS2
+#define IOCTL_SETSW TCSETSW2
+#define IOCTL_SETSF TCSETSF2
+#define IOCTL_GETS TCGETS2
+
 
 #else /* All others */
 
@@ -110,6 +140,11 @@ struct termios2 {
 
 #define BOTHER CBAUDEX
 #define IBSHIFT 16
+
+#define IOCTL_SETS TCSETS2
+#define IOCTL_SETSW TCSETSW2
+#define IOCTL_SETSF TCSETSF2
+#define IOCTL_GETS TCGETS2
 
 #endif /* of architectures */
 
