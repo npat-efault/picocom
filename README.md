@@ -208,8 +208,8 @@ What if you *don't* want to give users shell-access to termbox? Then
 you can use picocom in a setup like the one described below. Just
 remember, there are countless variations to this theme, the one below
 is just one of them. Also, keep in mind that some of the commands
-shown below may have small differences from system to system; more so
-if you go from Linux to other Unix-like systems.
+shown may have small differences from system to system; more so if you
+go from Linux to other Unix-like systems.
 
 Login to termbox and create a user called _termbox_:
 
@@ -233,10 +233,11 @@ globally installed):
 	$ cp /path/to/picocom ./bin
 
 For every serial port you want to provide access to, create a file
-named after the port in `~termbox/bin` which looks like this:
+named after the port and put it in `~termbox/bin`. It should look like
+this:
 
 	$ cat ./bin/ttyS0
-	\#!/bin/sh
+	#!/bin/sh
 	exec /home/termbox/bin/picocom \
 	  --send-cmd '' \
 	  --receive-cmd '' \
@@ -272,7 +273,7 @@ the account. The `-d` option instructs useradd to use `/home/termbox`
 as the user's home directory, and the `-M` switch instructs it *not*
 to create the home-directory. We don't really need a home directory
 for the _ttyS0_ account, since picocom will not read or write any
-files, but we provide one, regardless, because *some* systems need a
+files; but we provide one, regardless, because *some* systems need a
 valid home-directory to cd-into on login (else they choke). We could
 as well have used `/` as the home directory, or we could have let
 useradd create the usual `/home/ttyS0`.
@@ -286,8 +287,8 @@ Then set a password for the newly created account:
 Repeat (create user account, set password) for every port you want to
 give access to.
 
-You 're set. All a user has to do to remotelly access the console on
-termbox's `/dev/ttyS0` port, is:
+You 're set. All a user has to do to remotelly access the console
+connected to termbox's `/dev/ttyS0` port, is:
 
 	ssh ttyS0@termbox
 
@@ -302,16 +303,16 @@ Some interesting points:
   time, picocom won't let him (picocom will find the port locked and
   exit).
 
-- In the example `~termbox/bin/ttySx` scripts we have completelly
+- In the example `~termbox/bin/ttySx` scripts we have completely
   disabled the send- and receive-file picocom commands. This
   guarantees that picocom won't execute any external commands. If you
-  want, you can enable the commands by providing specific
-  file-download file-upload programs as the arguments to `--send-cmd`
-  and `--receive-cmd` picocom command-line options (provided,
-  of-course, that you trust these programs). Picocom does not use
-  `/bin/sh` to execute the file-download and file-upload programs and
-  *will not* let the user inject shell-commands when supplying
-  aditional arguments to them.
+  want, you can enable the commands by providing specific file-upload
+  and file-download programs as the arguments to the `--send-cmd` and
+  `--receive-cmd` picocom command-line options (provided, of-course,
+  that you trust these programs). Picocom (starting with release 2.0)
+  does not use `/bin/sh` to execute the file-upload and file-download
+  programs and *will not* let the user inject shell-commands when
+  supplying aditional arguments to them.
 
 - If you allow send- and receive-file operations as described above,
   you will, most likely, also need a way for your users to put files
