@@ -185,7 +185,7 @@ Picocom accepts the following command-line options.
 :   Defines the number of stop bits in every character. Must be one
     of: **1**, or **2**. (Default: **1**)
     
-**--esacpe** | **-e**
+**--escape** | **-e**
 
 :   Defines the character that will make picocom enter command-mode
     (see description above). If **x** is given, then **C-x** will make
