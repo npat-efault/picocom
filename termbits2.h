@@ -94,11 +94,13 @@ struct termios2 {
 #define BOTHER 00037
 #define IBSHIFT 16
 
-/* Use "old" ioctls for powerpc's as there are no TC*2 ones */
-#define IOCTL_SETS TCSETS
-#define IOCTL_SETSW TCSETSW
-#define IOCTL_SETSF TCSETSF
-#define IOCTL_GETS TCGETS
+/* powerpc ioctl numbers have the argument-size encoded. Make sure we
+   use the correct structure (i.e. kernel termios, not LIBC termios)
+   when calculating them. */
+#define IOCTL_SETS  _IOW('t', 20, struct termios2)
+#define IOCTL_SETSW _IOW('t', 21, struct termios2)
+#define IOCTL_SETSF _IOW('t', 22, struct termios2)
+#define IOCTL_GETS  _IOR('t', 19, struct termios2)
 
 
 #elif defined (__mips__)
