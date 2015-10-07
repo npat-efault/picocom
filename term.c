@@ -34,6 +34,14 @@
 #include <errno.h>
 #include <unistd.h>
 #include <termios.h>
+
+/* glibc for MIPS has its own bits/termios.h which does not define
+ * CMSPAR, so we use the value from the generic bits/termios.h
+ */
+#ifndef CMSPAR
+#define CMSPAR 010000000000
+#endif
+
 #ifdef __linux__
 #include <sys/ioctl.h>
 #endif
