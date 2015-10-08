@@ -38,8 +38,10 @@
 /* glibc for MIPS has its own bits/termios.h which does not define
  * CMSPAR, so we use the value from the generic bits/termios.h
  */
+#ifdef __linux__
 #ifndef CMSPAR
 #define CMSPAR 010000000000
+#endif
 #endif
 
 #ifdef __linux__
