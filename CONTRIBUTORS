@@ -44,3 +44,6 @@ comments:
   rceive-file commands, and for not using the shell when executing
   external programs (to avoid shell escapes). See:
   https://github.com/paulchakravarti/picocom-noexec
+
+- Vicente Olivert Riera (Vincent.Riera@imgtec.com) contribiuted minor
+  patches
