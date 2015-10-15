@@ -44,6 +44,14 @@
 #endif
 #endif
 
+/* Some BSDs (and possibly other systems too) have no mark / space
+ * parity support, and they don't define CMSPAR. Use a zero CMSPAR in
+ * these cases. If the user tries to set P_MARK or P_SPACE he will get
+ * P_EVEN or P_ODD instead. */
+#ifndef CMSPAR
+#define CMSPAR 0
+#endif
+
 #ifdef __linux__
 #include <sys/ioctl.h>
 #endif
