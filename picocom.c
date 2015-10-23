@@ -226,6 +226,8 @@ struct tty_q {
 	unsigned char buff[TTY_Q_SZ];
 } tty_q;
 
+#define TTY_RD_SZ 128
+
 int tty_write_sz;
 
 #define TTY_WRITE_SZ_DIV 10
@@ -1140,10 +1142,13 @@ loop(void)
 
 		if ( FD_ISSET(tty_fd, &rdset) ) {
 
+			char buff_rd[TTY_RD_SZ];
+			char buff_map[TTY_RD_SZ * M_MAXMAP];
+
 			/* read from port */
 
 			do {
-				n = read(tty_fd, &c, 1);
+				n = read(tty_fd, &buff_rd, sizeof(buff_rd));
 			} while (n < 0 && errno == EINTR);
 			if (n == 0) {
 				fatal("term closed");
@@ -1151,7 +1156,14 @@ loop(void)
 				if ( errno != EAGAIN && errno != EWOULDBLOCK )
 					fatal("read from term failed: %s", strerror(errno));
 			} else {
-				map_and_write(STO, opts.imap, c);
+				int i;
+				char *bmp = &buff_map[0];
+				for (i = 0; i < n; i++) {
+					bmp += do_map(bmp, opts.imap, buff_rd[i]);
+				}
+				n = bmp - buff_map;
+				if ( writen_ni(STO, buff_map, n) < n )
+					fatal("write to stdout failed: %s", strerror(errno));
 			}
 		}
 
