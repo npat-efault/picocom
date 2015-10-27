@@ -47,3 +47,6 @@ comments:
 
 - Vicente Olivert Riera (Vincent.Riera@imgtec.com) contribiuted minor
   patches
+
+- Peter Bradstreet (peter.bradstreet@oracle.com) helped diagnose
+  input performance problems on overloaded / slow systems.
