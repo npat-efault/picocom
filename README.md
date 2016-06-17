@@ -31,12 +31,12 @@ For a description of picocom's operation, its command line options,
 and usage examples, see the manual page included in the source
 distribution as "picocom.1", and also html-ized as "picocom.1.html".
 
-People who have contibuted to picocom, by offering feature
+People who have contributed to picocom, by offering feature
 implementations, bug-fixes, corrections, and suggestions are listed in
 the "CONTRIBUTORS" file.
 
 Please feel free to send comments, requests for new features (no
-promisses, though!), bug-fixes and rants, to the author's email
+promises, though!), bug-fixes and rants, to the author's email
 address shown at the top of this file.
 
 ## Compilation / Installation
@@ -162,7 +162,7 @@ To exit picocom you have to type:
 
 	C-a, C-x
 
-Which means you have to type [Conttol-A] followed by [Control-X]. You
+Which means you have to type [Control-A] followed by [Control-X]. You
 can do this by pressing and holding down the [Control] key, then
 pressing (and releasing) the [A] key and then pressing (and releasing)
 the [X] key (while you still keep [Control] held down).
@@ -287,7 +287,7 @@ Then set a password for the newly created account:
 Repeat (create user account, set password) for every port you want to
 give access to.
 
-You 're set. All a user has to do to remotelly access the console
+You 're set. All a user has to do to remotely access the console
 connected to termbox's `/dev/ttyS0` port, is:
 
 	ssh ttyS0@termbox
@@ -299,7 +299,7 @@ Some interesting points:
   device connected to the port, the user can easily change them from
   within picocom, using picocom commands.
 
-- If a seocnd user tries to remotely access the same port, at the same
+- If a second user tries to remotely access the same port, at the same
   time, picocom won't let him (picocom will find the port locked and
   exit).
 
@@ -312,7 +312,7 @@ Some interesting points:
   that you trust these programs). Picocom (starting with release 2.0)
   does not use `/bin/sh` to execute the file-upload and file-download
   programs and *will not* let the user inject shell-commands when
-  supplying aditional arguments to them.
+  supplying additional arguments to them.
 
 - If you allow send- and receive-file operations as described above,
   you will, most likely, also need a way for your users to put files
