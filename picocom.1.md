@@ -404,7 +404,7 @@ Download the latest release from:
 
 # COPYRIGHT
 
-Copyright (c) 2004-2015 Nick Patavalis
+Copyright (c) 2004-2016 Nick Patavalis
 
 This file is part of Picocom.
 

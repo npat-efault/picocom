@@ -1,5 +1,5 @@
 
-VERSION = 2.2a
+VERSION = 2.2
 
 #CC = gcc
 CPPFLAGS = -DVERSION_STR=\"$(VERSION)\"
@@ -69,7 +69,8 @@ picocom.1 : picocom.1.md
 
 picocom.1.html : picocom.1.md
 	pandoc -s -t html \
-	    -c css/normalize-noforms.css -c css/manpage.css \
+	    -c ~/.pandoc/css/normalize-noforms.css \
+            -c ~/.pandoc/css/manpage.css \
             --self-contained \
 	    -o $@ $?
 
