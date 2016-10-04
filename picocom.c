@@ -1256,7 +1256,7 @@ show_usage(char *name)
 	printf("\nUsage is: %s [options] <tty device>\n", s);
 	printf("Options are:\n");
 	printf("  --<b>aud <baudrate>\n");
-	printf("  --<f>low s (=soft) | h (=hard) | n (=none)\n");
+	printf("  --<f>low x (=soft,xon/xoff) | h (=hard) | n (=none)\n");
 	printf("  --parit<y> o (=odd) | e (=even) | n (=none)\n");
 	printf("  --<d>atabits 5 | 6 | 7 | 8\n");
 	printf("  --sto<p>bits 1 | 2\n");
