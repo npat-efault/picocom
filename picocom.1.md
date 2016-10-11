@@ -378,7 +378,7 @@ is a comma-separated list of one or more of the following identifiers:
 
 For example the command:
 
-    picocom --omap crlf,delbs --imap inglf,bsdel --emap crcrlf ...
+    picocom --omap crlf,delbs --imap ignlf,bsdel --emap crcrlf ...
 
 will: 
 
