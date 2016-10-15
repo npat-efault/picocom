@@ -84,7 +84,8 @@ const char *flow_str[] = {
 #define KEY_EXIT    CKEY('x') /* exit picocom */
 #define KEY_QUIT    CKEY('q') /* exit picocom without reseting port */
 #define KEY_PULSE   CKEY('p') /* pulse DTR */
-#define KEY_TOGGLE  CKEY('t') /* toggle DTR */
+#define KEY_TOG_DTR CKEY('t') /* toggle DTR */
+#define KEY_TOG_RTS CKEY('g') /* toggle RTS */
 #define KEY_BAUD    CKEY('b') /* set baudrate */
 #define KEY_BAUD_UP CKEY('u') /* increase baudrate (up) */
 #define KEY_BAUD_DN CKEY('d') /* decrase baudrate (down) */ 
@@ -669,7 +670,7 @@ stopbits_next (int bits)
 }
 
 void
-show_status (int dtr_up) 
+show_status (int dtr_up, int rts_up) 
 {
 	int baud, bits, stopbits, mctl;
 	enum flowcntrl_e flow;
@@ -715,12 +716,18 @@ show_status (int dtr_up)
 
 	mctl = term_get_mctl(tty_fd);
 	if (mctl >= 0 && mctl != MCTL_UNAVAIL) {
-		if ( ((mctl & MCTL_DTR) ? 1 : 0) == dtr_up )  
+		if ( ((mctl & MCTL_DTR) ? 1 : 0) == dtr_up )
 			fd_printf(STO, "*** dtr: %s\r\n", dtr_up ? "up" : "down");
 		else
 			fd_printf(STO, "*** dtr: %s (%s)\r\n", 
 					  dtr_up ? "up" : "down",
 					  (mctl & MCTL_DTR) ? "up" : "down");
+		if ( ((mctl & MCTL_RTS) ? 1 : 0) == rts_up )
+			fd_printf(STO, "*** rts: %s\r\n", rts_up ? "up" : "down");
+		else
+			fd_printf(STO, "*** rts: %s (%s)\r\n", 
+					  rts_up ? "up" : "down",
+					  (mctl & MCTL_RTS) ? "up" : "down");
 		fd_printf(STO, "*** mctl: ");
 		fd_printf(STO, "DTR:%c DSR:%c DCD:%c RTS:%c CTS:%c RI:%c\r\n",
 				  (mctl & MCTL_DTR) ? '1' : '0',
@@ -731,6 +738,7 @@ show_status (int dtr_up)
 				  (mctl & MCTL_RI) ? '1' : '0');
 	} else {
 		fd_printf(STO, "*** dtr: %s\r\n", dtr_up ? "up" : "down");
+		fd_printf(STO, "*** rts: %s\r\n", rts_up ? "up" : "down");
 	}
 }
 
@@ -763,7 +771,9 @@ show_keys()
 	fd_printf(STO, "*** [C-%c] : Pulse DTR\r\n",
 			  KEYC(KEY_PULSE));
 	fd_printf(STO, "*** [C-%c] : Toggle DTR\r\n",
-			  KEYC(KEY_TOGGLE));
+			  KEYC(KEY_TOG_DTR));
+	fd_printf(STO, "*** [C-%c] : Toggle RTS\r\n",
+			  KEYC(KEY_TOG_RTS));
 	fd_printf(STO, "*** [C-%c] : Send break\r\n",
 			  KEYC(KEY_BREAK));
 	fd_printf(STO, "*** [C-%c] : Toggle local echo\r\n",
@@ -900,6 +910,7 @@ int
 do_command (unsigned char c)
 {
 	static int dtr_up = 0;
+	static int rts_up = 0;
 	int newbaud, newflow, newparity, newbits, newstopbits;
 	const char *xfr_cmd;
 	char *fname;
@@ -915,7 +926,7 @@ do_command (unsigned char c)
 		term_erase(tty_fd);
 		return 1;
 	case KEY_STATUS:
-		show_status(dtr_up);
+		show_status(dtr_up, rts_up);
 		break;
 	case KEY_HELP:
 	case KEY_KEYS:
@@ -926,7 +937,7 @@ do_command (unsigned char c)
 		if ( term_pulse_dtr(tty_fd) < 0 )
 			fd_printf(STO, "*** FAILED\r\n");
 		break;
-	case KEY_TOGGLE:
+	case KEY_TOG_DTR:
 		if ( dtr_up )
 			r = term_lower_dtr(tty_fd);
 		else
@@ -934,6 +945,15 @@ do_command (unsigned char c)
 		if ( r >= 0 ) dtr_up = ! dtr_up;
 		fd_printf(STO, "\r\n*** DTR: %s ***\r\n", 
 				  dtr_up ? "up" : "down");
+		break;
+	case KEY_TOG_RTS:
+		if ( rts_up )
+			r = term_lower_rts(tty_fd);
+		else
+			r = term_raise_rts(tty_fd);
+		if ( r >= 0 ) rts_up = ! rts_up;
+		fd_printf(STO, "\r\n*** RTS: %s ***\r\n", 
+				  rts_up ? "up" : "down");
 		break;
 	case KEY_BAUD:
 	case KEY_BAUD_UP:
