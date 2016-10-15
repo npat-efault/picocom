@@ -60,6 +60,8 @@
  * F term_pulse_dtr - pulse the DTR line a device
  * F term_lower_dtr - lower the DTR line of a device
  * F term_raise_dtr - raise the DTR line of a device
+ * F term_lower_rts - lower the RTS line of a device
+ * F term_raise_rts - raise the RTS line of a device
  * F term_get_mctl - Get modem control signals status
  * F term_drain - drain the output from the terminal buffer
  * F term_flush - discard terminal input and output queue contents
@@ -142,7 +144,9 @@ enum term_errno_e {
 	TERM_EDTRUP,
 	TERM_EMCTL,
 	TERM_EDRAIN,     /* see errno */
-	TERM_EBREAK
+	TERM_EBREAK,
+	TERM_ERTSDOWN,
+	TERM_ERTSUP
 };
 
 /* E parity_e
@@ -604,6 +608,24 @@ int term_lower_dtr (int fd);
  * Returns negative on failure, non negative on success.
  */
 int term_raise_dtr (int fd);
+
+/* F term_lower_rts
+ *
+ * Lowers the RTS line of the device associated with the managed
+ * filedes "fd".
+ *
+ * Returns negative on failure, non negative on success.
+ */
+int term_lower_rts (int fd);
+
+/* F term_raise_rts
+ *
+ * Raises the RTS line of the device associated with the managed
+ * filedes "fd".
+ *
+ * Returns negative on failure, non negative on success.
+ */
+int term_raise_rts (int fd);
 
 /* F term_get_mctl
  *

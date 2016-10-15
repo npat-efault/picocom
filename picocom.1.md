@@ -64,7 +64,7 @@ here.
 
 :   Quit the program _without_ reseting the serial port, regardless of
     the **--noreset** option.
-	
+
 **C-p**
 
 :   Pulse the DTR line. Lower it for 1 sec, and then raise it again.
@@ -73,6 +73,11 @@ here.
 
 :   Toggle the DTR line. If DTR is up, then lower it. If it is down,
     then raise it.
+
+**C-g**
+
+:   Toggle the RTS line. If RTS is up, then lower it. If it is down,
+    then raise it. Not supported if the flow control mode is RTS/CTS.
 
 **C-backslash**
 
@@ -83,7 +88,7 @@ here.
 
 **C-b**
 
-:   Set baurdate. Prompts you to enter a baudrate numerically (in bps)
+:   Set baudrate. Prompts you to enter a baudrate numerically (in bps)
     and configures the serial port accordingly.
 
 **C-u**

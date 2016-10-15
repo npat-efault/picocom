@@ -100,7 +100,9 @@ static const char * const term_err_str[] = {
     [TERM_EDTRUP]     = "Cannot raise DTR",
 	[TERM_EMCTL]      = "Cannot get mctl status",
 	[TERM_EDRAIN]     = "Cannot drain the device",
-	[TERM_EBREAK]     = "Cannot send break sequence"
+	[TERM_EBREAK]     = "Cannot send break sequence",
+	[TERM_ERTSDOWN]   = "Cannot lower RTS",
+	[TERM_ERTSUP]     = "Cannot raise RTS"
 };
 
 static char term_err_buff[1024];
@@ -137,6 +139,8 @@ term_strerror (int terrnum, int errnum)
 	case TERM_EDTRDOWN:
 	case TERM_EDTRUP:
 	case TERM_EMCTL:
+	case TERM_ERTSDOWN:
+	case TERM_ERTSUP:
 		snprintf(term_err_buff, sizeof(term_err_buff),
 				 "%s", term_err_str[terrnum]);
 		rval = term_err_buff;
@@ -1436,6 +1440,105 @@ term_lower_dtr(int fd)
 	
 	return rval;
 }
+
+/***************************************************************************/
+
+int
+term_raise_rts(int fd)
+{
+	int rval, r, i;
+
+	rval = 0;
+
+	do { /* dummy */
+
+		i = term_find(fd);
+		if ( i < 0 ) {
+			rval = -1;
+			break;
+		}
+
+#ifdef __linux__
+		{
+			int opins = TIOCM_RTS;
+
+			r = ioctl(fd, TIOCMBIS, &opins);
+			if ( r < 0 ) {
+				term_errno = TERM_ERTSUP;
+				rval = -1;
+				break;
+			}
+		}
+#else
+		r = tcsetattr(fd, TCSANOW, &term.currtermios[i]);
+		if ( r < 0 ) {
+			/* FIXME: perhaps try to update currtermios */
+			term_errno = TERM_ESETATTR;
+			rval = -1;
+			break;
+		}
+#endif /* of __linux__ */
+	} while (0);
+
+	return rval;
+}
+
+/***************************************************************************/
+
+int
+term_lower_rts(int fd)
+{
+	int rval, r, i;
+
+	rval = 0;
+
+	do { /* dummy */
+
+		i = term_find(fd);
+		if ( i < 0 ) { 
+			rval = -1;
+			break;
+		}
+
+#ifdef __linux__
+		{
+			int opins = TIOCM_RTS;
+
+			r = ioctl(fd, TIOCMBIC, &opins);
+			if ( r < 0 ) {
+				term_errno = TERM_ERTSDOWN;
+				rval = -1;
+				break;
+			}
+		}
+#else
+		{
+			struct termios tio;
+
+			r = tcgetattr(fd, &tio);
+			if ( r < 0 ) {
+				term_errno = TERM_EGETATTR;
+				rval = -1;
+				break;
+			}
+			term.currtermios[i] = tio;
+			
+			cfsetospeed(&tio, B0);
+			cfsetispeed(&tio, B0);
+			
+			r = tcsetattr(fd, TCSANOW, &tio);
+			if ( r < 0 ) {
+				term_errno = TERM_ESETATTR;
+				rval = -1;
+				break;
+			}
+		}
+#endif /* of __linux__ */
+	} while (0);
+	
+	return rval;
+}
+
 
 /***************************************************************************/
 
