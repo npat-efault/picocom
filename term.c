@@ -1446,7 +1446,7 @@ term_lower_dtr(int fd)
 int
 term_raise_rts(int fd)
 {
-	int rval, r, i;
+	int rval, i;
 
 	rval = 0;
 
@@ -1460,6 +1460,7 @@ term_raise_rts(int fd)
 
 #ifdef __linux__
 		{
+			int r;
 			int opins = TIOCM_RTS;
 
 			r = ioctl(fd, TIOCMBIS, &opins);
@@ -1470,13 +1471,8 @@ term_raise_rts(int fd)
 			}
 		}
 #else
-		r = tcsetattr(fd, TCSANOW, &term.currtermios[i]);
-		if ( r < 0 ) {
-			/* FIXME: perhaps try to update currtermios */
-			term_errno = TERM_ESETATTR;
-			rval = -1;
-			break;
-		}
+		term_errno = TERM_ERTSUP;
+		rval = -1;
 #endif /* of __linux__ */
 	} while (0);
 
@@ -1488,7 +1484,7 @@ term_raise_rts(int fd)
 int
 term_lower_rts(int fd)
 {
-	int rval, r, i;
+	int rval, i;
 
 	rval = 0;
 
@@ -1502,6 +1498,7 @@ term_lower_rts(int fd)
 
 #ifdef __linux__
 		{
+			int r;
 			int opins = TIOCM_RTS;
 
 			r = ioctl(fd, TIOCMBIC, &opins);
@@ -1512,27 +1509,8 @@ term_lower_rts(int fd)
 			}
 		}
 #else
-		{
-			struct termios tio;
-
-			r = tcgetattr(fd, &tio);
-			if ( r < 0 ) {
-				term_errno = TERM_EGETATTR;
-				rval = -1;
-				break;
-			}
-			term.currtermios[i] = tio;
-			
-			cfsetospeed(&tio, B0);
-			cfsetispeed(&tio, B0);
-			
-			r = tcsetattr(fd, TCSANOW, &tio);
-			if ( r < 0 ) {
-				term_errno = TERM_ESETATTR;
-				rval = -1;
-				break;
-			}
-		}
+		term_errno = TERM_ERTSDOWN;
+		rval = -1;
 #endif /* of __linux__ */
 	} while (0);
 	

@@ -62,7 +62,7 @@ here.
 
 **C-q**
 
-:   Quit the program _without_ reseting the serial port, regardless of
+:   Quit the program _without_ resetting the serial port, regardless of
     the **--noreset** option.
 
 **C-p**
@@ -78,6 +78,7 @@ here.
 
 :   Toggle the RTS line. If RTS is up, then lower it. If it is down,
     then raise it. Not supported if the flow control mode is RTS/CTS.
+    Only supported in Linux.
 
 **C-backslash**
 
@@ -300,7 +301,7 @@ the same, only a single value is shown. Example:
 
     *** baud: 9600
 
-This behavioir was intriduced in picocom 2.0. Older releases displayed
+This behavior was introduced in picocom 2.0. Older releases displayed
 only the option values, not the actual serial-port settings
 corresponding to them.
 
@@ -321,7 +322,7 @@ programs for this purpose are:
     
 The name of, and the command-line options to, the program to be used
 for transmitting files are given by the **--send-cmd**
-option. Similarly the program to receive files, and its argumets, are
+option. Similarly the program to receive files, and its arguments, are
 given by the **--receive-cmd** option. For example, in order to start
 a picocom session that uses **sz(1)** to transmit files, and **rz(1)**
 to receive files, you have to say something like this:
@@ -348,7 +349,7 @@ with support for the linenoise library. Pressing **C-c** at this
 prompt will cancel the file transfer command and return to normal
 picocom operation. After entering a filename (and / or additional
 transmission or reception program arguments) and assuming you have not
-canceled the operation by pressing **C-c**, picocom will start the the
+canceled the operation by pressing **C-c**, picocom will start the
 external program as specified by the **--send-cmd**, or
 **--receive-cmd** option, and with any filenames and additional
 arguments you may have supplied. The standard input and output of the
@@ -365,7 +366,7 @@ the serial port.
 # INPUT, OUTPUT, AND ECHO MAPPING
 
 Using the **--imap**, **--omap**, and **--emap** options you can make
-picocom map (tranlate, replace) certain special characters after being
+picocom map (translate, replace) certain special characters after being
 read from the serial port (with **--imap**), before being written to
 the serial port (with **--omap**), and before being locally echoed to
 the terminal (standard output) if local echo is enabled (with
@@ -387,7 +388,7 @@ For example the command:
 
 will: 
 
-- Replace every CR (carriage return, 0x0d) caracter with LF (line
+- Replace every CR (carriage return, 0x0d) character with LF (line
   feed, 0x0a) and every DEL (delete, 0x7f) character with BS
   (backspace, 0x08) before writing it to the serial port.
 
