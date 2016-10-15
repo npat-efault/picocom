@@ -50,3 +50,7 @@ comments:
 
 - Peter Bradstreet (peter.bradstreet@oracle.com) helped diagnose
   input performance problems on overloaded / slow systems.
+
+- Cody Planteen (https://github.com/planteen) contributed the
+  implementation of the toggle-RTS command.
+
