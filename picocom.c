@@ -1256,7 +1256,7 @@ show_usage(char *name)
 
 	printf("\nCompiled-in options:\n");
 	printf("  TTY_Q_SZ is %d\n", TTY_Q_SZ);
-#ifdef USE_HIGH_BAUD
+#ifdef HIGH_BAUD
 	printf("  HIGH_BAUD is enabled\n");
 #endif
 #ifdef USE_FLOCK
