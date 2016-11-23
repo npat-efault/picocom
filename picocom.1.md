@@ -271,6 +271,15 @@ Picocom accepts the following command-line options.
     local-echo is enabled). See
     **[INPUT, OUTPUT, AND ECHO MAPPING]**. (Defaul: **delbs,crcrlf**)
     
+**--resetrtsafteropen**
+
+:   Special option for embedded (bare metal) development, were the RTS
+    handshake line is often to control the microcontroller's reset signal.
+    This switch forces the RTS handshake line to down (high on TTL level),
+    immediately after the port has been opened.
+    Not supported if the flow control mode is RTS/CTS.
+    Only supported in Linux and OSX.
+
 **--help** | **-h**
 
 :   Print a short help message describing the command-line

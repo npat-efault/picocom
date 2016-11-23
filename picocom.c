@@ -37,6 +37,9 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <limits.h>
+#if defined (__linux__) || defined (__APPLE__)
+#include <sys/ioctl.h>
+#endif
 #ifdef USE_FLOCK
 #include <sys/file.h>
 #endif
@@ -190,6 +193,9 @@ struct {
 	int imap;
 	int omap;
 	int emap;
+#if defined (__linux__) || defined (__APPLE__)
+	int resetrtsafteropen;
+#endif
 } opts = {
 	.port = "",
 	.baud = 9600,
@@ -209,6 +215,9 @@ struct {
 	.imap = M_I_DFL,
 	.omap = M_O_DFL,
 	.emap = M_E_DFL
+#if defined (__linux__) || defined (__APPLE__)
+	, .resetrtsafteropen = 0
+#endif
 };
 
 int sig_exit = 0;
@@ -1290,6 +1299,9 @@ show_usage(char *name)
 	printf("  --imap <map> (input mappings)\n");
 	printf("  --omap <map> (output mappings)\n");
 	printf("  --emap <map> (local-echo mappings)\n");
+#if defined (__linux__) || defined (__APPLE__)
+	printf("  --resetrtsafteropen\n");
+#endif
 	printf("  --<h>elp\n");
 	printf("<map> is a comma-separated list of one or more of:\n");
 	printf("  crlf : map CR --> LF\n");
@@ -1331,6 +1343,9 @@ parse_args(int argc, char *argv[])
 		{"parity", required_argument, 0, 'y'},
 		{"databits", required_argument, 0, 'd'},
 		{"stopbits", required_argument, 0, 'p'},
+#if defined (__linux__) || defined (__APPLE__)
+		{"resetrtsafteropen", no_argument, 0, 'R'},
+#endif
 		{"help", no_argument, 0, 'h'},
 		{0, 0, 0, 0}
 	};
@@ -1469,6 +1484,11 @@ parse_args(int argc, char *argv[])
 				break;
 			}
 			break;
+#if defined (__linux__) || defined (__APPLE__)
+		case 'R':
+			opts.resetrtsafteropen = 1;
+			break;
+#endif
 		case 'h':
 			show_usage(argv[0]);
 			exit(EXIT_SUCCESS);
@@ -1544,6 +1564,16 @@ main(int argc, char *argv[])
 	tty_fd = open(opts.port, O_RDWR | O_NONBLOCK | O_NOCTTY);
 	if (tty_fd < 0)
 		fatal("cannot open %s: %s", opts.port, strerror(errno));
+
+#if defined (__linux__) || defined (__APPLE__)
+	if (opts.resetrtsafteropen != 0) {
+		// to get rts down as fast as possible, we calling ioctl() directly instead of calling term_lower_rts()
+		int opins = TIOCM_RTS;
+		r = ioctl(tty_fd, TIOCMBIC, &opins);
+		if ( r < 0 )
+			fatal("cannot lower rts: %s", strerror(TERM_ERTSDOWN));
+	}
+#endif /* of __linux__  || __APPLE__ */
 
 #ifdef USE_FLOCK
 	if ( ! opts.nolock ) {
