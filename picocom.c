@@ -190,6 +190,8 @@ struct {
 	int imap;
 	int omap;
 	int emap;
+	int lower_rts;
+	int lower_dtr;
 } opts = {
 	.port = "",
 	.baud = 9600,
@@ -208,7 +210,9 @@ struct {
 	.receive_cmd = "rz -vv -E",
 	.imap = M_I_DFL,
 	.omap = M_O_DFL,
-	.emap = M_E_DFL
+	.emap = M_E_DFL,
+	.lower_rts = 0,
+	.lower_dtr = 0
 };
 
 int sig_exit = 0;
@@ -1290,6 +1294,8 @@ show_usage(char *name)
 	printf("  --imap <map> (input mappings)\n");
 	printf("  --omap <map> (output mappings)\n");
 	printf("  --emap <map> (local-echo mappings)\n");
+	printf("  --lower-rts\n");
+	printf("  --lower-dtr\n");
 	printf("  --<h>elp\n");
 	printf("<map> is a comma-separated list of one or more of:\n");
 	printf("  crlf : map CR --> LF\n");
@@ -1331,6 +1337,8 @@ parse_args(int argc, char *argv[])
 		{"parity", required_argument, 0, 'y'},
 		{"databits", required_argument, 0, 'd'},
 		{"stopbits", required_argument, 0, 'p'},
+		{"lower-rts", no_argument, 0, 'R'},
+		{"lower-dtr", no_argument, 0, 'D'},
 		{"help", no_argument, 0, 'h'},
 		{0, 0, 0, 0}
 	};
@@ -1469,6 +1477,12 @@ parse_args(int argc, char *argv[])
 				break;
 			}
 			break;
+		case 'R':
+			opts.lower_rts = 1;
+			break;
+		case 'D':
+			opts.lower_dtr = 1;
+			break;
 		case 'h':
 			show_usage(argv[0]);
 			exit(EXIT_SUCCESS);
@@ -1569,6 +1583,18 @@ main(int argc, char *argv[])
 	if ( r < 0 )
 		fatal("failed to add device %s: %s", 
 			  opts.port, term_strerror(term_errno, errno));
+
+	if ( opts.lower_rts ) {
+		r = term_lower_rts(tty_fd);
+		if ( r < 0 )
+			fatal("failed to lower RTS of device %s: %s", opts.port, term_strerror(term_errno, errno));
+	}
+	if ( opts.lower_dtr ) {
+		r = term_lower_dtr(tty_fd);
+		if ( r < 0 )
+			fatal("failed to lower DTR of device %s: %s", opts.port, term_strerror(term_errno, errno));
+	}
+
 	r = term_apply(tty_fd, 0);
 	if ( r < 0 )
 		fatal("failed to config device %s: %s", 
