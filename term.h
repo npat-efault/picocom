@@ -94,7 +94,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA 
+ * USA
  *
  * $Id: term.h,v 1.1 2003/05/07 18:00:05 npat Exp $
  */
@@ -160,32 +160,32 @@ enum term_errno_e {
  * P_SPACE - space parity (parity bit always 0)
  */
 enum parity_e {
-	P_NONE = 0, 
-	P_EVEN, 
+	P_NONE = 0,
+	P_EVEN,
 	P_ODD,
 	P_MARK,
 	P_SPACE
 };
 
-/* 
+/*
  * E flowcntrl_e
  *
  * Flow control modes, supported by the library.
  *
  * FC_NONE - no flow control
- * FC_RTSCTS - RTS/CTS handshaking, also known as hardware 
+ * FC_RTSCTS - RTS/CTS handshaking, also known as hardware
  *     flow-control.
- * FC_XONXOFF  - xon/xoff flow control. 
+ * FC_XONXOFF  - xon/xoff flow control.
  */
 enum flowcntrl_e {
-	FC_NONE = 0, 
-	FC_RTSCTS, 
+	FC_NONE = 0,
+	FC_RTSCTS,
 	FC_XONXOFF,
 	FC_OTHER
 };
 
-/* 
- * C MCTL_xxx 
+/*
+ * C MCTL_xxx
  *
  * Modem control line bits. Used against the return value of
  * term_get_mctl().
@@ -229,7 +229,7 @@ const char *term_strerror (int terrnum, int errnum);
  * Emit a description of the current library (and possibly system)
  * error condition to the standard-error stream. The description is
  * prefixed by a user-supplied string. What is actually emmited is:
- * 
+ *
  *     <prefix><space><description>\n
  *
  * The description emitted is the string returned by term_strerror().
@@ -319,7 +319,7 @@ int term_erase (int fd);
 int term_replace (int oldfd, int newfd);
 
 /*
- * F term_apply 
+ * F term_apply
  *
  * Applies the settings stored in the "nexttermios" structure
  * associated with the managed filedes "fd", to the respective
@@ -338,7 +338,7 @@ int term_replace (int oldfd, int newfd);
 int term_apply (int fd, int now);
 
 /*
- * F term_revert 
+ * F term_revert
  *
  * Discards all the changes made to the nexttermios structure
  * associated with the managed filedes "fd" that have not been applied
@@ -365,7 +365,7 @@ int term_revert (int fd);
 int term_reset (int fd);
 
 /*
- * F term_refresh 
+ * F term_refresh
  *
  * Updates the contents of the currtermios structure associated with
  * the managed filedes "fd", by reading the settings from the
@@ -377,11 +377,11 @@ int term_reset (int fd);
 int term_refresh (int fd);
 
 /* F term_set_raw
- * 
+ *
  * Sets the "nexttermios" structure associated with the managed
  * filedes "fd" to raw mode. The effective settings of the device are
  * not affected by this function.
- * 
+ *
  * Returns negative on failure, non-negative on success. Returns
  * failure only to indicate invalid arguments, so the return value can
  * be safely ignored.
@@ -392,7 +392,7 @@ int term_refresh (int fd);
  * terminal settings as indicated:
  *
  *   -ignbrk -brkint -parmrk -istrip -inlcr -igncr -icrnl -ixon
- *   -opost -echo -echonl -icannon -isig -iexten -csize -parenb 
+ *   -opost -echo -echonl -icannon -isig -iexten -csize -parenb
  *   cs8 min=1 time=0
  */
 int term_set_raw (int fd);
@@ -427,7 +427,7 @@ int term_set_baudrate (int fd, int baudrate);
 int term_set_parity (int fd, enum parity_e parity);
 
 /* F term_set_databits
- * 
+ *
  * Sets the databits number in the "nexttermios" structure associated
  * with the managed filedes "fd" to "databits". The effective settings
  * of the device are not affected by this function.
@@ -441,7 +441,7 @@ int term_set_parity (int fd, enum parity_e parity);
 int term_set_databits (int fd, int databits);
 
 /* F term_set_stopbits
- * 
+ *
  * Sets the stopbits number in the "nexttermios" structure associated
  * with the managed filedes "fd" to "stopbits". The effective settings
  * of the device are not affected by this function.
@@ -459,7 +459,7 @@ int term_set_stopbits (int fd, int stopbits);
  * Sets the folwcontrol mode in the "nexttermios" structure associated
  * with the managed filedes "fd" to "flowcntl". The effective settings
  * of the device are not affected by this function.
- * 
+ *
  * The following flow control modes are supportd by the library:
  * FC_NONE, FC_RTSCTS, FC_XONXOFF.
  *
@@ -478,7 +478,7 @@ int term_set_flowcntrl (int fd, enum flowcntrl_e flowcntl);
  *
  * Returns negative on failure, non negative on success. Returns
  * failure only to indicate invalid arguments, so the return value can
- * be safely ignored. 
+ * be safely ignored.
  */
 int term_set_hupcl (int fd, int on);
 
@@ -491,7 +491,7 @@ int term_set_hupcl (int fd, int on);
  *
  * Returns negative on failure, non negative on success. Returns
  * failure only to indicate invalid arguments, so the return value can
- * be safely ignored. 
+ * be safely ignored.
  */
 int term_set_local (int fd, int local);
 
@@ -501,11 +501,11 @@ int term_set_local (int fd, int local);
  * associated with the managed filedes "fd". Actually sets the
  * following:
  *
- *   Raw mode if "raw" is nonzero. 
- *   Baudrate to "baud". 
- *   Parity mode to "parity". 
- *   Flow control mode to "fc". 
- *   Enables local mode if "local" is nonzero, dis. otherwise. 
+ *   Raw mode if "raw" is nonzero.
+ *   Baudrate to "baud".
+ *   Parity mode to "parity".
+ *   Flow control mode to "fc".
+ *   Enables local mode if "local" is nonzero, dis. otherwise.
  *   Enables HUP-on-close if "hupcl" is nonzero, dis. otherwise
  *
  * The effective settings of the device are not affected by this
@@ -520,11 +520,11 @@ int term_set_local (int fd, int local);
  * filedes to the framework, and following this it fails, then it will
  * remove the filedes before returning.
  */
-int term_set (int fd, 
-			  int raw, 
-			  int baud, 
-			  enum parity_e parity, 
-			  int databits, int stopbits, 
+int term_set (int fd,
+			  int raw,
+			  int baud,
+			  enum parity_e parity,
+			  int databits, int stopbits,
 			  enum flowcntrl_e fc,
 			  int local, int hupcl);
 
@@ -638,7 +638,7 @@ int term_raise_rts (int fd);
  */
 int term_get_mctl (int fd);
 
-/* F term_drain 
+/* F term_drain
  *
  * Drains (flushes) the output queue of the device associated with the
  * managed filedes "fd". This functions blocks until all the contents
@@ -649,7 +649,7 @@ int term_get_mctl (int fd);
 int term_drain (int fd);
 
 /* F term_flush
- * 
+ *
  * Discards all the contents of the input AND output queues of the
  * device associated with the managed filedes "fd". Although it is
  * called flush this functions does NOT FLUSHES the terminal

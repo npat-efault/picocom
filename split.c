@@ -19,7 +19,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA 
+ * USA
  */
 
 #include <stdlib.h>
@@ -81,7 +81,7 @@ enum states {
         } else {                                \
             flags |= SPLIT_TRUNC;               \
         }                                       \
-    } while (0) 
+    } while (0)
 
 int
 split_quoted (const char *s, int *argc, char *argv[], int argv_sz)
@@ -107,7 +107,7 @@ split_quoted (const char *s, int *argc, char *argv[], int argv_sz)
         case ST_DELIM:
             while ( is_delim(*c) ) c++;
             if ( *c == SQ || *c == DQ ) {
-                qc = *c; c++; state = ST_QUOTE; 
+                qc = *c; c++; state = ST_QUOTE;
                 break;
             }
             if ( *c == EOS ) {
@@ -187,7 +187,7 @@ split_quoted (const char *s, int *argc, char *argv[], int argv_sz)
             assert(0);
         }
     }
-    
+
     return ( err != ERR_OK ) ? -1 : flags;
 }
 
@@ -205,7 +205,7 @@ main (int argc, char *argv[])
         printf("Usage is: %s: <string to split>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
-    
+
     printf("String to split is: [%s]\n", argv[1]);
     r = split_quoted(argv[1], &my_argc, my_argv, 12);
     if ( r < 0 ) {

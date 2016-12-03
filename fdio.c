@@ -19,7 +19,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA 
+ * USA
  */
 
 #include <stdlib.h>
@@ -34,7 +34,7 @@
 ssize_t
 writen_ni(int fd, const void *buff, size_t n)
 {
-    size_t nl; 
+    size_t nl;
     ssize_t nw;
     const char *p;
 
@@ -48,7 +48,7 @@ writen_ni(int fd, const void *buff, size_t n)
         nl -= nw;
         p += nw;
     }
-    
+
     return n - nl;
 }
 
@@ -58,12 +58,12 @@ fd_printf (int fd, const char *format, ...)
     char buf[256];
     va_list args;
     int len;
-    
+
     va_start(args, format);
     len = vsnprintf(buf, sizeof(buf), format, args);
     buf[sizeof(buf) - 1] = '\0';
     va_end(args);
-    
+
     return writen_ni(fd, buf, len);
 }
 
@@ -71,30 +71,30 @@ fd_printf (int fd, const char *format, ...)
 
 #ifndef LINENOISE
 
-static int 
-cput(int fd, char c) 
-{ 
-    return write(fd, &c, 1); 
+static int
+cput(int fd, char c)
+{
+    return write(fd, &c, 1);
 }
 
-static int 
+static int
 cdel (int fd)
 {
     const char del[] = "\b \b";
     return write(fd, del, sizeof(del) - 1);
 }
 
-static int 
+static int
 xput (int fd, unsigned char c)
 {
-    const char hex[] = "0123456789abcdef"; 
+    const char hex[] = "0123456789abcdef";
     char b[4];
 
     b[0] = '\\'; b[1] = 'x'; b[2] = hex[c >> 4]; b[3] = hex[c & 0x0f];
     return write(fd, b, sizeof(b));
 }
 
-static int 
+static int
 xdel (int fd)
 {
     const char del[] = "\b\b\b\b    \b\b\b\b";
@@ -107,7 +107,7 @@ fd_readline (int fdi, int fdo, char *b, int bsz)
     int r;
     unsigned char c;
     unsigned char *bp, *bpe;
-    
+
     bp = (unsigned char *)b;
     bpe = (unsigned char *)b + bsz - 1;
 
@@ -118,11 +118,11 @@ fd_readline (int fdi, int fdo, char *b, int bsz)
         switch (c) {
         case '\b':
         case '\x7f':
-            if ( bp > (unsigned char *)b ) { 
+            if ( bp > (unsigned char *)b ) {
                 bp--;
-                if ( isprint(*bp) ) 
+                if ( isprint(*bp) )
                     cdel(fdo);
-                else 
+                else
                     xdel(fdo);
             } else {
                 cput(fdo, '\x07');
@@ -134,17 +134,17 @@ fd_readline (int fdi, int fdo, char *b, int bsz)
             goto out;
         case '\r':
             *bp = '\0';
-            r = bp - (unsigned char *)b; 
+            r = bp - (unsigned char *)b;
             goto out;
         default:
-            if ( bp < bpe ) { 
+            if ( bp < bpe ) {
                 *bp++ = c;
-                if ( isprint(c) ) 
-                    cput(fdo, c); 
-                else 
+                if ( isprint(c) )
+                    cput(fdo, c);
+                else
                     xput(fdo, c);
-            } else { 
-                cput(fdo, '\x07'); 
+            } else {
+                cput(fdo, '\x07');
             }
             break;
         }

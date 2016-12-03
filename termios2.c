@@ -5,7 +5,7 @@
  *
  * by Nick Patavalis (npat@efault.net)
  *
- * ATTENTION: Linux-specific kludge! 
+ * ATTENTION: Linux-specific kludge!
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -20,7 +20,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA 
+ * USA
  */
 
 #ifndef __linux__
@@ -42,9 +42,9 @@
 /* GLIBC termios use an (otherwise unused) bit in c_iflags to
    internally record the fact that ispeed was set to zero (which is
    special behavior and means "same as ospeed". We want to clear this
-   bit before passing c_iflags back to the kernel. See: 
-  
-       <glibc-source>/sysdeps/unix/sysv/linux/speed.c 
+   bit before passing c_iflags back to the kernel. See:
+
+       <glibc-source>/sysdeps/unix/sysv/linux/speed.c
 */
 #define IBAUD0 020000000000
 
@@ -77,7 +77,7 @@ tc2setattr(int fd, int optional_actions, const struct termios *tios)
 	t2.c_ispeed = tios->c_ispeed;
 	t2.c_ospeed = tios->c_ospeed;
 	memcpy(&t2.c_cc[0], &tios->c_cc[0], K_NCCS * sizeof (cc_t));
-	
+
 	return ioctl(fd, cmd, &t2);
 }
 
@@ -99,7 +99,7 @@ tc2getattr(int fd, struct termios *tios)
 	tios->c_ispeed = t2.c_ispeed;
 	tios->c_ospeed = t2.c_ospeed;
 	memcpy(&tios->c_cc[0], &t2.c_cc[0], K_NCCS * sizeof (cc_t));
-	
+
 	for (i = K_NCCS; i < NCCS; i++)
 		tios->c_cc[i] = _POSIX_VDISABLE;
 
@@ -121,7 +121,7 @@ tc2getattr(int fd, struct termios *tios)
 int
 cf2setispeed(struct termios *tios, speed_t speed)
 {
-	if ( (speed & ~CBAUD) != 0 
+	if ( (speed & ~CBAUD) != 0
 		 && (speed < B57600 || speed > __MAX_BAUD) ) {
 		errno = EINVAL;
 		return -1;
@@ -148,7 +148,7 @@ cf2setospeed_custom(struct termios *tios, int speed)
 	if ( speed <= 0 ) {
 		errno = EINVAL;
 		return -1;
-	}		
+	}
 	tios->c_cflag &= ~(CBAUD | CBAUDEX);
 	tios->c_cflag |= BOTHER;
 	tios->c_ospeed = speed;
