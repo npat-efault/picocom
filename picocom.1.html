@@ -134,6 +134,12 @@
 <dt><strong>--emap</strong></dt>
 <dd><p>Specifies the local-echo character map (i.e. special characters to be replaced before being echoed-back to the terminal, if local-echo is enabled). See <strong><a href="#input-output-and-echo-mapping">INPUT, OUTPUT, AND ECHO MAPPING</a></strong>. (Defaul: <strong>delbs,crcrlf</strong>)</p>
 </dd>
+<dt><strong>--lower-rts</strong></dt>
+<dd><p>Lower the RTS control signal after opening the serial port (by default RTS is raised after open). Only supported when flow-control mode is not set to RTS/CTS, ignored otherwise. Only supported in Linux.</p>
+</dd>
+<dt><strong>--lower-dtr</strong></dt>
+<dd><p>Lower the DTR control signal after opening the serial port (by default DTR is raised after open). Only supported in Linux.</p>
+</dd>
 <dt><strong>--help</strong> | <strong>-h</strong></dt>
 <dd><p>Print a short help message describing the command-line options. Picocom's version, ompile-time options, and enabled features are also shown.</p>
 </dd>
