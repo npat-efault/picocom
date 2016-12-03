@@ -9,7 +9,7 @@ end_of_line = lf
 insert_final_newline = true
 
 # Matches multiple files with brace expansion notation
-# Set default charset
+# Set default indentation style
 [*.{c,h}]
 indent_style = tab
 indent_size = 4
