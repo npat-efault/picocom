@@ -7,7 +7,7 @@
  * Nick Patavalis (npat@inaccessnetworks.com)
  *
  * originaly by Pantelis Antoniou (panto@intranet.gr), Nick Patavalis
- *    
+ *
  * Documentation can be found in the header file "term.h".
  *
  * This program is free software; you can redistribute it and/or
@@ -23,7 +23,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA 
+ * USA
  *
  * $Id$
  */
@@ -81,11 +81,11 @@ static const char * const term_err_str[] = {
 	[TERM_EOK]        = "No error",
 	[TERM_ENOINIT]    = "Framework is uninitialized",
 	[TERM_EFULL]      = "Framework is full",
-    [TERM_ENOTFOUND]  = "Filedes not in the framework",
-    [TERM_EEXISTS]    = "Filedes already in the framework",
-    [TERM_EATEXIT]    = "Cannot install atexit handler",
-    [TERM_EISATTY]    = "Filedes is not a tty",
-    [TERM_EFLUSH]     = "Cannot flush the device",
+	[TERM_ENOTFOUND]  = "Filedes not in the framework",
+	[TERM_EEXISTS]    = "Filedes already in the framework",
+	[TERM_EATEXIT]    = "Cannot install atexit handler",
+	[TERM_EISATTY]    = "Filedes is not a tty",
+	[TERM_EFLUSH]     = "Cannot flush the device",
 	[TERM_EGETATTR]   = "Cannot get the device attributes",
 	[TERM_ESETATTR]   = "Cannot set the device attributes",
 	[TERM_EBAUD]      = "Invalid baud rate",
@@ -96,8 +96,8 @@ static const char * const term_err_str[] = {
 	[TERM_EDATABITS]  = "Invalid number of databits",
 	[TERM_ESTOPBITS]  = "Invalid number of stopbits",
 	[TERM_EFLOW]      = "Invalid flowcontrol mode",
-    [TERM_EDTRDOWN]   = "Cannot lower DTR",
-    [TERM_EDTRUP]     = "Cannot raise DTR",
+	[TERM_EDTRDOWN]   = "Cannot lower DTR",
+	[TERM_EDTRUP]     = "Cannot raise DTR",
 	[TERM_EMCTL]      = "Cannot get mctl status",
 	[TERM_EDRAIN]     = "Cannot drain the device",
 	[TERM_EBREAK]     = "Cannot send break sequence",
@@ -414,7 +414,7 @@ term_lib_init (void)
 				} while ( r < 0 && errno == EINTR );
 				if ( r < 0 ) {
 					char *tname;
- 
+
 					tname = ttyname(term.fd[i]);
 					if ( ! tname ) tname = "UNKNOWN";
 					fprintf(stderr, "%s: reset failed for dev %s: %s\n",
@@ -428,7 +428,7 @@ term_lib_init (void)
 				term.fd[i] = -1;
 			if ( atexit(term_exitfunc) != 0 ) {
 				term_errno = TERM_EATEXIT;
-				rval = -1; 
+				rval = -1;
 				break;
 			}
 			/* ok. term struct is now initialized. */
@@ -498,10 +498,10 @@ term_remove(int fd)
 			rval = -1;
 			break;
 		}
-		
+
 		do { /* dummy */
 			r = tcflush(term.fd[i], TCIOFLUSH);
-			if ( r < 0 ) { 
+			if ( r < 0 ) {
 				term_errno = TERM_EFLUSH;
 				rval = -1;
 				break;
@@ -513,7 +513,7 @@ term_remove(int fd)
 				break;
 			}
 		} while (0);
-		
+
 		term.fd[i] = -1;
 	} while (0);
 
@@ -535,7 +535,7 @@ term_erase(int fd)
 			rval = -1;
 			break;
 		}
-		
+
 		term.fd[i] = -1;
 	} while (0);
 
@@ -553,7 +553,7 @@ term_replace (int oldfd, int newfd)
 
 	do { /* dummy */
 
-		i = term_find(oldfd); 
+		i = term_find(oldfd);
 		if ( i < 0 ) {
 			rval = -1;
 			break;
@@ -692,7 +692,7 @@ term_apply (int fd, int now)
 			rval = -1;
 			break;
 		}
-		
+
 		r = tcsetattr(term.fd[i], when, &term.nexttermios[i]);
 		if ( r < 0 ) {
 			term_errno = TERM_ESETATTR;
@@ -723,7 +723,7 @@ term_set_raw (int fd)
 	rval = 0;
 
 	do { /* dummy */
-		
+
 		i = term_find(fd);
 		if ( i < 0 ) {
 			rval = -1;
@@ -737,7 +737,7 @@ term_set_raw (int fd)
 		term.nexttermios[i].c_cc[VTIME] = 0;
 
 	} while (0);
-	
+
 	return rval;
 }
 
@@ -793,7 +793,7 @@ term_set_baudrate (int fd, int baudrate)
 	return rval;
 }
 
-int 
+int
 term_get_baudrate (int fd, int *ispeed)
 {
 	speed_t code;
@@ -837,7 +837,7 @@ term_get_baudrate (int fd, int *ispeed)
 /***************************************************************************/
 
 int
-term_set_parity (int fd, enum parity_e parity) 
+term_set_parity (int fd, enum parity_e parity)
 {
 	int rval, i;
 	struct termios *tiop;
@@ -871,7 +871,7 @@ term_set_parity (int fd, enum parity_e parity)
 			tiop->c_cflag |= PARENB | CMSPAR;
 			break;
 		case P_NONE:
-			tiop->c_cflag &= ~(PARENB | PARODD | CMSPAR); 
+			tiop->c_cflag &= ~(PARENB | PARODD | CMSPAR);
 			break;
 		default:
 			term_errno = TERM_EPARITY;
@@ -909,7 +909,7 @@ term_get_parity (int fd)
 		}
 
 	} while (0);
-	
+
 	return parity;
 }
 
@@ -932,7 +932,7 @@ term_set_databits (int fd, int databits)
 		}
 
 		tiop = &term.nexttermios[i];
-				
+
 		switch (databits) {
 		case 5:
 			tiop->c_cflag = (tiop->c_cflag & ~CSIZE) | CS5;
@@ -1013,7 +1013,7 @@ term_set_stopbits (int fd, int stopbits)
 		}
 
 		tiop = &term.nexttermios[i];
-				
+
 		switch (stopbits) {
 		case 1:
 			tiop->c_cflag &= ~CSTOPB;
@@ -1070,7 +1070,7 @@ term_set_flowcntrl (int fd, enum flowcntrl_e flowcntl)
 			rval = -1;
 			break;
 		}
-		
+
 		tiop = &term.nexttermios[i];
 
 		switch (flowcntl) {
@@ -1127,7 +1127,7 @@ term_get_flowcntrl (int fd)
 		}
 
 	} while (0);
-	
+
 	return flow;
 }
 
@@ -1196,8 +1196,8 @@ term_set_hupcl (int fd, int on)
 int
 term_set(int fd,
 		 int raw,
-		 int baud, 
-		 enum parity_e parity, 
+		 int baud,
+		 enum parity_e parity,
 		 int databits, int stopbits,
 		 enum flowcntrl_e fc,
 		 int local, int hup_close)
@@ -1228,31 +1228,31 @@ term_set(int fd,
 				r = term_set_raw(fd);
 				if ( r < 0 ) { rval = -1; break; }
 			}
-			
+
 			r = term_set_baudrate(fd, baud);
 			if ( r < 0 ) { rval = -1; break; }
-			
+
 			r = term_set_parity(fd, parity);
 			if ( r < 0 ) { rval = -1; break; }
-			
+
 			r = term_set_databits(fd, databits);
 			if ( r < 0 ) { rval = -1; break; }
 
 			r = term_set_stopbits(fd, stopbits);
 			if ( r < 0 ) { rval = -1; break; }
-			
+
 			r = term_set_flowcntrl(fd, fc);
 			if ( r < 0 ) { rval = -1; break; }
-			
+
 			r = term_set_local(fd, local);
 			if ( r < 0 ) { rval = -1; break; }
-			
+
 			r = term_set_hupcl(fd, hup_close);
 			if ( r < 0 ) { rval = -1; break; }
-			
+
 		} while (0);
 
-		if ( rval < 0 ) { 
+		if ( rval < 0 ) {
 			if ( i < 0 )
 				/* new addition. must be removed */
 				term.fd[ni] = -1;
@@ -1313,9 +1313,9 @@ term_pulse_dtr (int fd)
 				rval = -1;
 				break;
 			}
-			
+
 			tioold = tio;
-			
+
 			cfsetospeed(&tio, B0);
 			cfsetispeed(&tio, B0);
 			r = tcsetattr(fd, TCSANOW, &tio);
@@ -1324,9 +1324,9 @@ term_pulse_dtr (int fd)
 				rval = -1;
 				break;
 			}
-			
+
 			sleep(1);
-			
+
 			r = tcsetattr(fd, TCSANOW, &tioold);
 			if ( r < 0 ) {
 				term.currtermios[i] = tio;
@@ -1336,7 +1336,7 @@ term_pulse_dtr (int fd)
 			}
 		}
 #endif /* of __linux__ */
-			
+
 	} while (0);
 
 	return rval;
@@ -1397,7 +1397,7 @@ term_lower_dtr(int fd)
 	do { /* dummy */
 
 		i = term_find(fd);
-		if ( i < 0 ) { 
+		if ( i < 0 ) {
 			rval = -1;
 			break;
 		}
@@ -1424,10 +1424,10 @@ term_lower_dtr(int fd)
 				break;
 			}
 			term.currtermios[i] = tio;
-			
+
 			cfsetospeed(&tio, B0);
 			cfsetispeed(&tio, B0);
-			
+
 			r = tcsetattr(fd, TCSANOW, &tio);
 			if ( r < 0 ) {
 				term_errno = TERM_ESETATTR;
@@ -1437,7 +1437,7 @@ term_lower_dtr(int fd)
 		}
 #endif /* of __linux__ */
 	} while (0);
-	
+
 	return rval;
 }
 
@@ -1491,7 +1491,7 @@ term_lower_rts(int fd)
 	do { /* dummy */
 
 		i = term_find(fd);
-		if ( i < 0 ) { 
+		if ( i < 0 ) {
 			rval = -1;
 			break;
 		}
@@ -1513,7 +1513,7 @@ term_lower_rts(int fd)
 		rval = -1;
 #endif /* of __linux__ */
 	} while (0);
-	
+
 	return rval;
 }
 
@@ -1528,15 +1528,15 @@ term_get_mctl (int fd)
 	do { /* dummy */
 
 		i = term_find(fd);
-		if ( i < 0 ) { 
+		if ( i < 0 ) {
 			mctl = -1;
 			break;
 		}
 
 #ifdef __linux__
-		{ 
+		{
 			int r, pmctl;
-			
+
 			r = ioctl(fd, TIOCMGET, &pmctl);
 			if (r < 0) {
 				mctl = -1;
@@ -1636,7 +1636,7 @@ term_break(int fd)
 			rval = -1;
 			break;
 		}
-	
+
 		r = tcsendbreak(fd, 0);
 		if ( r < 0 ) {
 			term_errno = TERM_EBREAK;
