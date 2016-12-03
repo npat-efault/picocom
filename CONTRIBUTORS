@@ -54,3 +54,5 @@ comments:
 - Cody Planteen (https://github.com/planteen) contributed the
   implementation of the toggle-RTS command.
 
+- Joe Merten (https://github.com/Joe-Merten) contributed the
+  --lower-rts and --lower-dtr options
