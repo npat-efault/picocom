@@ -125,11 +125,11 @@ enum term_errno_e {
 	TERM_EOK = 0,
 	TERM_ENOINIT,
 	TERM_EFULL,
-    TERM_ENOTFOUND,
-    TERM_EEXISTS,
-    TERM_EATEXIT,
-    TERM_EISATTY,
-    TERM_EFLUSH,     /* see errno */
+	TERM_ENOTFOUND,
+	TERM_EEXISTS,
+	TERM_EATEXIT,
+	TERM_EISATTY,
+	TERM_EFLUSH,     /* see errno */
 	TERM_EGETATTR,   /* see errno */
 	TERM_ESETATTR,   /* see errno */
 	TERM_EBAUD,
@@ -521,9 +521,9 @@ int term_set_local (int fd, int local);
  * remove the filedes before returning.
  */
 int term_set (int fd, 
-              int raw, 
-              int baud, 
-              enum parity_e parity, 
+			  int raw, 
+			  int baud, 
+			  enum parity_e parity, 
 			  int databits, int stopbits, 
 			  enum flowcntrl_e fc,
 			  int local, int hupcl);

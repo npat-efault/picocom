@@ -127,7 +127,7 @@ struct map_names_s {
 	{ "crlf", M_CRLF },
 	{ "crcrlf", M_CRCRLF },
 	{ "igncr", M_IGNCR },
-    { "lfcr", M_LFCR },
+	{ "lfcr", M_LFCR },
 	{ "lfcrlf", M_LFCRLF },
 	{ "ignlf", M_IGNLF },
 	{ "delbs", M_DELBS },
@@ -235,11 +235,11 @@ int tty_write_sz;
 #define TTY_WRITE_SZ_MIN 8
 
 #define set_tty_write_sz(baud)							\
-    do {												\
-        tty_write_sz = (baud) / TTY_WRITE_SZ_DIV;		\
-	    if ( tty_write_sz < TTY_WRITE_SZ_MIN )			\
-            tty_write_sz = TTY_WRITE_SZ_MIN;			\
-    } while (0)
+	do {												\
+		tty_write_sz = (baud) / TTY_WRITE_SZ_DIV;		\
+		if ( tty_write_sz < TTY_WRITE_SZ_MIN )			\
+			tty_write_sz = TTY_WRITE_SZ_MIN;			\
+	} while (0)
 
 /**********************************************************************/
 
@@ -1218,27 +1218,27 @@ deadly_handler(int signum)
 void
 establish_signal_handlers (void)
 {
-        struct sigaction exit_action, ign_action;
+		struct sigaction exit_action, ign_action;
 
-        /* Set up the structure to specify the exit action. */
-        exit_action.sa_handler = deadly_handler;
-        sigemptyset (&exit_action.sa_mask);
-        exit_action.sa_flags = 0;
+		/* Set up the structure to specify the exit action. */
+		exit_action.sa_handler = deadly_handler;
+		sigemptyset (&exit_action.sa_mask);
+		exit_action.sa_flags = 0;
 
-        /* Set up the structure to specify the ignore action. */
-        ign_action.sa_handler = SIG_IGN;
-        sigemptyset (&ign_action.sa_mask);
-        ign_action.sa_flags = 0;
+		/* Set up the structure to specify the ignore action. */
+		ign_action.sa_handler = SIG_IGN;
+		sigemptyset (&ign_action.sa_mask);
+		ign_action.sa_flags = 0;
 
-        sigaction (SIGTERM, &exit_action, NULL);
+		sigaction (SIGTERM, &exit_action, NULL);
 
-        sigaction (SIGINT, &ign_action, NULL); 
-        sigaction (SIGHUP, &ign_action, NULL);
+		sigaction (SIGINT, &ign_action, NULL); 
+		sigaction (SIGHUP, &ign_action, NULL);
 		sigaction (SIGQUIT, &ign_action, NULL);
-        sigaction (SIGALRM, &ign_action, NULL);
-        sigaction (SIGUSR1, &ign_action, NULL);
-        sigaction (SIGUSR2, &ign_action, NULL);
-        sigaction (SIGPIPE, &ign_action, NULL);
+		sigaction (SIGALRM, &ign_action, NULL);
+		sigaction (SIGUSR1, &ign_action, NULL);
+		sigaction (SIGUSR2, &ign_action, NULL);
+		sigaction (SIGPIPE, &ign_action, NULL);
 }
 
 /**********************************************************************/
@@ -1318,9 +1318,9 @@ parse_args(int argc, char *argv[])
 	{
 		{"receive-cmd", required_argument, 0, 'v'},
 		{"send-cmd", required_argument, 0, 's'},
-        {"imap", required_argument, 0, 'I' },
-        {"omap", required_argument, 0, 'O' },
-        {"emap", required_argument, 0, 'E' },
+		{"imap", required_argument, 0, 'I' },
+		{"omap", required_argument, 0, 'O' },
+		{"emap", required_argument, 0, 'E' },
 		{"escape", required_argument, 0, 'e'},
 		{"echo", no_argument, 0, 'c'},
 		{"noinit", no_argument, 0, 'i'},
