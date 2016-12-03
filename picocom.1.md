@@ -9,7 +9,7 @@ header: User Commands
 picocom - minimal dumb-terminal emulation program
 
 # SYNOPSIS
-    
+
 **picocom** [ _options_ ] _device_
 
 # DESCRIPTION
@@ -46,7 +46,7 @@ Commands are given to picocom by first keying the *espace character*
 which by default is **C-a** (see **[OPTIONS]** below for how to change
 it), and then keying one of the function (command) characters shown
 here.
-    
+
 *escape character*
 
 :   Send the escape character to the serial port and return to
@@ -146,7 +146,7 @@ here.
 
 :   Send (upload) a file. See **[SENDING AND RECEIVING FILES]**
     below.
-      
+
 **C-r**
 
 :   Receive (download) a file. See **[SENDING AND RECEIVING FILES]**
@@ -174,7 +174,7 @@ Picocom accepts the following command-line options.
     one of: **x** for xon/xoff (software) mode, **h** for hardware
     flow control (RTS/CTS), **n** for no flow control. (Default:
     **n**)
-    
+
 **--parity** | **-y**
 
 :   Defines the parity mode to set the serial-port to.  Must be one
@@ -190,13 +190,13 @@ Picocom accepts the following command-line options.
 
 :   Defines the number of stop bits in every character. Must be one
     of: **1**, or **2**. (Default: **1**)
-    
+
 **--escape** | **-e**
 
 :   Defines the character that will make picocom enter command-mode
     (see description above). If **x** is given, then **C-x** will make
     picocom enter command mode. (Default: **a**)
-    
+
 **--echo** | **-c**
 
 :   Enable local echo. Every character being read from the terminal
@@ -213,7 +213,7 @@ Picocom accepts the following command-line options.
     connection, or altering the settings. If required, serial port
     parameters can then be adjusted at run-time by commands.
     (Default: Disabled)
-    
+
 **--noreset** | **-r**
 
 :   If given, picocom will not reset the serial port when exiting. It
@@ -224,7 +224,7 @@ Picocom accepts the following command-line options.
     "Exit"), which never resets the serial port. If **--noreset** is
     given then "Quit" and "Exit" behave essentially the
     same. (Default: Disabled)
-    
+
 **--nolock** | **-l**
 
 :   If given, picocom will _not_ attempt to lock the serial port
@@ -236,14 +236,14 @@ Picocom accepts the following command-line options.
     is possible that your picocom binary is compiled without support
     for locking. In this case the **--nolock** option is accepted, but
     has no effect. (Default: Disabled)
-    
+
 **--send-cmd** | **-s**
 
 :   Specifies the external program (and any arguments to it) that will
     be used for transmitting files. If the argument to **--send-cmd**
     is the empty string (''), the send-file command is disabled. See
     **[SENDING AND RECEIVING FILES]**. (Default: **sz -vv**)
-    
+
 **--receive-cmd** | **-v**
 
 :   Specifies the external program (and any arguments to it) that will
@@ -251,26 +251,39 @@ Picocom accepts the following command-line options.
     is the empty string (''), the receive-file command is
     disabled. See **[SENDING AND RECEIVING FILES]**. (Default: **rz
     -vv**)
-    
+
 **--imap**
 
 :   Specifies the input character map (i.e. special characters to be
     replaced when read from the serial port). See
     **[INPUT, OUTPUT, AND ECHO MAPPING]**. (Defaul: Empty)
-    
+
 **--omap**
 
 :   Specifies the output character map (i.e. special characters to be
     replaced before being written to serial port). See
     **[INPUT, OUTPUT, AND ECHO MAPPING]**. (Defaul: Empty)
-    
+
 **--emap**
 
 :   Specifies the local-echo character map (i.e. special characters to
     be replaced before being echoed-back to the terminal, if
     local-echo is enabled). See
     **[INPUT, OUTPUT, AND ECHO MAPPING]**. (Defaul: **delbs,crcrlf**)
-    
+
+**--lower-rts**
+
+:   Lower the RTS control signal after opening the serial port (by
+    default RTS is raised after open implicitely by the OS). Only
+    supported when flow-control mode is not set to RTS/CTS, ignored
+    otherwise. Only supported in Linux.
+
+**--lower-dtr**
+
+:   Lower the DTR control signal after opening the serial port (by
+    default DTR is raised after open implicitely by the OS).
+    Only supported in Linux.
+
 **--help** | **-h**
 
 :   Print a short help message describing the command-line
@@ -278,7 +291,7 @@ Picocom accepts the following command-line options.
     features are also shown.
 
 
-# DISPLAY OF OPTIONS AND PORT SETTINGS 
+# DISPLAY OF OPTIONS AND PORT SETTINGS
 
 The "show program options" command (**C-v**), as well as the commands
 that change program options (**C-b**, **C-u**, **C-d**, **C-f**, etc)
@@ -289,7 +302,7 @@ respective option (for whatever reason), then the value of the option
 is shown followed by the value of the actual serial-port setting in
 parenthesis. Example:
 
-    *** baud: 115200 (9600) 
+    *** baud: 115200 (9600)
 
 This means that a baud rate of 115200bps has been selected (from the
 command line, or using commands that change the baudrate) but the
@@ -319,7 +332,7 @@ programs for this purpose are:
 - **sb(1)** -  send using the Y-MODEM protocol
 - **sz(1)** - send using the Z-MODEM protocol
 - **ascii-xfr(1)** - receive or transmit ASCII files
-    
+
 The name of, and the command-line options to, the program to be used
 for transmitting files are given by the **--send-cmd**
 option. Similarly the program to receive files, and its arguments, are
@@ -373,20 +386,20 @@ the terminal (standard output) if local echo is enabled (with
 **--emap**). These mapping options take, each, a single argument which
 is a comma-separated list of one or more of the following identifiers:
 
-- **crlf** (map CR to LF), 
-- **crcrlf** (map CR to CR + LF), 
-- **igncr** (ignore CR), 
+- **crlf** (map CR to LF),
+- **crcrlf** (map CR to CR + LF),
+- **igncr** (ignore CR),
 - **lfcr** (map LF to CR),
-- **lfcrlf** (map LF to CR + LF), 
-- **ignlf** (ignore LF), 
-- **bsdel** (map BS to DEL), 
+- **lfcrlf** (map LF to CR + LF),
+- **ignlf** (ignore LF),
+- **bsdel** (map BS to DEL),
 - **delbs** (map DEL to BS)
 
 For example the command:
 
     picocom --omap crlf,delbs --imap ignlf,bsdel --emap crcrlf ...
 
-will: 
+will:
 
 - Replace every CR (carriage return, 0x0d) character with LF (line
   feed, 0x0a) and every DEL (delete, 0x7f) character with BS
