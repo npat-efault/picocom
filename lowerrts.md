@@ -98,6 +98,7 @@ see also http://stackoverflow.com/a/40811405/2880699
 
 Steps to perform on e.g. Kubuntu 16.04:
 
+```
 $ sudo apt-get install build-essential    ;# etc.
 $ apt-get source linux-image-$(uname -r)  ;# of course, neets to have deb-src in /etc/apt/sources.list activated
 -> this creates a ~/linux-4.4.0 with about 760 MiB source code including linux-4.4.0/drivers/usb/serial/ftdi_sio.c
@@ -112,4 +113,4 @@ $ sudo rmmod ftdi_sio.ko
 $ sudo insmod drivers/usb/serial/ftdi_sio.ko
 ergo:
 $ make -C /lib/modules/$(uname -r)/build M=${PWD} drivers/usb/serial/ftdi_sio.ko && sudo rmmod ftdi_sio.ko && sudo insmod drivers/usb/serial/ftdi_sio.ko
-
+```
