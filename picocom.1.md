@@ -270,7 +270,20 @@ Picocom accepts the following command-line options.
     be replaced before being echoed-back to the terminal, if
     local-echo is enabled). See
     **[INPUT, OUTPUT, AND ECHO MAPPING]**. (Defaul: **delbs,crcrlf**)
-    
+
+**--lower-rts**
+
+:   Lower the RTS control signal after opening the serial port (by
+    default RTS is raised after open implicitely by the OS). Only
+    supported when flow-control mode is not set to RTS/CTS, ignored
+    otherwise. Only supported in Linux.
+
+**--lower-dtr**
+
+:   Lower the DTR control signal after opening the serial port (by
+    default DTR is raised after open implicitely by the OS).
+    Only supported in Linux.
+
 **--help** | **-h**
 
 :   Print a short help message describing the command-line
