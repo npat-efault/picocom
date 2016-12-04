@@ -36,11 +36,19 @@ CPPFLAGS += -DHISTFILE=\"$(HISTFILE)\" \
 OBJS += linenoise-1.0/linenoise.o
 linenoise-1.0/linenoise.o : linenoise-1.0/linenoise.c linenoise-1.0/linenoise.h
 
-## Comment these IN to enable custom baudrate support.
-## Currently works *only* with Linux (kernels > 2.6).
-#CPPFLAGS += -DUSE_CUSTOM_BAUD
-#OBJS += termios2.o
-#termios2.o : termios2.c termios2.h termbits2.h
+## Enable custom baudrate support only on Linux > 2.6
+UNAME_S = $(shell uname -s)
+ifeq ($(UNAME_S), Linux)
+MINIMAL_KVER = 2.6.0
+UNAME_R = $(shell uname -r)
+LOWER_KVER = $(shell echo -e "$(UNAME_R)\n$(MINIMAL_KVER)" | sort -V | head --lines=1)
+ifeq ($(LOWER_KVER), $(MINIMAL_KVER))
+$(info Building on Linux > 2.6. Enabling custom baud rate support.)
+CPPFLAGS += -DUSE_CUSTOM_BAUD
+OBJS += termios2.o
+termios2.o : termios2.c termios2.h termbits2.h
+endif
+endif
 
 ## Comment this IN to remove help strings (saves ~ 4-6 Kb).
 #CPPFLAGS += -DNO_HELP
