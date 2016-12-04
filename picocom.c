@@ -1315,6 +1315,50 @@ show_usage(char *name)
 
 /**********************************************************************/
 
+char *
+key_value(char *line, char *key)
+{
+	int llen = strlen(line);
+	int klen = strlen(key);
+	if(strstr(line, key) == line &&
+	  (line[klen] == ' ' || line[klen] == '=')) {
+		int i;
+		for(i = klen; i < llen; i++)
+			if(line[i] != ' ' && line[i] != '=') {
+				line[llen - 1] = 0;
+				return line + i;
+			}
+	}
+	return NULL;
+}
+
+void
+parse_conf()
+{
+	char buf[_POSIX_PATH_MAX];
+	FILE *cfg;
+	char *line;
+
+	snprintf(buf, _POSIX_PATH_MAX, "%s/.picocomrc", getenv("HOME"));
+	cfg = fopen(buf, "r");
+	if(!cfg)
+		return;
+
+	while((line = fgets(buf, _POSIX_PATH_MAX, cfg))) {
+		char *val;
+
+		val = key_value(line, "port");
+		if(val)
+			strcpy(opts.port, val);
+
+		val = key_value(line, "baud");
+		if(val)
+			opts.baud = atoi(val);
+	}
+
+	fclose(cfg);
+}
+
 void
 parse_args(int argc, char *argv[])
 {
@@ -1498,13 +1542,15 @@ parse_args(int argc, char *argv[])
 		}
 	} /* while */
 
-	if ( (argc - optind) < 1) {
+	if(argc - optind > 0) {
+		strncpy(opts.port, argv[optind], sizeof(opts.port) - 1);
+		opts.port[sizeof(opts.port) - 1] = '\0';
+	}
+	if(!opts.port[0]) {
 		fprintf(stderr, "No port given\n");
 		fprintf(stderr, "Run with '--help'.\n");
 		exit(EXIT_FAILURE);
 	}
-	strncpy(opts.port, argv[optind], sizeof(opts.port) - 1);
-	opts.port[sizeof(opts.port) - 1] = '\0';
 
 #ifndef NO_HELP
 	printf("picocom v%s\n", VERSION_STR);
@@ -1541,6 +1587,7 @@ main(int argc, char *argv[])
 {
 	int r;
 
+	parse_conf();
 	parse_args(argc, argv);
 
 	establish_signal_handlers();
