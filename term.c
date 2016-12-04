@@ -52,7 +52,7 @@
 #define CMSPAR 0
 #endif
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
 #include <sys/ioctl.h>
 #endif
 
@@ -1283,7 +1283,7 @@ term_pulse_dtr (int fd)
 			break;
 		}
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
 		{
 			int opins = TIOCM_DTR;
 
@@ -1335,7 +1335,7 @@ term_pulse_dtr (int fd)
 				break;
 			}
 		}
-#endif /* of __linux__ */
+#endif /* of __linux__ or __APPLE__ */
 			
 	} while (0);
 
@@ -1359,7 +1359,7 @@ term_raise_dtr(int fd)
 			break;
 		}
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
 		{
 			int opins = TIOCM_DTR;
 
@@ -1378,7 +1378,7 @@ term_raise_dtr(int fd)
 			rval = -1;
 			break;
 		}
-#endif /* of __linux__ */
+#endif /* of __linux__ or __APPLE__ */
 	} while (0);
 
 	return rval;
@@ -1402,7 +1402,7 @@ term_lower_dtr(int fd)
 			break;
 		}
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
 		{
 			int opins = TIOCM_DTR;
 
@@ -1435,7 +1435,7 @@ term_lower_dtr(int fd)
 				break;
 			}
 		}
-#endif /* of __linux__ */
+#endif /* of __linux__ or __APPLE__ */
 	} while (0);
 	
 	return rval;
@@ -1458,7 +1458,7 @@ term_raise_rts(int fd)
 			break;
 		}
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
 		{
 			int r;
 			int opins = TIOCM_RTS;
@@ -1473,7 +1473,7 @@ term_raise_rts(int fd)
 #else
 		term_errno = TERM_ERTSUP;
 		rval = -1;
-#endif /* of __linux__ */
+#endif /* of __linux__ or __APPLE__ */
 	} while (0);
 
 	return rval;
@@ -1496,7 +1496,7 @@ term_lower_rts(int fd)
 			break;
 		}
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
 		{
 			int r;
 			int opins = TIOCM_RTS;
@@ -1511,7 +1511,7 @@ term_lower_rts(int fd)
 #else
 		term_errno = TERM_ERTSDOWN;
 		rval = -1;
-#endif /* of __linux__ */
+#endif /* of __linux__ or __APPLE__ */
 	} while (0);
 	
 	return rval;
@@ -1533,7 +1533,7 @@ term_get_mctl (int fd)
 			break;
 		}
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
 		{ 
 			int r, pmctl;
 			
@@ -1552,7 +1552,7 @@ term_get_mctl (int fd)
 		}
 #else
 		mctl = MCTL_UNAVAIL;
-#endif
+#endif /* of __linux__ or __APPLE__ */
 	} while(0);
 
 	return mctl;
