@@ -1616,6 +1616,10 @@ main(int argc, char *argv[])
 	init_history();
 #endif
 
+	r = term_get_baudrate(tty_fd, NULL);
+	if ( r != opts.baud )
+		fd_printf(STO, "WARNING: Desired baudrate is %d but applied baudrate is %d; this might depend upon your OS and/or hardware limitations.\r\n\r\n", opts.baud, r);
+
 #ifndef NO_HELP
 	fd_printf(STO, "Type [C-%c] [C-%c] to see available commands\r\n\r\n",
 			  KEYC(opts.escape), KEYC(KEY_HELP));
