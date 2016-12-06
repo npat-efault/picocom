@@ -1503,8 +1503,16 @@ parse_args(int argc, char *argv[])
 		fprintf(stderr, "Run with '--help'.\n");
 		exit(EXIT_FAILURE);
 	}
-	strncpy(opts.port, argv[optind], sizeof(opts.port) - 1);
+	strncpy(opts.port, argv[optind++], sizeof(opts.port) - 1);
 	opts.port[sizeof(opts.port) - 1] = '\0';
+
+	if ( argc != optind ) {
+		fprintf(stderr, "Unexpected non-option arguments: ");
+		while (argc != optind)
+			fprintf(stderr, "%s ", argv[optind++]);
+		fprintf(stderr, "\n");
+		exit(EXIT_FAILURE);
+	}
 
 #ifndef NO_HELP
 	printf("picocom v%s\n", VERSION_STR);
