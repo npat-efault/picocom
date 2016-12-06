@@ -36,41 +36,13 @@ CPPFLAGS += -DHISTFILE=\"$(HISTFILE)\" \
 OBJS += linenoise-1.0/linenoise.o
 linenoise-1.0/linenoise.o : linenoise-1.0/linenoise.c linenoise-1.0/linenoise.h
 
-## Detect host machine / OS and store it into a make variable named "HOST_SYSTEM" for later use
-OS ?=
-OSTYPE ?=
-ifeq ($(OS),Windows_NT)
-  ifeq ($(OSTYPE),cygwin)
-    HOST_SYSTEM := Cygwin
-  else
-    HOST_SYSTEM := Windows
-  endif  
-else
-  UNAME_S := $(shell uname -s)
-  ifeq ($(UNAME_S),Linux)
-    HOST_SYSTEM := Linux
-  else ifeq ($(UNAME_S),Darwin)
-    HOST_SYSTEM := Darwin
-  else
-    $(warning Warning: Unknown host system '$(UNAME_S)')
-    HOST_SYSTEM := Unknown
-  endif
-endif
+## Comment this in to enable custom baudrate support for OSX (Tiger and above)
+#CPPFLAGS += -DUSE_CUSTOM_BAUD
 
-## Set USE_CUSTOM_BAUD=1 to enable custom baudrate support.
-## Currently works *only* with Linux (kernels > 2.6) and OSX (Tiger and above)
-USE_CUSTOM_BAUD ?=
-ifeq ($(USE_CUSTOM_BAUD),1)
-  ifeq ($(HOST_SYSTEM),Linux)
-    CPPFLAGS += -DUSE_CUSTOM_BAUD
-    OBJS += termios2.o
-    termios2.o : termios2.c termios2.h termbits2.h
-  else ifeq ($(HOST_SYSTEM),Darwin)
-    CPPFLAGS += -DUSE_CUSTOM_BAUD
-  else
-    $(warning Warning: Custom baudrates not supported for your platform, yet.)
-  endif
-endif
+## Comment this in to enable custom baudrate support for Linux (kernels > 2.6)
+#CPPFLAGS += -DUSE_CUSTOM_BAUD
+#OBJS += termios2.o
+#termios2.o : termios2.c termios2.h termbits2.h
 
 ## Comment this IN to remove help strings (saves ~ 4-6 Kb).
 #CPPFLAGS += -DNO_HELP
