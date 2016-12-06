@@ -161,50 +161,57 @@ term_perror (const char *prefix)
 }
 
 /***************************************************************************/
-/* OSX termios.h unfortunately just provides constants for
- * baudrates up to 230k, so we add the missing constants here.             */
-#if defined(__APPLE__)
-  #ifndef B460800
-    #define B460800   460800
-  #endif
-  #ifndef B500000
-    #define B500000   500000
-  #endif
-  #ifndef B576000
-    #define B576000   576000
-  #endif
-  #ifndef B921600
-    #define B921600   921600
-  #endif
-  #ifndef B1000000
-    #define B1000000 1000000
-  #endif
-  #ifndef B1152000
-    #define B1152000 1152000
-  #endif
-  #ifndef B1500000
-    #define B1500000 1500000
-  #endif
-  #ifndef B2000000
-    #define B2000000 2000000
-  #endif
-  #ifndef B2500000
-    #define B2500000 2500000
-  #endif
-  #ifndef B3000000
-    #define B3000000 3000000
-  #endif
-  #ifndef B3500000
-    #define B3500000 3500000
-  #endif
-  #ifndef B4000000
-    #define B4000000 4000000
-  #endif
+
+/* OSX termios.h unfortunately just provides constants for baudrates
+   up to 230k, so we add the missing constants here. */
+
+#if defined(__APPLE__) && defined(HIGH_BAUD)
+
+#ifndef B460800
+#define B460800   460800
+#endif
+#ifndef B500000
+#define B500000   500000
+#endif
+#ifndef B576000
+#define B576000   576000
+#endif
+#ifndef B921600
+#define B921600   921600
+#endif
+#ifndef B1000000
+#define B1000000 1000000
+#endif
+#ifndef B1152000
+#define B1152000 1152000
+#endif
+#ifndef B1500000
+#define B1500000 1500000
+#endif
+#ifndef B2000000
+#define B2000000 2000000
+#endif
+#ifndef B2500000
+#define B2500000 2500000
+#endif
+#ifndef B3000000
+#define B3000000 3000000
+#endif
+#ifndef B3500000
+#define B3500000 3500000
+#endif
+#ifndef B4000000
+#define B4000000 4000000
+#endif
+
 #endif /* __APPLE__ */
 
 /***************************************************************************/
+
 /* Custom baudrates support for OSX */
+
 #if defined(__APPLE__) && defined (USE_CUSTOM_BAUD)
+
 int cfsetospeed_custom(struct termios *tiop, int speed) {
 	return cfsetospeed(tiop, speed);
 }
@@ -220,6 +227,7 @@ int cfgetospeed_custom(struct termios *tiop) {
 int cfgetispeed_custom(struct termios *tiop) {
 	return cfgetispeed(tiop);
 }
+
 #endif /* __APPLE__ && USE_CUSTOM_BAUD */
 
 /***************************************************************************/
