@@ -56,7 +56,7 @@
 #include <sys/ioctl.h>
 #endif
 
-#ifdef USE_CUSTOM_BAUD
+#if defined(__linux__) && defined(USE_CUSTOM_BAUD)
 /* only works for linux, recent kernels */
 #include "termios2.h"
 #endif
@@ -200,7 +200,27 @@ term_perror (const char *prefix)
   #ifndef B4000000
     #define B4000000 4000000
   #endif
-#endif
+#endif /* __APPLE__ */
+
+/***************************************************************************/
+/* Custom baudrates support for OSX */
+#if defined(__APPLE__) && defined (USE_CUSTOM_BAUD)
+int cfsetospeed_custom(struct termios *tiop, int speed) {
+	return cfsetospeed(tiop, speed);
+}
+
+int cfsetispeed_custom(struct termios *tiop, int speed) {
+	return cfsetispeed(tiop, speed);
+}
+
+int cfgetospeed_custom(struct termios *tiop) {
+	return cfgetospeed(tiop);
+}
+
+int cfgetispeed_custom(struct termios *tiop) {
+	return cfgetispeed(tiop);
+}
+#endif /* __APPLE__ && USE_CUSTOM_BAUD */
 
 /***************************************************************************/
 
