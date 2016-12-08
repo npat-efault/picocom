@@ -190,6 +190,7 @@ struct {
 	int imap;
 	int omap;
 	int emap;
+	char *log_filename;
 	int lower_rts;
 	int lower_dtr;
 } opts = {
@@ -211,6 +212,7 @@ struct {
 	.imap = M_I_DFL,
 	.omap = M_O_DFL,
 	.emap = M_E_DFL,
+	.log_filename = NULL,
 	.lower_rts = 0,
 	.lower_dtr = 0
 };
@@ -221,6 +223,7 @@ int sig_exit = 0;
 #define STI STDIN_FILENO
 
 int tty_fd;
+int log_fd = -1;
 
 #ifndef TTY_Q_SZ
 #define TTY_Q_SZ 256
@@ -357,6 +360,11 @@ fatal (const char *format, ...)
 	uucp_unlock();
 #endif
 	
+	if (opts.log_filename) {
+		free(opts.log_filename);
+		close(log_fd);
+	}
+
 	exit(EXIT_FAILURE);
 }
 
@@ -1182,6 +1190,9 @@ loop(void)
 			} else {
 				int i;
 				char *bmp = &buff_map[0];
+				if ( opts.log_filename )
+					if ( writen_ni(log_fd, buff_rd, n) < n )
+						fatal("write to logfile failed: %s", strerror(errno));
 				for (i = 0; i < n; i++) {
 					bmp += do_map(bmp, opts.imap, buff_rd[i]);
 				}
@@ -1202,6 +1213,9 @@ loop(void)
 			} while ( n < 0 && errno == EINTR );
 			if ( n <= 0 )
 				fatal("write to term failed: %s", strerror(errno));
+			if ( opts.lecho && opts.log_filename )
+				if ( writen_ni(log_fd, tty_q.buff, sz) < sz )
+					fatal("write to logfile failed: %s", strerror(errno));
 			memmove(tty_q.buff, tty_q.buff + n, tty_q.len - n);
 			tty_q.len -= n;
 		}
@@ -1294,6 +1308,7 @@ show_usage(char *name)
 	printf("  --imap <map> (input mappings)\n");
 	printf("  --omap <map> (output mappings)\n");
 	printf("  --emap <map> (local-echo mappings)\n");
+	printf("  --lo<g>file <filename>\n");
 	printf("  --lower-rts\n");
 	printf("  --lower-dtr\n");
 	printf("  --<h>elp\n");
@@ -1337,6 +1352,7 @@ parse_args(int argc, char *argv[])
 		{"parity", required_argument, 0, 'y'},
 		{"databits", required_argument, 0, 'd'},
 		{"stopbits", required_argument, 0, 'p'},
+		{"logfile", required_argument, 0, 'g'},
 		{"lower-rts", no_argument, 0, 'R'},
 		{"lower-dtr", no_argument, 0, 'D'},
 		{"help", no_argument, 0, 'h'},
@@ -1352,7 +1368,7 @@ parse_args(int argc, char *argv[])
 		/* no default error messages printed. */
 		opterr = 0;
 
-		c = getopt_long(argc, argv, "hirlcv:s:r:e:f:b:y:d:p:",
+		c = getopt_long(argc, argv, "hirlcv:s:r:e:f:b:y:d:p:g:",
 						longOptions, &optionIndex);
 
 		if (c < 0)
@@ -1477,6 +1493,10 @@ parse_args(int argc, char *argv[])
 				break;
 			}
 			break;
+		case 'g':
+			opts.log_filename = malloc(strlen(optarg) * sizeof(char));
+			strcpy(opts.log_filename, optarg);
+			break;
 		case 'R':
 			opts.lower_rts = 1;
 			break;
@@ -1537,6 +1557,7 @@ parse_args(int argc, char *argv[])
 	printf("imap is        : "); print_map(opts.imap);
 	printf("omap is        : "); print_map(opts.omap);
 	printf("emap is        : "); print_map(opts.emap);
+	printf("logfile is     : %s\n", opts.log_filename ? opts.log_filename : "none");
 	printf("\n");
 #endif /* of NO_HELP */
 }
@@ -1562,6 +1583,12 @@ main(int argc, char *argv[])
 	if ( uucp_lock() < 0 )
 		fatal("cannot lock %s: %s", opts.port, strerror(errno));
 #endif
+
+	if (opts.log_filename) {
+		log_fd = open(opts.log_filename, O_CREAT | O_RDWR | O_APPEND, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH);
+		if (log_fd < 0)
+			fatal("cannot open %s: %s", opts.log_filename, strerror(errno));
+	}
 
 	tty_fd = open(opts.port, O_RDWR | O_NONBLOCK | O_NOCTTY);
 	if (tty_fd < 0)
@@ -1651,6 +1678,11 @@ main(int argc, char *argv[])
 #ifdef UUCP_LOCK_DIR
 	uucp_unlock();
 #endif
+
+	if (opts.log_filename) {
+		free(opts.log_filename);
+		close(log_fd);
+	}
 
 	return EXIT_SUCCESS;
 }
