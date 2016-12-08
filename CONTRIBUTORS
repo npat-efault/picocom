@@ -55,4 +55,5 @@ comments:
   implementation of the toggle-RTS command.
 
 - Joe Merten (https://github.com/Joe-Merten) contributed the
-  --lower-rts and --lower-dtr options
+  --lower-rts and --lower-dtr options, custom baudrate support for
+  OSX, the --logfile option implementation, and several bug-fixes. 
