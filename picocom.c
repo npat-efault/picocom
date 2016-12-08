@@ -1494,8 +1494,7 @@ parse_args(int argc, char *argv[])
 			}
 			break;
 		case 'g':
-			opts.log_filename = malloc(strlen(optarg) * sizeof(char));
-			strcpy(opts.log_filename, optarg);
+			opts.log_filename = strdup(optarg);
 			break;
 		case 'R':
 			opts.lower_rts = 1;
