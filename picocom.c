@@ -1214,7 +1214,7 @@ loop(void)
 			if ( n <= 0 )
 				fatal("write to term failed: %s", strerror(errno));
 			if ( opts.lecho && opts.log_filename )
-				if ( writen_ni(log_fd, tty_q.buff, sz) < sz )
+				if ( writen_ni(log_fd, tty_q.buff, n) < n )
 					fatal("write to logfile failed: %s", strerror(errno));
 			memmove(tty_q.buff, tty_q.buff + n, tty_q.len - n);
 			tty_q.len -= n;
