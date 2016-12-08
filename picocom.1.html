@@ -134,6 +134,9 @@
 <dt><strong>--emap</strong></dt>
 <dd><p>Specifies the local-echo character map (i.e. special characters to be replaced before being echoed-back to the terminal, if local-echo is enabled). See <strong><a href="#input-output-and-echo-mapping">INPUT, OUTPUT, AND ECHO MAPPING</a></strong>. (Defaul: <strong>delbs,crcrlf</strong>)</p>
 </dd>
+<dt><strong>--logfile</strong> | <strong>-g</strong></dt>
+<dd><p>Use specified file for logging (recording) serial input, and possibly serial output. If the file exists, it is appended to. Every character read from the serial port is written to the specified file (before input mapping is performed). If local-echo mode is is enabled (see <strong>--echo</strong> option and <strong>C-c</strong> command), then every character written to the serial port (after output mapping is performed) is also logged to the same file. (Default: no logging)</p>
+</dd>
 <dt><strong>--lower-rts</strong></dt>
 <dd><p>Lower the RTS control signal after opening the serial port (by default RTS is raised after open). Only supported when flow-control mode is not set to RTS/CTS, ignored otherwise. Only supported in Linux and OSX.</p>
 </dd>
