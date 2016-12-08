@@ -172,7 +172,7 @@ print_map (int flags)
 /**********************************************************************/
 
 struct {
-	char port[128];
+	char *port;
 	int baud;
 	enum flowcntrl_e flow;
 	enum parity_e parity;
@@ -194,7 +194,7 @@ struct {
 	int lower_rts;
 	int lower_dtr;
 } opts = {
-	.port = "",
+	.port = NULL,
 	.baud = 9600,
 	.flow = FC_NONE,
 	.parity = P_NONE,
@@ -360,6 +360,7 @@ fatal (const char *format, ...)
 	uucp_unlock();
 #endif
 	
+	free(opts.port);
 	if (opts.log_filename) {
 		free(opts.log_filename);
 		close(log_fd);
@@ -1522,8 +1523,11 @@ parse_args(int argc, char *argv[])
 		fprintf(stderr, "Run with '--help'.\n");
 		exit(EXIT_FAILURE);
 	}
-	strncpy(opts.port, argv[optind++], sizeof(opts.port) - 1);
-	opts.port[sizeof(opts.port) - 1] = '\0';
+	opts.port = strdup(argv[optind++]);
+	if ( ! opts.port ) {
+		fprintf(stderr, "Out of memory\n");
+		exit(EXIT_FAILURE);
+	}
 
 	if ( argc != optind ) {
 		fprintf(stderr, "Unexpected non-option arguments: ");
@@ -1678,6 +1682,7 @@ main(int argc, char *argv[])
 	uucp_unlock();
 #endif
 
+	free(opts.port);
 	if (opts.log_filename) {
 		free(opts.log_filename);
 		close(log_fd);
