@@ -277,9 +277,10 @@ Picocom accepts the following command-line options.
     possibly serial output. If the file exists, it is appended to.
     Every character read from the serial port is written to the
     specified file (before input mapping is performed). If local-echo
-    mode is is enabled (see --echo option and C-c command), then every
-    character written to the serial port (after output mapping is
-    performed) is also logged to the same file.
+    mode is is enabled (see **--echo** option and **C-c** command),
+    then every character written to the serial port (after output
+    mapping is performed) is also logged to the same file. (Default:
+    no logging)
 
 **--lower-rts**
 
