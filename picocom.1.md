@@ -271,6 +271,16 @@ Picocom accepts the following command-line options.
     local-echo is enabled). See
     **[INPUT, OUTPUT, AND ECHO MAPPING]**. (Defaul: **delbs,crcrlf**)
 
+**--logfile** | **-g**
+
+:   Use specified file for logging (recording) serial input, and
+    possibly serial output. If the file exists, it is appended to.
+    Every character read from the serial port is written to the
+    specified file (before input mapping is performed). If local-echo
+    mode is is enabled (see --echo option and C-c command), then every
+    character written to the serial port (after output mapping is
+    performed) is also logged to the same file.
+
 **--lower-rts**
 
 :   Lower the RTS control signal after opening the serial port (by
