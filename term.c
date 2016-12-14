@@ -208,9 +208,9 @@ term_perror (const char *prefix)
 
 /***************************************************************************/
 
-/* Custom baudrates support for OSX */
-
-#if defined(__APPLE__) && defined (USE_CUSTOM_BAUD)
+/* Custom baudrates support for OSX and BSD */
+#if defined (USE_CUSTOM_BAUD)
+#if defined(__APPLE__) || defined(__bsdi__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
 
 int cfsetospeed_custom(struct termios *tiop, int speed) {
 	return cfsetospeed(tiop, speed);
@@ -228,7 +228,8 @@ int cfgetispeed_custom(struct termios *tiop) {
 	return cfgetispeed(tiop);
 }
 
-#endif /* __APPLE__ && USE_CUSTOM_BAUD */
+#endif /* __APPLE__ && __*BSD*__ */
+#endif /* USE_CUSTOM_BAUD */
 
 /***************************************************************************/
 
