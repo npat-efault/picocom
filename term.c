@@ -61,6 +61,10 @@
 #include "termios2.h"
 #endif
 
+#if defined(__APPLE__) && defined(USE_CUSTOM_BAUD)
+#include <IOKit/serial/ioss.h>
+#endif
+
 #include "term.h"
 
 /***************************************************************************/
@@ -750,6 +754,9 @@ int
 term_apply (int fd, int now)
 {
 	int when, rval, r, i;
+#if defined(__APPLE__) && defined(USE_CUSTOM_BAUD)
+	int osx_baud_hack = -1;
+#endif
 
 	when = now ? TCSANOW : TCSAFLUSH;
 
@@ -762,13 +769,34 @@ term_apply (int fd, int now)
 			rval = -1;
 			break;
 		}
-		
+
+#if defined(__APPLE__) && defined(USE_CUSTOM_BAUD)
+		if (fd >= 3) { // don't apply this hack for stdin/stdout/stderr
+			// temporarily switching baudrate back to 9600, because tcsetattr() will fail with non standard baud rate in termios
+			osx_baud_hack = cfgetospeed(&term.nexttermios[i]);
+			if (osx_baud_hack > 460800 || Bcode(osx_baud_hack) == BNONE)
+				cfsetospeed(&term.nexttermios[i], B9600);
+			else
+				osx_baud_hack = -1; // standard baud rate, hack not needed in this case
+		}
+#endif
 		r = tcsetattr(term.fd[i], when, &term.nexttermios[i]);
 		if ( r < 0 ) {
 			term_errno = TERM_ESETATTR;
 			rval = -1;
 			break;
 		}
+#if defined(__APPLE__) && defined(USE_CUSTOM_BAUD)
+		if (osx_baud_hack > 0) {
+			r = ioctl(fd, IOSSIOSPEED, &osx_baud_hack);
+			//fprintf(stderr, "%s: ioctl(%d, %d) = %d\n", __FUNCTION__, fd, osx_baud_hack, r);
+			if ( r < 0 ) {
+				term_errno = TERM_ESETOSPEED;
+				rval = -1;
+				break;
+			}
+		}
+#endif
 		r = tcgetattr(term.fd[i], &term.nexttermios[i]);
 		if ( r < 0 ) {
 			term_errno = TERM_EGETATTR;
