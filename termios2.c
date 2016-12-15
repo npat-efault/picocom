@@ -23,9 +23,12 @@
  * USA 
  */
 
-#ifndef __linux__
-#error "Linux specific code!"
-#endif /* of __linux__ */
+#if defined(__linux__) && defined(USE_CUSTOM_BAUD)
+
+#include <linux/version.h>
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,0)
+#error "This code requires Linux kernel > 2.6!"
+#endif
 
 #include <string.h>
 #include <unistd.h>
@@ -179,6 +182,8 @@ cf2setispeed_custom(struct termios *tios, int speed)
 }
 
 /***************************************************************************/
+
+#endif /* __linux__ && USE_CUSTOM_BAUD */
 
 /*
  * Local Variables:
