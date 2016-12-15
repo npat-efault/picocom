@@ -36,19 +36,14 @@ CPPFLAGS += -DHISTFILE=\"$(HISTFILE)\" \
 OBJS += linenoise-1.0/linenoise.o
 linenoise-1.0/linenoise.o : linenoise-1.0/linenoise.c linenoise-1.0/linenoise.h
 
-## Comment this in to enable custom baudrate support for OSX (Tiger and above)
+## Comment this in to enable custom baudrate support for Linux (kernels > 2.6), OSX (Tiger and above)
 #CPPFLAGS += -DUSE_CUSTOM_BAUD
-
-## Comment this in to enable custom baudrate support for Linux (kernels > 2.6)
-#CPPFLAGS += -DUSE_CUSTOM_BAUD
-#OBJS += termios2.o
-#termios2.o : termios2.c termios2.h termbits2.h
 
 ## Comment this IN to remove help strings (saves ~ 4-6 Kb).
 #CPPFLAGS += -DNO_HELP
 
 
-OBJS += picocom.o term.o fdio.o split.o
+OBJS += picocom.o term.o fdio.o split.o termios2.o
 picocom : $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
 
@@ -56,6 +51,7 @@ picocom.o : picocom.c term.h
 term.o : term.c term.h
 split.o : split.c split.h
 fdio.o : fdio.c fdio.h
+termios2.o : termios2.c termios2.h termbits2.h
 
 .c.o :
 	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ -c $<
