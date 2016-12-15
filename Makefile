@@ -36,7 +36,8 @@ CPPFLAGS += -DHISTFILE=\"$(HISTFILE)\" \
 OBJS += linenoise-1.0/linenoise.o
 linenoise-1.0/linenoise.o : linenoise-1.0/linenoise.c linenoise-1.0/linenoise.h
 
-## Comment this in to enable custom baudrate support for Linux (kernels > 2.6), OSX (Tiger and above)
+## Comment this in to enable custom baudrate support.
+## Works with: Linux (kernels > 2.6), OSX (Tiger and above)
 #CPPFLAGS += -DUSE_CUSTOM_BAUD
 
 ## Comment this IN to remove help strings (saves ~ 4-6 Kb).
