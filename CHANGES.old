@@ -52,7 +52,7 @@ Changed paths:
 Added support for UUCP-style locks. Lock handling is compiled-in if
 the macro UUCP_LOCK_DIR is defined; if it is, it must contain the name
 of the lock directory. Locking can be disabled at runtime using the
-"--no<l>ock" option. 
+"--no<l>ock" option.
 
 UUCP-locks support is based on a patch submitted by Julius
 P. Malkiewicz <julius@sonartech.com.au>

@@ -6,7 +6,7 @@
  *
  * by Nick Patavalis (npat@efault.net)
  *
- * ATTENTION: Linux-specific kludge! 
+ * ATTENTION: Linux-specific kludge!
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -21,7 +21,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA 
+ * USA
  */
 
 #ifndef TERMBITS2_H
@@ -56,7 +56,7 @@
   cannot get the definion of "struct termios2" from the above header
   files, since this would also bring-in the clashing definition of the
   kernel version of "struct termios". If you have an idea for a better
-  way out of this mess, I would REALLY like to hear it. 
+  way out of this mess, I would REALLY like to hear it.
 
   I hope that soon GLIBC will pick-up termios2 and all these will be
   useless. Until then ...
