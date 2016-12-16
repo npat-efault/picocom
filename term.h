@@ -122,31 +122,31 @@
  * See the error strings in "term.c" for a description of each.
  */
 enum term_errno_e {
-	TERM_EOK = 0,
-	TERM_ENOINIT,
-	TERM_EFULL,
+    TERM_EOK = 0,
+    TERM_ENOINIT,
+    TERM_EFULL,
     TERM_ENOTFOUND,
     TERM_EEXISTS,
     TERM_EATEXIT,
     TERM_EISATTY,
     TERM_EFLUSH,     /* see errno */
-	TERM_EGETATTR,   /* see errno */
-	TERM_ESETATTR,   /* see errno */
-	TERM_EBAUD,
-	TERM_ESETOSPEED,
-	TERM_ESETISPEED,
-	TERM_EGETSPEED,
-	TERM_EPARITY,
-	TERM_EDATABITS,
-	TERM_ESTOPBITS,
-	TERM_EFLOW,
-	TERM_EDTRDOWN,
-	TERM_EDTRUP,
-	TERM_EMCTL,
-	TERM_EDRAIN,     /* see errno */
-	TERM_EBREAK,
-	TERM_ERTSDOWN,
-	TERM_ERTSUP
+    TERM_EGETATTR,   /* see errno */
+    TERM_ESETATTR,   /* see errno */
+    TERM_EBAUD,
+    TERM_ESETOSPEED,
+    TERM_ESETISPEED,
+    TERM_EGETSPEED,
+    TERM_EPARITY,
+    TERM_EDATABITS,
+    TERM_ESTOPBITS,
+    TERM_EFLOW,
+    TERM_EDTRDOWN,
+    TERM_EDTRUP,
+    TERM_EMCTL,
+    TERM_EDRAIN,     /* see errno */
+    TERM_EBREAK,
+    TERM_ERTSDOWN,
+    TERM_ERTSUP
 };
 
 /* E parity_e
@@ -160,11 +160,11 @@ enum term_errno_e {
  * P_SPACE - space parity (parity bit always 0)
  */
 enum parity_e {
-	P_NONE = 0,
-	P_EVEN,
-	P_ODD,
-	P_MARK,
-	P_SPACE
+    P_NONE = 0,
+    P_EVEN,
+    P_ODD,
+    P_MARK,
+    P_SPACE
 };
 
 /*
@@ -178,10 +178,10 @@ enum parity_e {
  * FC_XONXOFF  - xon/xoff flow control.
  */
 enum flowcntrl_e {
-	FC_NONE = 0,
-	FC_RTSCTS,
-	FC_XONXOFF,
-	FC_OTHER
+    FC_NONE = 0,
+    FC_RTSCTS,
+    FC_XONXOFF,
+    FC_OTHER
 };
 
 /*
@@ -524,9 +524,9 @@ int term_set (int fd,
               int raw,
               int baud,
               enum parity_e parity,
-			  int databits, int stopbits,
-			  enum flowcntrl_e fc,
-			  int local, int hupcl);
+              int databits, int stopbits,
+              enum flowcntrl_e fc,
+              int local, int hupcl);
 
 /* F term_get_baudrate
  *
