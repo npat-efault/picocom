@@ -9,7 +9,7 @@ The latest release can be downloaded from:
 
 As its name suggests, *picocom* is a minimal dumb-terminal emulation
 program. It is, in principle, very much like minicom, only it's "pico"
-instead of "mini"! 
+instead of "mini"!
 
 It was designed to serve as a simple, manual, modem configuration,
 testing, and debugging tool. It has also served (quite well) as a
@@ -61,7 +61,7 @@ example:
 	cp picocom.1 ~/man/man1
 
 Again, this is not strictly necessary. You can run picocom and read
-its man-page directly from the source directory. 
+its man-page directly from the source directory.
 
 If something goes wrong and picocom can't compile cleanly, or if it's
 lacking a feature you need, take a look at the included Makefile. It's

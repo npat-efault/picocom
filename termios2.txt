@@ -7,7 +7,7 @@ through the "new" "termios2" terminal-attributes structure, and the
 respective ioctls: TCSETS2, TCSETSW2, TCSETSF2, and TCGETS2.
 
 The "termios2" structure is defined in:
-  
+
      <linux-kernel>/arch/<arch>/include/uapi/asm/termbits.h
   or <linux-kernel>/include/uapi/asm-generic/termbits.h
 
