@@ -282,6 +282,14 @@ Picocom accepts the following command-line options.
     mapping is performed) is also logged to the same file. (Default:
     no logging)
 
+**--initstring** | **-t**
+
+:   Send the provided string after opening the serial port. This
+    feature is useful for example if the serial device needs some
+    special magic strings to start responding. Use $(echo -e ...)
+    or xxd to generate special characters like a CR or binary data.
+    Note, that the initial string is not sent if **--noinit** is set.
+
 **--lower-rts**
 
 :   Lower the RTS control signal after opening the serial port (by

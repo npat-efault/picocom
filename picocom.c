@@ -191,6 +191,7 @@ struct {
     int omap;
     int emap;
     char *log_filename;
+    char *initstring;
     int lower_rts;
     int lower_dtr;
 } opts = {
@@ -213,6 +214,7 @@ struct {
     .omap = M_O_DFL,
     .emap = M_E_DFL,
     .log_filename = NULL,
+    .initstring = NULL,
     .lower_rts = 0,
     .lower_dtr = 0
 };
@@ -1310,6 +1312,7 @@ show_usage(char *name)
     printf("  --omap <map> (output mappings)\n");
     printf("  --emap <map> (local-echo mappings)\n");
     printf("  --lo<g>file <filename>\n");
+    printf("  --inits<t>ring <s>\n");
     printf("  --lower-rts\n");
     printf("  --lower-dtr\n");
     printf("  --<h>elp\n");
@@ -1354,6 +1357,7 @@ parse_args(int argc, char *argv[])
         {"databits", required_argument, 0, 'd'},
         {"stopbits", required_argument, 0, 'p'},
         {"logfile", required_argument, 0, 'g'},
+        {"initstring", required_argument, 0, 't'},
         {"lower-rts", no_argument, 0, 'R'},
         {"lower-dtr", no_argument, 0, 'D'},
         {"help", no_argument, 0, 'h'},
@@ -1369,7 +1373,7 @@ parse_args(int argc, char *argv[])
         /* no default error messages printed. */
         opterr = 0;
 
-        c = getopt_long(argc, argv, "hirlcv:s:r:e:f:b:y:d:p:g:",
+        c = getopt_long(argc, argv, "hirlcv:s:r:e:f:b:y:d:p:g:t:",
                         longOptions, &optionIndex);
 
         if (c < 0)
@@ -1497,6 +1501,9 @@ parse_args(int argc, char *argv[])
         case 'g':
             opts.log_filename = strdup(optarg);
             break;
+        case 't':
+            opts.initstring = strdup(optarg);
+            break;
         case 'R':
             opts.lower_rts = 1;
             break;
@@ -1617,6 +1624,10 @@ main(int argc, char *argv[])
                      opts.flow,      /* flow control. */
                      1,              /* local or modem */
                      !opts.noreset); /* hup-on-close. */
+
+        if (opts.initstring) {
+            write(tty_fd, opts.initstring, strlen(opts.initstring));
+        }
     }
     if ( r < 0 )
         fatal("failed to add device %s: %s",
