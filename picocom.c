@@ -56,7 +56,7 @@
 #endif
 
 #include "custbaud.h"
-
+#include "default_settings.h"
 /**********************************************************************/
 
 /* parity modes names */
@@ -218,34 +218,34 @@ struct {
     int quiet;
 } opts = {
     .port = NULL,
-    .baud = 9600,
-    .flow = FC_NONE,
-    .parity = P_NONE,
-    .databits = 8,
-    .stopbits = 1,
-    .lecho = 0,
-    .noinit = 0,
-    .noreset = 0,
-    .hangup = 0,
+    .baud = DEF_BAUD,
+    .flow = DEF_FLOW,
+    .parity = DEF_PARITY,
+    .databits = DEF_DATABITS,
+    .stopbits = DEF_STOPBITS,
+    .lecho = DEF_LECHO,
+    .noinit = DEF_NOINIT,
+    .noreset = DEF_NORESET,
+    .hangup = DEF_HANGUP,
 #if defined (UUCP_LOCK_DIR) || defined (USE_FLOCK)
-    .nolock = 0,
+    .nolock = DEF_NOLOCK,
 #endif
-    .escape = CKEY('a'),
-    .noescape = 0,
-    .send_cmd = "sz -vv",
-    .receive_cmd = "rz -vv -E",
-    .imap = M_I_DFL,
-    .omap = M_O_DFL,
-    .emap = M_E_DFL,
-    .log_filename = NULL,
-    .initstring = NULL,
-    .exit_after = -1,
-    .exit = 0,
-    .lower_rts = 0,
-    .lower_dtr = 0,
-    .raise_rts = 0,
-    .raise_dtr = 0,
-    .quiet = 0
+    .escape = CKEY(DEF_ESCAPE),
+    .noescape = DEF_NOESCAPE,
+    .send_cmd = DEF_SEND_CMD,
+    .receive_cmd = DEF_RECEIVE_CMD,
+    .imap = DEF_IMAP,
+    .omap = DEF_OMAP,
+    .emap = DEF_EMAP,
+    .log_filename = DEF_LOG_FILENAME,
+    .initstring = DEF_INITSTRING,
+    .exit_after = DEF_EXIT_AFTER,
+    .exit = DEF_EXIT,
+    .lower_rts = DEF_LOWER_RTS,
+    .lower_dtr = DEF_LOWER_DTR,
+    .raise_rts = DEF_RAISE_RTS,
+    .raise_dtr = DEF_RAISE_DTR,
+    .quiet = DEF_QUIET
 };
 
 int sig_exit = 0;
@@ -1926,11 +1926,10 @@ parse_args(int argc, char *argv[])
     if ( opts.exit ) opts.exit_after = -1;
 
     if ( (argc - optind) < 1) {
-        fprintf(stderr, "No port given\n");
-        fprintf(stderr, "Run with '--help'.\n");
-        exit(EXIT_FAILURE);
+        opts.port = strdup(DEF_PORT);
+    } else {
+        opts.port = strdup(argv[optind++]);
     }
-    opts.port = strdup(argv[optind++]);
     if ( ! opts.port ) {
         fprintf(stderr, "Out of memory\n");
         exit(EXIT_FAILURE);
