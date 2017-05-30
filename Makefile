@@ -1,13 +1,13 @@
 
 VERSION = 2.3a
 
-#CC = gcc
-CPPFLAGS = -DVERSION_STR=\"$(VERSION)\"
-CFLAGS = -Wall -g
+#CC ?= gcc
+CPPFLAGS += -DVERSION_STR=\"$(VERSION)\"
+CFLAGS += -Wall -g
 
 LD = $(CC)
-LDFLAGS = -g
-LDLIBS =
+LDFLAGS ?= -g
+LDLIBS ?=
 
 all: picocom
 OBJS =
