@@ -1420,6 +1420,8 @@ parse_args(int argc, char *argv[])
             switch (optarg[0]) {
             case 'X':
             case 'x':
+	    case 'S':
+            case 's':
                 opts.flow = FC_XONXOFF;
                 break;
             case 'H':
@@ -1481,12 +1483,21 @@ parse_args(int argc, char *argv[])
             }
             break;
         case 'p':
+            opts.stopbits = 1;
             switch (optarg[0]) {
             case '1':
-                opts.stopbits = 1;
                 break;
             case '2':
                 opts.stopbits = 2;
+                break;
+            case 'e':
+                opts.parity = P_EVEN;
+                break;
+            case 'o':
+                opts.parity = P_ODD;
+                break;
+            case 'n':
+                opts.parity = P_NONE;
                 break;
             default:
                 fprintf(stderr, "Invalid --stopbits: %c\n", optarg[0]);
