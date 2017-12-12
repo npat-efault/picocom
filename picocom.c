@@ -1494,6 +1494,8 @@ parse_args(int argc, char *argv[])
             case '2':
                 opts.stopbits = 2;
                 break;
+            /* For backwards compatibility, you can use 'p' to set
+               he parity as well */
             case 'e':
                 opts.parity = P_EVEN;
                 break;
