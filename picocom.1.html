@@ -137,6 +137,9 @@
 <dt><strong>--logfile</strong> | <strong>-g</strong></dt>
 <dd><p>Use specified file for logging (recording) serial input, and possibly serial output. If the file exists, it is appended to. Every character read from the serial port is written to the specified file (before input mapping is performed). If local-echo mode is is enabled (see <strong>--echo</strong> option and <strong>C-c</strong> command), then every character written to the serial port (after output mapping is performed) is also logged to the same file. (Default: no logging)</p>
 </dd>
+<dt><strong>--initstring</strong> | <strong>-t</strong></dt>
+<dd><p>Send the provided string after opening the serial port. This feature is useful for example if the serial device needs some special magic strings to start responding. Use $(echo -e ...) or xxd to generate special characters like a CR or binary data. Note, that the initial string is not sent if <strong>--noinit</strong> is set.</p>
+</dd>
 <dt><strong>--lower-rts</strong></dt>
 <dd><p>Lower the RTS control signal after opening the serial port (by default RTS is raised after open). Only supported when flow-control mode is not set to RTS/CTS, ignored otherwise. Only supported in Linux and OSX.</p>
 </dd>
@@ -149,7 +152,7 @@
 </dl>
 <h1 id="display-of-options-and-port-settings">DISPLAY OF OPTIONS AND PORT SETTINGS</h1>
 <p>The &quot;show program options&quot; command (<strong>C-v</strong>), as well as the commands that change program options (<strong>C-b</strong>, <strong>C-u</strong>, <strong>C-d</strong>, <strong>C-f</strong>, etc) print messages showing the current values (or the new values, if they were changed) for the respective options. If picocom determines that an actual serial-port setting differs from the current value of the respective option (for whatever reason), then the value of the option is shown followed by the value of the actual serial-port setting in parenthesis. Example:</p>
-<pre><code>*** baud: 115200 (9600) </code></pre>
+<pre><code>*** baud: 115200 (9600)</code></pre>
 <p>This means that a baud rate of 115200bps has been selected (from the command line, or using commands that change the baudrate) but the serial-port is actually operating at 9600bps (the driver may not support the higher setting, and has silently replaced it with a safe default, or the setting may have been changed from outside picocom). If the option and the corresponding serial-port setting are the same, only a single value is shown. Example:</p>
 <pre><code>*** baud: 9600</code></pre>
 <p>This behavior was introduced in picocom 2.0. Older releases displayed only the option values, not the actual serial-port settings corresponding to them.</p>
