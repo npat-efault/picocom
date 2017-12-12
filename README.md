@@ -1,4 +1,4 @@
-#picocom
+# picocom
 Minimal dumb-terminal emulator
 
 by Nick Patavalis (npat@efault.net)
