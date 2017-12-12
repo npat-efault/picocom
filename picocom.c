@@ -1420,7 +1420,7 @@ parse_args(int argc, char *argv[])
             switch (optarg[0]) {
             case 'X':
             case 'x':
-	    case 'S':
+            case 'S':
             case 's':
                 opts.flow = FC_XONXOFF;
                 break;
