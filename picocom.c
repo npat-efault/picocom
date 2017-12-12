@@ -1495,7 +1495,7 @@ parse_args(int argc, char *argv[])
                 opts.stopbits = 2;
                 break;
             /* For backwards compatibility, you can use 'p' to set
-               he parity as well */
+               the parity as well */
             case 'e':
                 opts.parity = P_EVEN;
                 break;
@@ -1640,6 +1640,8 @@ main(int argc, char *argv[])
 
         if (opts.initstring) {
             write(tty_fd, opts.initstring, strlen(opts.initstring));
+            free(opts.initstring);
+            opts.initstring = NULL;
         }
     }
     if ( r < 0 )
