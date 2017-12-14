@@ -364,6 +364,10 @@ fatal (const char *format, ...)
     uucp_unlock();
 #endif
 
+    if ( opts.initstring ) {
+        free(opts.initstring);
+        opts.initstring = NULL;
+    }
     free(opts.port);
     if (opts.log_filename) {
         free(opts.log_filename);
