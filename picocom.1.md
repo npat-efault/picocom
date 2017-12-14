@@ -313,7 +313,7 @@ Picocom accepts the following command-line options.
 
 **--exit-aftrer** | **-x**
 
-:   Exit picocom after remaining idle for the specified time (in
+:   Exit picocom if it remains idle for the specified time (in
     milliseconds). Picocom is considered idle if: Nothing is read
     (received) from the serial port, AND there is nothing to write
     (send) to the serial port, AND nothing is read from the
