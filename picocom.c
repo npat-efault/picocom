@@ -1114,8 +1114,10 @@ loop(void)
     fd_set rdset, wrset;
     int r, n;
     unsigned char c;
+    int stdin_closed;
 
     state = ST_TRANSPARENT;
+    stdin_closed = 0;
 
     while ( ! sig_exit ) {
         struct timeval tv, *ptv;
@@ -1123,7 +1125,7 @@ loop(void)
         ptv = NULL;
         FD_ZERO(&rdset);
         FD_ZERO(&wrset);
-        FD_SET(STI, &rdset);
+        if ( ! stdin_closed ) FD_SET(STI, &rdset);
         FD_SET(tty_fd, &rdset);
         if ( tty_q.len ) {
             FD_SET(tty_fd, &wrset);
@@ -1131,6 +1133,10 @@ loop(void)
             if ( opts.exit_after >= 0 ) {
                 msec2tv(&tv, opts.exit_after);
                 ptv = &tv;
+            } else if ( stdin_closed ) {
+                /* stdin closed, output queue empty, and no
+                   idle timeout: Exit. */
+                return;
             }
         }
 
@@ -1142,7 +1148,7 @@ loop(void)
                 fatal("select failed: %d : %s", errno, strerror(errno));
         }
         if ( r == 0 ) {
-            /* Idle for --exit-after */
+            /* Idle timeout expired */
             return;
         }
 
@@ -1154,7 +1160,9 @@ loop(void)
                 n = read(STI, &c, 1);
             } while (n < 0 && errno == EINTR);
             if (n == 0) {
-                fatal("stdin closed");
+                stdin_closed = 1;
+                fd_pinfof(opts.quiet, "\r\n** stdin closed **\r\n");
+                goto skip_proc_STI;
             } else if (n < 0) {
                 /* is this really necessary? better safe than sory! */
                 if ( errno != EAGAIN && errno != EWOULDBLOCK )
@@ -1717,15 +1725,20 @@ main(int argc, char *argv[])
 
     set_tty_write_sz(term_get_baudrate(tty_fd, NULL));
 
-    r = term_add(STI);
-    if ( r < 0 )
-        fatal("failed to add I/O device: %s",
-              term_strerror(term_errno, errno));
-    term_set_raw(STI);
-    r = term_apply(STI, 0);
-    if ( r < 0 )
-        fatal("failed to set I/O device to raw mode: %s",
-              term_strerror(term_errno, errno));
+    if ( isatty(STI) ) {
+        r = term_add(STI);
+        if ( r < 0 )
+            fatal("failed to add I/O device: %s",
+                  term_strerror(term_errno, errno));
+        term_set_raw(STI);
+        r = term_apply(STI, 0);
+        if ( r < 0 )
+            fatal("failed to set I/O device to raw mode: %s",
+                  term_strerror(term_errno, errno));
+    } else {
+        fd_pinfof(opts.quiet,
+                  "!! STDIN is not a TTY !! Continuing anyway...\r\n");
+    }
 
 #ifdef LINENOISE
     init_history();
@@ -1758,7 +1771,7 @@ main(int argc, char *argv[])
         }
     }
     /* Free initstirng, no longer needed */
-    if (opts.initstring) {
+    if ( opts.initstring ) {
         free(opts.initstring);
         opts.initstring = NULL;
     }

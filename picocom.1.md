@@ -323,6 +323,15 @@ Picocom accepts the following command-line options.
     when it becomes idle. When exiting with **--exit-after**, picocom
     observes the **--noreset** setting as usual. (Default: not set).
 
+    NOTICE: If **--exit-after** is set, reading zero bytes from the
+    standard input (which usually means that whatever was connected
+    there has been closed), will not cause picocom to exit. Instead,
+    picocom will keep running without reading from stdin, and will
+    exit only when it becomes idle for the specified time, or if
+    killed by a signal. If **--exit-after** is *not* set, then reading
+    zero bytes from the standard input causes picocom to exit, after
+    the contents of its output queue have been transmitted.
+
 **--quiet** | **-q**
 
 :   Forces picocom to be quiet. Suppresses the output of the initial
