@@ -151,6 +151,9 @@
 <dt><strong>--exit-aftrer</strong> | <strong>-x</strong></dt>
 <dd><p>Exit picocom after remaining idle for the specified time (in milliseconds). Picocom is considered idle if: Nothing is read (received) from the serial port, AND there is nothing to write (send) to the serial port, AND nothing is read from the terminal. If <strong>--exit-after</strong> is set to zero, then picocom exits after opening and configuring the serial port, after sending the init string (if any, see option <strong>--initstring</strong>), and imediatelly when it becomes idle. When exiting with <strong>--exit-after</strong>, picocom observes the <strong>--noreset</strong> setting as usual. (Default: not set).</p>
 </dd>
+<dt><strong>--quiet</strong> | <strong>-q</strong></dt>
+<dd><p>Forces picocom to be quiet. Suppresses the output of the initial status and options information, as well as any other information or messages not explicitly requested by the user. Responses to user commands and any error or warning messages are still printed.</p>
+</dd>
 <dt><strong>--help</strong> | <strong>-h</strong></dt>
 <dd><p>Print a short help message describing the command-line options. Picocom's version, ompile-time options, and enabled features are also shown.</p>
 </dd>
