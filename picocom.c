@@ -195,6 +195,7 @@ struct {
     int exit_after;
     int lower_rts;
     int lower_dtr;
+    int quiet;
 } opts = {
     .port = NULL,
     .baud = 9600,
@@ -218,7 +219,8 @@ struct {
     .initstring = NULL,
     .exit_after = -1,
     .lower_rts = 0,
-    .lower_dtr = 0
+    .lower_dtr = 0,
+    .quiet = 0
 };
 
 int sig_exit = 0;
@@ -1390,6 +1392,7 @@ parse_args(int argc, char *argv[])
         {"exit-after", required_argument, 0, 'x'},
         {"lower-rts", no_argument, 0, 'R'},
         {"lower-dtr", no_argument, 0, 'D'},
+        {"quiet", no_argument, 0, 'q'},
         {"help", no_argument, 0, 'h'},
         {0, 0, 0, 0}
     };
@@ -1404,7 +1407,7 @@ parse_args(int argc, char *argv[])
         /* no default error messages printed. */
         opterr = 0;
 
-        c = getopt_long(argc, argv, "hirlcv:s:r:e:f:b:y:d:p:g:t:x:",
+        c = getopt_long(argc, argv, "hirlcqv:s:r:e:f:b:y:d:p:g:t:x:",
                         longOptions, &optionIndex);
 
         if (c < 0)
@@ -1562,6 +1565,9 @@ parse_args(int argc, char *argv[])
                 break;
             }
             break;
+        case 'q':
+            opts.quiet = 1;
+            break;
         case 'h':
             show_usage(argv[0]);
             exit(EXIT_SUCCESS);
@@ -1595,6 +1601,9 @@ parse_args(int argc, char *argv[])
         fprintf(stderr, "\n");
         exit(EXIT_FAILURE);
     }
+
+    if ( opts.quiet )
+        return;
 
 #ifndef NO_HELP
     printf("picocom v%s\n", VERSION_STR);
@@ -1723,10 +1732,11 @@ main(int argc, char *argv[])
 #endif
 
 #ifndef NO_HELP
-    fd_printf(STO, "Type [C-%c] [C-%c] to see available commands\r\n\r\n",
+    fd_pinfof(opts.quiet,
+              "Type [C-%c] [C-%c] to see available commands\r\n\r\n",
               KEYC(opts.escape), KEYC(KEY_HELP));
 #endif
-    fd_printf(STO, "Terminal ready\r\n");
+    fd_pinfof(opts.quiet, "Terminal ready\r\n");
 
     /* Prime output buffer with initstring */
     tty_q.len = 0;
@@ -1760,16 +1770,16 @@ main(int argc, char *argv[])
     cleanup_history();
 #endif
 
-    fd_printf(STO, "\r\n");
+    fd_pinfof(opts.quiet, "\r\n");
     if ( opts.noreset ) {
-        fd_printf(STO, "Skipping tty reset...\r\n");
+        fd_pinfof(opts.quiet, "Skipping tty reset...\r\n");
         term_erase(tty_fd);
     }
 
     if ( sig_exit )
-        fd_printf(STO, "Picocom was killed\r\n");
+        fd_pinfof(opts.quiet, "Picocom was killed\r\n");
     else
-        fd_printf(STO, "Thanks for using picocom\r\n");
+        fd_pinfof(opts.quiet, "Thanks for using picocom\r\n");
     /* wait a bit for output to drain */
     sleep(1);
 

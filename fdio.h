@@ -28,6 +28,8 @@ ssize_t writen_ni(int fd, const void *buff, size_t n);
 
 int fd_printf (int fd, const char *format, ...);
 
+int fd_pinfof (int quiet, const char *format, ...);
+
 #ifndef LINENOISE
 
 int fd_readline (int fdi, int fdo, char *b, int bsz);

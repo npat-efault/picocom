@@ -323,6 +323,13 @@ Picocom accepts the following command-line options.
     when it becomes idle. When exiting with **--exit-after**, picocom
     observes the **--noreset** setting as usual. (Default: not set).
 
+**--quiet** | **-q**
+
+:   Forces picocom to be quiet. Suppresses the output of the initial
+    status and options information, as well as any other information or
+    messages not explicitly requested by the user. Responses to user
+    commands and any error or warning messages are still printed.
+
 **--help** | **-h**
 
 :   Print a short help message describing the command-line
