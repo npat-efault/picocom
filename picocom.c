@@ -3,7 +3,7 @@
  * picocom.c
  *
  * simple dumb-terminal program. Helps you manually configure and test
- * stuff like modems, devices w. serial ports etc.
+ * stuff like modems, devices w. serial ports, etc.
  *
  * by Nick Patavalis (npat@efault.net)
  *
@@ -1608,7 +1608,9 @@ main(int argc, char *argv[])
 #endif
 
     if (opts.log_filename) {
-        log_fd = open(opts.log_filename, O_CREAT | O_RDWR | O_APPEND, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH);
+        log_fd = open(opts.log_filename,
+                      O_CREAT | O_RDWR | O_APPEND,
+                      S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH);
         if (log_fd < 0)
             fatal("cannot open %s: %s", opts.log_filename, strerror(errno));
     }
@@ -1651,12 +1653,14 @@ main(int argc, char *argv[])
     if ( opts.lower_rts ) {
         r = term_lower_rts(tty_fd);
         if ( r < 0 )
-            fatal("failed to lower RTS of device %s: %s", opts.port, term_strerror(term_errno, errno));
+            fatal("failed to lower RTS of device %s: %s",
+                  opts.port, term_strerror(term_errno, errno));
     }
     if ( opts.lower_dtr ) {
         r = term_lower_dtr(tty_fd);
         if ( r < 0 )
-            fatal("failed to lower DTR of device %s: %s", opts.port, term_strerror(term_errno, errno));
+            fatal("failed to lower DTR of device %s: %s",
+                  opts.port, term_strerror(term_errno, errno));
     }
 
     r = term_apply(tty_fd, 0);
