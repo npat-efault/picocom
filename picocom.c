@@ -1113,7 +1113,6 @@ loop(void)
     int r, n;
     unsigned char c;
 
-    tty_q.len = 0;
     state = ST_TRANSPARENT;
 
     while ( ! sig_exit ) {
@@ -1127,8 +1126,10 @@ loop(void)
         if ( tty_q.len ) {
             FD_SET(tty_fd, &wrset);
         } else {
-            msec2tv(&tv, opts.exit_after);
-            ptv = &tv;
+            if ( opts.exit_after >= 0 ) {
+                msec2tv(&tv, opts.exit_after);
+                ptv = &tv;
+            }
         }
 
         r = select(tty_fd + 1, &rdset, &wrset, NULL, ptv);
@@ -1682,12 +1683,6 @@ main(int argc, char *argv[])
                      opts.flow,      /* flow control. */
                      1,              /* local or modem */
                      !opts.noreset); /* hup-on-close. */
-
-        if (opts.initstring) {
-            write(tty_fd, opts.initstring, strlen(opts.initstring));
-            free(opts.initstring);
-            opts.initstring = NULL;
-        }
     }
     if ( r < 0 )
         fatal("failed to add device %s: %s",
@@ -1732,6 +1727,33 @@ main(int argc, char *argv[])
               KEYC(opts.escape), KEYC(KEY_HELP));
 #endif
     fd_printf(STO, "Terminal ready\r\n");
+
+    /* Prime output buffer with initstring */
+    tty_q.len = 0;
+    if ( ! opts.noinit ) {
+        char *cp;
+        int n;
+
+        for (cp = opts.initstring; cp && *cp != '\0'; cp++) {
+            if (tty_q.len + M_MAXMAP <= TTY_Q_SZ) {
+                n = do_map((char *)tty_q.buff + tty_q.len,
+                           opts.omap, *cp);
+                tty_q.len += n;
+                /* Echo initstring if local-echo is enabled */
+                if ( opts.lecho )
+                    map_and_write(STO, opts.emap, *cp);
+            } else {
+                fatal("initstring too long!");
+            }
+        }
+    }
+    /* Free initstirng, no longer needed */
+    if (opts.initstring) {
+        free(opts.initstring);
+        opts.initstring = NULL;
+    }
+
+    /* Enter main processing loop */
     loop();
 
 #ifdef LINENOISE
