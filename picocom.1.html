@@ -138,13 +138,18 @@
 <dd><p>Use specified file for logging (recording) serial input, and possibly serial output. If the file exists, it is appended to. Every character read from the serial port is written to the specified file (before input mapping is performed). If local-echo mode is is enabled (see <strong>--echo</strong> option and <strong>C-c</strong> command), then every character written to the serial port (after output mapping is performed) is also logged to the same file. (Default: no logging)</p>
 </dd>
 <dt><strong>--initstring</strong> | <strong>-t</strong></dt>
-<dd><p>Send the provided string after opening the serial port. This feature is useful for example if the serial device needs some special magic strings to start responding. Use $(echo -e ...) or xxd to generate special characters like a CR or binary data. Note, that the initial string is not sent if <strong>--noinit</strong> is set.</p>
+<dd><p>Send the provided string after opening and configuring the serial port. The init string is sent exactly as if it was input at the terminal, and thus obeys the <strong>--omap</strong> output mapping, the <strong>--echo</strong> local-echo setting, and the <strong>-emap</strong> local-echo mapping. This feature is useful, for example, if the serial device needs some special magic strings to start responding. Use <strong>echo(1)</strong> or <strong>xxd(1)</strong> to generate special characters like a CR or binary data. Example:</p>
+<pre><code>picocom -t &quot;$(echo -e '\r\nATZ\r\n')&quot; /dev/ttsyS0</code></pre>
+<p>Note, that the init string is not sent if <strong>--noinit</strong> is set. (Default: empty).</p>
 </dd>
 <dt><strong>--lower-rts</strong></dt>
 <dd><p>Lower the RTS control signal after opening the serial port (by default RTS is raised after open). Only supported when flow-control mode is not set to RTS/CTS, ignored otherwise. Only supported in Linux and OSX.</p>
 </dd>
 <dt><strong>--lower-dtr</strong></dt>
 <dd><p>Lower the DTR control signal after opening the serial port (by default DTR is raised after open). Only supported in Linux and OSX.</p>
+</dd>
+<dt><strong>--exit-aftrer</strong> | <strong>-x</strong></dt>
+<dd><p>Exit picocom after remaining idle for the specified time (in milliseconds). Picocom is considered idle if: Nothing is read (received) from the serial port, AND there is nothing to write (send) to the serial port, AND nothing is read from the terminal. If <strong>--exit-after</strong> is set to zero, then picocom exits after opening and configuring the serial port, after sending the init string (if any, see option <strong>--initstring</strong>), and imediatelly when it becomes idle. When exiting with <strong>--exit-after</strong>, picocom observes the <strong>--noreset</strong> setting as usual. (Default: not set).</p>
 </dd>
 <dt><strong>--help</strong> | <strong>-h</strong></dt>
 <dd><p>Print a short help message describing the command-line options. Picocom's version, ompile-time options, and enabled features are also shown.</p>
@@ -203,7 +208,7 @@ document.write('<a h'+'ref'+'="ma'+'ilto'+':'+e+'" clas'+'s="em' + 'ail">'+e+'<\
 <h1 id="availability">AVAILABILITY</h1>
 <p>Download the latest release from: <a href="https://github.com/npat-efault/picocom/releases" class="uri">https://github.com/npat-efault/picocom/releases</a></p>
 <h1 id="copyright">COPYRIGHT</h1>
-<p>Copyright (c) 2004-2016 Nick Patavalis</p>
+<p>Copyright (c) 2004-2017 Nick Patavalis</p>
 <p>This file is part of Picocom.</p>
 <p>Picocom is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.</p>
 <p>Picocom is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.</p>

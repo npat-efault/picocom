@@ -284,11 +284,19 @@ Picocom accepts the following command-line options.
 
 **--initstring** | **-t**
 
-:   Send the provided string after opening the serial port. This
-    feature is useful for example if the serial device needs some
-    special magic strings to start responding. Use $(echo -e ...)
-    or xxd to generate special characters like a CR or binary data.
-    Note, that the initial string is not sent if **--noinit** is set.
+:   Send the provided string after opening and configuring the serial
+    port. The init string is sent exactly as if it was input at the
+    terminal, and thus obeys the **--omap** output mapping, the
+    **--echo** local-echo setting, and the **-emap** local-echo
+    mapping. This feature is useful, for example, if the serial
+    device needs some special magic strings to start responding. Use
+    **echo(1)** or **xxd(1)** to generate special characters like a CR
+    or binary data. Example:
+
+        picocom -t "$(echo -e '\r\nATZ\r\n')" /dev/ttsyS0
+
+    Note, that the init string is not sent if **--noinit** is
+    set. (Default: empty).
 
 **--lower-rts**
 
@@ -307,12 +315,13 @@ Picocom accepts the following command-line options.
 
 :   Exit picocom after remaining idle for the specified time (in
     milliseconds). Picocom is considered idle if: Nothing is read
-    (received) from the serial port, there is nothing to write (send)
-    to the serial port, and nothing is read from the terminal. If
-    **--exit-after** is set to zero, then picocom exits immediately
-    after opening and configuring the serial port and after sending
-    the init string (if any, see option **--initstring**). (Default:
-    not set)
+    (received) from the serial port, AND there is nothing to write
+    (send) to the serial port, AND nothing is read from the
+    terminal. If **--exit-after** is set to zero, then picocom exits
+    after opening and configuring the serial port, after sending the
+    init string (if any, see option **--initstring**), and imediatelly
+    when it becomes idle. When exiting with **--exit-after**, picocom
+    observes the **--noreset** setting as usual. (Default: not set).
 
 **--help** | **-h**
 
@@ -453,7 +462,7 @@ Download the latest release from:
 
 # COPYRIGHT
 
-Copyright (c) 2004-2016 Nick Patavalis
+Copyright (c) 2004-2017 Nick Patavalis
 
 This file is part of Picocom.
 
