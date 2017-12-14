@@ -192,6 +192,7 @@ struct {
     int emap;
     char *log_filename;
     char *initstring;
+    int exit_after;
     int lower_rts;
     int lower_dtr;
 } opts = {
@@ -215,6 +216,7 @@ struct {
     .emap = M_E_DFL,
     .log_filename = NULL,
     .initstring = NULL,
+    .exit_after = -1,
     .lower_rts = 0,
     .lower_dtr = 0
 };
@@ -1087,6 +1089,15 @@ do_command (unsigned char c)
 
 /**********************************************************************/
 
+static struct timeval *
+msec2tv (struct timeval *tv, long ms)
+{
+    tv->tv_sec = ms / 1000;
+    tv->tv_usec = (ms % 1000) * 1000;
+
+    return tv;
+}
+
 void
 loop(void)
 {
@@ -1102,18 +1113,30 @@ loop(void)
     state = ST_TRANSPARENT;
 
     while ( ! sig_exit ) {
+        struct timeval tv, *ptv;
+
+        ptv = NULL;
         FD_ZERO(&rdset);
         FD_ZERO(&wrset);
         FD_SET(STI, &rdset);
         FD_SET(tty_fd, &rdset);
-        if ( tty_q.len ) FD_SET(tty_fd, &wrset);
+        if ( tty_q.len ) {
+            FD_SET(tty_fd, &wrset);
+        } else {
+            msec2tv(&tv, opts.exit_after);
+            ptv = &tv;
+        }
 
-        r = select(tty_fd + 1, &rdset, &wrset, NULL, NULL);
+        r = select(tty_fd + 1, &rdset, &wrset, NULL, ptv);
         if ( r < 0 )  {
             if ( errno == EINTR )
                 continue;
             else
                 fatal("select failed: %d : %s", errno, strerror(errno));
+        }
+        if ( r == 0 ) {
+            /* Idle for --exit-after */
+            return;
         }
 
         if ( FD_ISSET(STI, &rdset) ) {
@@ -1313,6 +1336,7 @@ show_usage(char *name)
     printf("  --emap <map> (local-echo mappings)\n");
     printf("  --lo<g>file <filename>\n");
     printf("  --inits<t>ring <s>\n");
+    printf("  --e<x>it-after <msec>\n");
     printf("  --lower-rts\n");
     printf("  --lower-dtr\n");
     printf("  --<h>elp\n");
@@ -1358,6 +1382,7 @@ parse_args(int argc, char *argv[])
         {"stopbits", required_argument, 0, 'p'},
         {"logfile", required_argument, 0, 'g'},
         {"initstring", required_argument, 0, 't'},
+        {"exit-after", required_argument, 0, 'x'},
         {"lower-rts", no_argument, 0, 'R'},
         {"lower-dtr", no_argument, 0, 'D'},
         {"help", no_argument, 0, 'h'},
@@ -1369,11 +1394,12 @@ parse_args(int argc, char *argv[])
         int optionIndex = 0;
         int c;
         int map;
+        char *ep;
 
         /* no default error messages printed. */
         opterr = 0;
 
-        c = getopt_long(argc, argv, "hirlcv:s:r:e:f:b:y:d:p:g:t:",
+        c = getopt_long(argc, argv, "hirlcv:s:r:e:f:b:y:d:p:g:t:x:",
                         longOptions, &optionIndex);
 
         if (c < 0)
@@ -1523,6 +1549,14 @@ parse_args(int argc, char *argv[])
         case 'D':
             opts.lower_dtr = 1;
             break;
+        case 'x':
+            opts.exit_after = strtol(optarg, &ep, 10);
+            if ( ! ep || *ep != '\0' || opts.exit_after < 0 ) {
+                fprintf(stderr, "Inavild --exit-after: %s\n", optarg);
+                r = -1;
+                break;
+            }
+            break;
         case 'h':
             show_usage(argv[0]);
             exit(EXIT_SUCCESS);
@@ -1581,6 +1615,11 @@ parse_args(int argc, char *argv[])
     printf("omap is        : "); print_map(opts.omap);
     printf("emap is        : "); print_map(opts.emap);
     printf("logfile is     : %s\n", opts.log_filename ? opts.log_filename : "none");
+    if (opts.exit_after < 0) {
+        printf("exit_after is  : not set\n");
+    } else {
+        printf("exit_after is  : %d ms\n", opts.exit_after);
+    }
     printf("\n");
 #endif /* of NO_HELP */
 }

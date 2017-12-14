@@ -303,6 +303,17 @@ Picocom accepts the following command-line options.
     default DTR is raised after open).  Only supported in Linux and
     OSX.
 
+**--exit-aftrer** | **-x**
+
+:   Exit picocom after remaining idle for the specified time (in
+    milliseconds). Picocom is considered idle if: Nothing is read
+    (received) from the serial port, there is nothing to write (send)
+    to the serial port, and nothing is read from the terminal. If
+    **--exit-after** is set to zero, then picocom exits immediately
+    after opening and configuring the serial port and after sending
+    the init string (if any, see option **--initstring**). (Default:
+    not set)
+
 **--help** | **-h**
 
 :   Print a short help message describing the command-line
