@@ -22,23 +22,23 @@ has also served (quite well) as a low-tech serial communications
 program to allow access to all types of devices that provide serial
 consoles. It could also prove useful in many other similar tasks.
 
-When picocom starts it opens the terminal (serial device) given as its
+When picocom starts it opens the tty (serial port) given as its
 non-option argument. Unless the **--noinit** option is given, it
-configures the device to the settings specified by the
-option-arguments (or to some default settings), and sets it to "raw"
-mode. If **--noinit** is given, the initialization and configuration is
-skipped; the device is just opened. Following this, picocom sets the
-standard-input and standard-output to raw mode. Having done so, it
-goes in a loop where it listens for input from stdin, or from the
-serial port. Input from the serial port is copied to the standard
-output while input from the standard input is copied to the serial
-port. Picocom also scans its input stream for a user-specified control
-character, called the _escape character_ (being by default **C-a**). If
-the escape character is seen, then instead of sending it to the
-serial-device, the program enters "command mode" and waits for the
-next character (which is called the "function character"). Depending
-on the value of the function character, picocom performs one of the
-operations described in the **[COMMANDS]** section below.
+configures the port to the settings specified by the option-arguments
+(or to some default settings), and sets it to "raw" mode. If
+**--noinit** is given, the initialization and configuration is
+skipped; the port is just opened. Following this, if standard input is
+a tty, picocom sets the tty to raw mode. Then it goes in a loop where
+it listens for input from stdin, or from the serial port. Input from
+the serial port is copied to the standard output while input from the
+standard input is copied to the serial port. Picocom also scans its
+input stream for a user-specified control character, called the
+_escape character_ (being by default **C-a**). If the escape character
+is seen, then instead of sending it to the serial-device, the program
+enters "command mode" and waits for the next character (which is
+called the "function character"). Depending on the value of the
+function character, picocom performs one of the operations described
+in the **[COMMANDS]** section below.
 
 # COMMANDS
 
@@ -286,12 +286,12 @@ Picocom accepts the following command-line options.
 
 :   Send the provided string after opening and configuring the serial
     port. The init string is sent exactly as if it was input at the
-    terminal, and thus obeys the **--omap** output mapping, the
-    **--echo** local-echo setting, and the **-emap** local-echo
-    mapping. This feature is useful, for example, if the serial
-    device needs some special magic strings to start responding. Use
-    **echo(1)** or **xxd(1)** to generate special characters like a CR
-    or binary data. Example:
+    terminal. Sending the init string, picocom observes the **--omap**
+    output mapping, the **--echo** local-echo setting, and the
+    **-emap** local-echo mapping. This feature is useful, for example,
+    if the serial device needs some special magic strings to start
+    responding. Use **echo(1)** or **xxd(1)** to generate special
+    characters like a CR or binary data. Example:
 
         picocom -t "$(echo -e '\r\nATZ\r\n')" /dev/ttsyS0
 
@@ -320,14 +320,14 @@ Picocom accepts the following command-line options.
     terminal. If **--exit-after** is set to zero, then picocom exits
     after opening and configuring the serial port, after sending the
     init string (if any, see option **--initstring**), and imediatelly
-    when it becomes idle. When exiting with **--exit-after**, picocom
+    when it becomes idle. When exiting after being idle, picocom
     observes the **--noreset** setting as usual. (Default: not set).
 
     NOTICE: If **--exit-after** is set, reading zero bytes from the
     standard input (which usually means that whatever was connected
-    there has been closed), will not cause picocom to exit. Instead,
-    picocom will keep running without reading from stdin, and will
-    exit only when it becomes idle for the specified time, or if
+    there has been closed), will *not* cause picocom to exit. Instead,
+    picocom will keep running, without reading from stdin, and will
+    exit only when it becomes idle for the specified time, or if it is
     killed by a signal. If **--exit-after** is *not* set, then reading
     zero bytes from the standard input causes picocom to exit, after
     the contents of its output queue have been transmitted.
@@ -342,7 +342,7 @@ Picocom accepts the following command-line options.
 **--help** | **-h**
 
 :   Print a short help message describing the command-line
-    options. Picocom's version, ompile-time options, and enabled
+    options. Picocom's version, compile-time options, and enabled
     features are also shown.
 
 
