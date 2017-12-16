@@ -197,6 +197,13 @@ Picocom accepts the following command-line options.
     (see description above). If **x** is given, then **C-x** will make
     picocom enter command mode. (Default: **a**)
 
+**--no-escape** | **-n**
+
+:   Disables the escape character. Picocom will never enter
+    command-mode if this option is enabled. To exit picocom, either
+    close its standard input, or send it the TERM or INT
+    signal. (Default: Disabled).
+
 **--echo** | **-c**
 
 :   Enable local echo. Every character being read from the terminal

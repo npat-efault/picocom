@@ -185,6 +185,7 @@ struct {
     int nolock;
 #endif
     unsigned char escape;
+    int noescape;
     char send_cmd[128];
     char receive_cmd[128];
     int imap;
@@ -211,6 +212,7 @@ struct {
     .nolock = 0,
 #endif
     .escape = CKEY('a'),
+    .noescape = 0,
     .send_cmd = "sz -vv",
     .receive_cmd = "rz -vv -E",
     .imap = M_I_DFL,
@@ -1230,7 +1232,7 @@ loop(void)
                 state = ST_TRANSPARENT;
                 break;
             case ST_TRANSPARENT:
-                if ( c == opts.escape )
+                if ( ! opts.noescape && c == opts.escape )
                     state = ST_COMMAND;
                 else
                     if ( tty_q_push((char *)&c, 1) != 1 )
@@ -1370,6 +1372,7 @@ show_usage(char *name)
     printf("  --<d>atabits 5 | 6 | 7 | 8\n");
     printf("  --sto<p>bits 1 | 2\n");
     printf("  --<e>scape <char>\n");
+    printf("  --<n>o-escape\n");
     printf("  --e<c>ho\n");
     printf("  --no<i>nit\n");
     printf("  --no<r>eset\n");
@@ -1417,6 +1420,7 @@ parse_args(int argc, char *argv[])
         {"omap", required_argument, 0, 'O' },
         {"emap", required_argument, 0, 'E' },
         {"escape", required_argument, 0, 'e'},
+        {"no-escape", no_argument, 0, 'n'},
         {"echo", no_argument, 0, 'c'},
         {"noinit", no_argument, 0, 'i'},
         {"noreset", no_argument, 0, 'r'},
@@ -1447,7 +1451,7 @@ parse_args(int argc, char *argv[])
         /* no default error messages printed. */
         opterr = 0;
 
-        c = getopt_long(argc, argv, "hirlcqXv:s:r:e:f:b:y:d:p:g:t:x:",
+        c = getopt_long(argc, argv, "hirlcqXnv:s:r:e:f:b:y:d:p:g:t:x:",
                         longOptions, &optionIndex);
 
         if (c < 0)
@@ -1493,6 +1497,9 @@ parse_args(int argc, char *argv[])
             break;
         case 'e':
             opts.escape = CKEY(optarg[0]);
+            break;
+        case 'n':
+            opts.noescape = 1;
             break;
         case 'f':
             switch (optarg[0]) {
@@ -1660,7 +1667,11 @@ parse_args(int argc, char *argv[])
     printf("parity is      : %s\n", parity_str[opts.parity]);
     printf("databits are   : %d\n", opts.databits);
     printf("stopbits are   : %d\n", opts.stopbits);
-    printf("escape is      : C-%c\n", KEYC(opts.escape));
+    if ( opts.noescape ) {
+        printf("escape is      : none\n");
+    } else {
+        printf("escape is      : C-%c\n", KEYC(opts.escape));
+    }
     printf("local echo is  : %s\n", opts.lecho ? "yes" : "no");
     printf("noinit is      : %s\n", opts.noinit ? "yes" : "no");
     printf("noreset is     : %s\n", opts.noreset ? "yes" : "no");
