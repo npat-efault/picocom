@@ -482,6 +482,61 @@ will:
 - Replace every CR character with CR and LF when echoing to the
   terminal (if local-echo is enabled).
 
+# EXITING PICOCOM
+
+This section summarizes the conditions under which picocom terminates
+its operation and what happens on each such condition:
+
+- The exit command is seen in the standard input. That is, the escape
+  character is seen (default **[C-a]**), followed by the exit command
+  character (default: **[C-x]**). In this case: The contents of the
+  output queue are discarded and the contents of the O/S serial port
+  output buffer (data already written to the port) are drained
+  (i.e. picocom waits for them to be transmitted). Then, if the
+  **--noreset** option is *not* given, the serial port is reset to the
+  settings it had when picocom started, and picocom exits. If
+  **--noreset** is given, then picocom exits without reseting the
+  serial port.
+
+- The quit command is seen in the standard input. That is, the escape
+  character is seen (default **[C-a]**), followed by the quit command
+  character (default: **[C-q]**). The behavior in this case is similar
+  to that of the exit command, with one difference: The serial port is
+  *not* reset to its original settings, regardless of the
+  **--noreset** option.
+
+- The **--exit** option is given. See the documentation of this option
+  for a description of what exactly happens in this case.
+
+- The **--exit-after** option is given. See the documentation of this
+  option for a description of what exactly happens in this case.
+
+- Zero bytes are read from the standard input. This usually means that
+  whatever was connected to picocom's standard input has been closed
+  or, if a file was connected, that picocom has read up to the end of
+  the file. In this case, if the **--exit-after** option is not given,
+  picocom stops reading from the standard input, and keeps operating
+  normally (i.e. writing to, and reading from, the serial port) until
+  its output queue is emptied. When this happens, picocom waits for
+  the O/S serial port output buffer to drain and then (subject to the
+  **--noreset** option) resets the serial port to it's initial
+  settings and exits. If the **--exit-after** option is given then,
+  again, picocom stops reading from the standard input and continues
+  operating normally but, in this case, it does so until it becomes
+  idle for the specified amount of time. It then waits for the O/S
+  serial port output buffer to drain and exits, observing the
+  **--noreset** option as usual.
+
+- Picocom is killed by the TERM or INT signal. In this case picocom
+  behaves as if it had received the exit command, that is: The
+  contents of the output queue are discarded and the contents of the
+  O/S serial port output buffer (data already written to the port) are
+  drained (i.e. picocom waits for them to be transmitted). Then, if
+  the **--noreset** option is *not* given, the serial port is reset to
+  the settings it had when picocom started, and picocom exits. If
+  **--noreset** is given, then picocom exits without reseting the
+  serial port.
+  
 # AUTHOR
 
 Written by Nick Patavalis <npat@efault.net>
