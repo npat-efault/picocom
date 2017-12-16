@@ -1207,8 +1207,9 @@ loop(void)
                         tty_q.len += n;
                         if ( opts.lecho )
                             map_and_write(STO, opts.emap, c);
-                    } else
+                    } else {
                         fd_printf(STO, "\x07");
+                    }
                 }
                 break;
             default:
@@ -1295,8 +1296,8 @@ establish_signal_handlers (void)
         ign_action.sa_flags = 0;
 
         sigaction (SIGTERM, &exit_action, NULL);
+        sigaction (SIGINT, &exit_action, NULL);
 
-        sigaction (SIGINT, &ign_action, NULL);
         sigaction (SIGHUP, &ign_action, NULL);
         sigaction (SIGQUIT, &ign_action, NULL);
         sigaction (SIGALRM, &ign_action, NULL);
@@ -1731,7 +1732,6 @@ main(int argc, char *argv[])
             fatal("failed to lower DTR of device %s: %s",
                   opts.port, term_strerror(term_errno, errno));
     }
-
     r = term_apply(tty_fd, 0);
     if ( r < 0 )
         fatal("failed to config device %s: %s",
@@ -1797,11 +1797,21 @@ main(int argc, char *argv[])
     /* Enter main processing loop */
     loop();
 
+    /* Terminating picocom */
+    fd_pinfof(opts.quiet, "\r\n");
+    fd_pinfof(opts.quiet, "Draining tty...\r\n");
+    term_drain(tty_fd);
+    /* Give some time to UART to transmit everything. Some systems and
+       / or drivers corrupt the last character(s) if the port is
+       immediately reset, even after a drain. (I guess, drain does not
+       wait for everything to actually be transitted on the wire). */
+    usleep(100000);
+
+
 #ifdef LINENOISE
     cleanup_history();
 #endif
 
-    fd_pinfof(opts.quiet, "\r\n");
     if ( opts.noreset ) {
         fd_pinfof(opts.quiet, "Skipping tty reset...\r\n");
         term_erase(tty_fd);
@@ -1811,8 +1821,6 @@ main(int argc, char *argv[])
         fd_pinfof(opts.quiet, "Picocom was killed\r\n");
     else
         fd_pinfof(opts.quiet, "Thanks for using picocom\r\n");
-    /* wait a bit for output to drain */
-    sleep(1);
 
 #ifdef UUCP_LOCK_DIR
     uucp_unlock();
