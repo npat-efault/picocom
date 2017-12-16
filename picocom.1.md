@@ -332,6 +332,21 @@ Picocom accepts the following command-line options.
     zero bytes from the standard input causes picocom to exit, after
     the contents of its output queue have been transmitted.
 
+**--exit** | **-X**
+
+:    Exit picocom immediatelly after opening and configuring the
+     serial port. Do *not* read *anything* from the standard input or
+     from the serial port. When exiting the **--noreset** option is
+     observed as usual. With **--exit** and **--noreset** picocom can
+     be used as a crude replacement of **stty(1)**. If an init string
+     is also given (see **--initstring** option), picocom exits
+     imediatelly after sending (writing) the init string to the serial
+     port. Again, nothing is read from the standard input, or from the
+     serial port. The ouput map (see **--omap**), the local echo
+     option (see **--echo**), and the local-echo map (see **--emap**)
+     are observed when sending the init string. The **--exit** option,
+     overrides the **--exit-after** option. (Default: Disabled)
+
 **--quiet** | **-q**
 
 :   Forces picocom to be quiet. Suppresses the output of the initial

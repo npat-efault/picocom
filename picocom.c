@@ -193,6 +193,7 @@ struct {
     char *log_filename;
     char *initstring;
     int exit_after;
+    int exit;
     int lower_rts;
     int lower_dtr;
     int quiet;
@@ -218,6 +219,7 @@ struct {
     .log_filename = NULL,
     .initstring = NULL,
     .exit_after = -1,
+    .exit = 0,
     .lower_rts = 0,
     .lower_dtr = 0,
     .quiet = 0
@@ -1117,7 +1119,10 @@ loop(void)
     int stdin_closed;
 
     state = ST_TRANSPARENT;
-    stdin_closed = 0;
+    if ( ! opts.exit )
+        stdin_closed = 0;
+    else
+        stdin_closed = 1;
 
     while ( ! sig_exit ) {
         struct timeval tv, *ptv;
@@ -1126,7 +1131,7 @@ loop(void)
         FD_ZERO(&rdset);
         FD_ZERO(&wrset);
         if ( ! stdin_closed ) FD_SET(STI, &rdset);
-        FD_SET(tty_fd, &rdset);
+        if ( ! opts.exit ) FD_SET(tty_fd, &rdset);
         if ( tty_q.len ) {
             FD_SET(tty_fd, &wrset);
         } else {
@@ -1352,6 +1357,7 @@ show_usage(char *name)
     printf("  --lo<g>file <filename>\n");
     printf("  --inits<t>ring <s>\n");
     printf("  --e<x>it-after <msec>\n");
+    printf("  --e<X>it\n");
     printf("  --lower-rts\n");
     printf("  --lower-dtr\n");
     printf("  --<h>elp\n");
@@ -1398,6 +1404,7 @@ parse_args(int argc, char *argv[])
         {"logfile", required_argument, 0, 'g'},
         {"initstring", required_argument, 0, 't'},
         {"exit-after", required_argument, 0, 'x'},
+        {"exit", no_argument, 0, 'X'},
         {"lower-rts", no_argument, 0, 'R'},
         {"lower-dtr", no_argument, 0, 'D'},
         {"quiet", no_argument, 0, 'q'},
@@ -1415,7 +1422,7 @@ parse_args(int argc, char *argv[])
         /* no default error messages printed. */
         opterr = 0;
 
-        c = getopt_long(argc, argv, "hirlcqv:s:r:e:f:b:y:d:p:g:t:x:",
+        c = getopt_long(argc, argv, "hirlcqXv:s:r:e:f:b:y:d:p:g:t:x:",
                         longOptions, &optionIndex);
 
         if (c < 0)
@@ -1573,6 +1580,9 @@ parse_args(int argc, char *argv[])
                 break;
             }
             break;
+        case 'X':
+            opts.exit = 1;
+            break;
         case 'q':
             opts.quiet = 1;
             break;
@@ -1590,6 +1600,9 @@ parse_args(int argc, char *argv[])
             exit(EXIT_FAILURE);
         }
     } /* while */
+
+    /* --exit overrides --exit-after */
+    if ( opts.exit ) opts.exit_after = -1;
 
     if ( (argc - optind) < 1) {
         fprintf(stderr, "No port given\n");
@@ -1642,6 +1655,7 @@ parse_args(int argc, char *argv[])
     } else {
         printf("exit_after is  : %d ms\n", opts.exit_after);
     }
+    printf("exit is        : %s\n", opts.exit ? "yes" : "no");
     printf("\n");
 #endif /* of NO_HELP */
 }
@@ -1725,19 +1739,23 @@ main(int argc, char *argv[])
 
     set_tty_write_sz(term_get_baudrate(tty_fd, NULL));
 
-    if ( isatty(STI) ) {
-        r = term_add(STI);
-        if ( r < 0 )
-            fatal("failed to add I/O device: %s",
-                  term_strerror(term_errno, errno));
-        term_set_raw(STI);
-        r = term_apply(STI, 0);
-        if ( r < 0 )
-            fatal("failed to set I/O device to raw mode: %s",
-                  term_strerror(term_errno, errno));
+    if ( ! opts.exit ) {
+        if ( isatty(STI) ) {
+            r = term_add(STI);
+            if ( r < 0 )
+                fatal("failed to add I/O device: %s",
+                      term_strerror(term_errno, errno));
+            term_set_raw(STI);
+            r = term_apply(STI, 0);
+            if ( r < 0 )
+                fatal("failed to set I/O device to raw mode: %s",
+                      term_strerror(term_errno, errno));
+        } else {
+            fd_pinfof(opts.quiet,
+                      "!! STDIN is not a TTY !! Continue anyway...\r\n");
+        }
     } else {
-        fd_pinfof(opts.quiet,
-                  "!! STDIN is not a TTY !! Continuing anyway...\r\n");
+        close(STI);
     }
 
 #ifdef LINENOISE
