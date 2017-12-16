@@ -12,8 +12,8 @@ LDLIBS ?=
 all: picocom
 OBJS =
 
-## This is the maximum size (in bytes) the input (e.g. copy-paste)
-## buffer is allowed to grow to. Zero means unlimitted
+## This is the maximum size (in bytes) the output (e.g. copy-paste)
+## queue is allowed to grow to. Zero means unlimitted.
 TTY_Q_SZ = 0
 CPPFLAGS += -DTTY_Q_SZ=$(TTY_Q_SZ)
 
