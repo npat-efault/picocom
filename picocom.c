@@ -1686,6 +1686,11 @@ parse_args(int argc, char *argv[])
     printf("omap is        : "); print_map(opts.omap);
     printf("emap is        : "); print_map(opts.emap);
     printf("logfile is     : %s\n", opts.log_filename ? opts.log_filename : "none");
+    if ( opts.initstring ) {
+        printf("initstring len : %ld bytes\n", strlen(opts.initstring));
+    } else {
+        printf("initstring     : none\n");
+    }
     if (opts.exit_after < 0) {
         printf("exit_after is  : not set\n");
     } else {
