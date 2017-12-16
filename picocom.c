@@ -233,14 +233,20 @@ int sig_exit = 0;
 int tty_fd;
 int log_fd = -1;
 
+#define TTY_Q_SZ_MIN 256
 #ifndef TTY_Q_SZ
-#define TTY_Q_SZ 256
+#define TTY_Q_SZ 32768
 #endif
 
 struct tty_q {
+    int sz;
     int len;
-    unsigned char buff[TTY_Q_SZ];
-} tty_q;
+    unsigned char *buff;
+} tty_q = {
+    .sz = 0,
+    .len = 0,
+    .buff = NULL
+};
 
 #define TTY_RD_SZ 128
 
@@ -371,6 +377,10 @@ fatal (const char *format, ...)
     if ( opts.initstring ) {
         free(opts.initstring);
         opts.initstring = NULL;
+    }
+    if ( tty_q.buff ) {
+        free(tty_q.buff);
+        tty_q.buff = NULL;
     }
     free(opts.port);
     if (opts.log_filename) {
@@ -1097,6 +1107,35 @@ do_command (unsigned char c)
 
 /**********************************************************************/
 
+int tty_q_push(const char *s, int len) {
+    int i, sz, n;
+    unsigned char *b;
+
+    for (i = 0; i < len; i++) {
+        while (tty_q.len + M_MAXMAP > tty_q.sz) {
+            sz = tty_q.sz * 2;
+            if ( TTY_Q_SZ && sz > TTY_Q_SZ )
+                return i;
+            b = realloc(tty_q.buff, sz);
+            if ( ! b )
+                return i;
+            tty_q.buff = b;
+            tty_q.sz = sz;
+#if 0
+            fd_printf(STO, "New tty_q size: %d\r\n", sz);
+#endif
+        }
+        n = do_map((char *)tty_q.buff + tty_q.len,
+                   opts.omap, s[i]);
+        tty_q.len += n;
+        /* write to STO if local-echo is enabled */
+        if ( opts.lecho )
+            map_and_write(STO, opts.emap, s[i]);
+    }
+
+    return i;
+}
+
 static struct timeval *
 msec2tv (struct timeval *tv, long ms)
 {
@@ -1180,15 +1219,8 @@ loop(void)
             case ST_COMMAND:
                 if ( c == opts.escape ) {
                     /* pass the escape character down */
-                    if (tty_q.len + M_MAXMAP <= TTY_Q_SZ) {
-                        n = do_map((char *)tty_q.buff + tty_q.len,
-                                   opts.omap, c);
-                        tty_q.len += n;
-                        if ( opts.lecho )
-                            map_and_write(STO, opts.emap, c);
-                    } else {
+                    if ( tty_q_push((char *)&c, 1) != 1 )
                         fd_printf(STO, "\x07");
-                    }
                 } else {
                     /* process command key */
                     if ( do_command(c) )
@@ -1198,19 +1230,11 @@ loop(void)
                 state = ST_TRANSPARENT;
                 break;
             case ST_TRANSPARENT:
-                if ( c == opts.escape ) {
+                if ( c == opts.escape )
                     state = ST_COMMAND;
-                } else {
-                    if (tty_q.len + M_MAXMAP <= TTY_Q_SZ) {
-                        n = do_map((char *)tty_q.buff + tty_q.len,
-                                   opts.omap, c);
-                        tty_q.len += n;
-                        if ( opts.lecho )
-                            map_and_write(STO, opts.emap, c);
-                    } else {
+                else
+                    if ( tty_q_push((char *)&c, 1) != 1 )
                         fd_printf(STO, "\x07");
-                    }
-                }
                 break;
             default:
                 assert(0);
@@ -1663,7 +1687,6 @@ parse_args(int argc, char *argv[])
 
 /**********************************************************************/
 
-
 int
 main(int argc, char *argv[])
 {
@@ -1769,23 +1792,19 @@ main(int argc, char *argv[])
 #endif
     fd_pinfof(opts.quiet, "Terminal ready\r\n");
 
-    /* Prime output buffer with initstring */
+    /* Allocate output buffer with initial size */
+    tty_q.buff = calloc(TTY_Q_SZ_MIN, sizeof(*tty_q.buff));
+    if ( ! tty_q.buff )
+        fatal("out of memory");
+    tty_q.sz = TTY_Q_SZ_MIN;
     tty_q.len = 0;
-    if ( ! opts.noinit ) {
-        char *cp;
-        int n;
 
-        for (cp = opts.initstring; cp && *cp != '\0'; cp++) {
-            if (tty_q.len + M_MAXMAP <= TTY_Q_SZ) {
-                n = do_map((char *)tty_q.buff + tty_q.len,
-                           opts.omap, *cp);
-                tty_q.len += n;
-                /* Echo initstring if local-echo is enabled */
-                if ( opts.lecho )
-                    map_and_write(STO, opts.emap, *cp);
-            } else {
-                fatal("initstring too long!");
-            }
+    /* Prime output buffer with initstring */
+    if ( ! opts.noinit && opts.initstring ) {
+        int l;
+        l = strlen(opts.initstring);
+        if ( tty_q_push(opts.initstring, l) != l ) {
+            fatal("initstring too long!");
         }
     }
     /* Free initstirng, no longer needed */
@@ -1826,6 +1845,10 @@ main(int argc, char *argv[])
     uucp_unlock();
 #endif
 
+    if ( tty_q.buff ) {
+        free(tty_q.buff);
+        tty_q.buff = NULL;
+    }
     free(opts.port);
     if (opts.log_filename) {
         free(opts.log_filename);
