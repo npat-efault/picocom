@@ -57,3 +57,15 @@ comments:
 - Joe Merten (https://github.com/Joe-Merten) contributed the
   --lower-rts and --lower-dtr options, custom baudrate support for
   OSX, the --logfile option implementation, and several bug-fixes.
+
+- Maciej Grela (https://github.com/mgrela) contributed the initial
+  --initstring  option implementation.
+
+- Baruch Siach (https://github.com/baruchsiach) contributed
+  improvements to the Makefile
+
+- Christopher N. Hesse (https://github.com/raymanfx) contributed the
+  initial Android makefile
+
+- Ben (https://github.com/the-dem) contributed backward compatibility
+  fixes.
