@@ -1810,9 +1810,11 @@ main(int argc, char *argv[])
 #endif
 
 #ifndef NO_HELP
-    fd_pinfof(opts.quiet,
-              "Type [C-%c] [C-%c] to see available commands\r\n\r\n",
-              KEYC(opts.escape), KEYC(KEY_HELP));
+    if ( ! opts.noescape ) {
+        fd_pinfof(opts.quiet,
+                  "Type [C-%c] [C-%c] to see available commands\r\n",
+                  KEYC(opts.escape), KEYC(KEY_HELP));
+    }
 #endif
     fd_pinfof(opts.quiet, "Terminal ready\r\n");
 
