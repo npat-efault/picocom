@@ -229,8 +229,9 @@ struct {
 
 int sig_exit = 0;
 
-#define STO STDOUT_FILENO
 #define STI STDIN_FILENO
+#define STO STDOUT_FILENO
+#define STE STDERR_FILENO
 
 int tty_fd;
 int log_fd = -1;
@@ -316,7 +317,7 @@ uucp_lock(void)
              && kill((pid_t)pid, 0) < 0
              && errno == ESRCH ) {
             /* stale lock file */
-            printf("Removing stale lock: %s\n", lockname);
+            fd_pinfof(opts.quiet, "\r\nRemoving stale lock: %s\r\n", lockname);
             sleep(1);
             unlink(lockname);
         } else {
@@ -355,22 +356,16 @@ fatal (const char *format, ...)
     va_list args;
     int len;
 
-    term_reset(STO);
-    term_reset(STI);
-
     va_start(args, format);
     len = vsnprintf(buf, sizeof(buf), format, args);
     buf[sizeof(buf) - 1] = '\0';
     va_end(args);
 
     s = "\r\nFATAL: ";
-    writen_ni(STO, s, strlen(s));
-    writen_ni(STO, buf, len);
+    writen_ni(STE, s, strlen(s));
+    writen_ni(STE, buf, len);
     s = "\r\n";
-    writen_ni(STO, s, strlen(s));
-
-    /* wait a bit for output to drain */
-    sleep(1);
+    writen_ni(STE, s, strlen(s));
 
 #ifdef UUCP_LOCK_DIR
     uucp_unlock();
@@ -853,10 +848,17 @@ run_cmd(int fd, const char *cmd, const char *args_extra)
 {
     pid_t pid;
     sigset_t sigm, sigm_old;
+    struct sigaction ign_action, old_action;
 
+    /* Picocom ignores SIGINT while the command is running */
+    ign_action.sa_handler = SIG_IGN;
+    sigemptyset (&ign_action.sa_mask);
+    ign_action.sa_flags = 0;
+    sigaction (SIGINT, &ign_action, &old_action);
     /* block signals, let child establish its own handlers */
     sigemptyset(&sigm);
     sigaddset(&sigm, SIGTERM);
+    sigaddset(&sigm, SIGINT);
     sigprocmask(SIG_BLOCK, &sigm, &sigm_old);
 
     pid = fork();
@@ -876,6 +878,8 @@ run_cmd(int fd, const char *cmd, const char *args_extra)
         } while ( r < 0 && errno == EINTR );
         /* reset terminal (back to raw mode) */
         term_apply(STI, 0);
+        /* re-enable SIGINT */
+        sigaction(SIGINT, &old_action, NULL);
         /* check and report child return status */
         if ( WIFEXITED(status) ) {
             fd_printf(STO, "\r\n*** exit status: %d ***\r\n",
@@ -914,27 +918,27 @@ run_cmd(int fd, const char *cmd, const char *args_extra)
         argc = 0;
         r = split_quoted(cmd, &argc, argv, RUNCMD_ARGS_MAX);
         if ( r < 0 ) {
-            fd_printf(STDERR_FILENO, "Cannot parse command\n");
+            fd_printf(STE, "Cannot parse command\n");
             exit(RUNCMD_EXEC_FAIL);
         }
         r = split_quoted(args_extra, &argc, argv, RUNCMD_ARGS_MAX);
         if ( r < 0 ) {
-            fd_printf(STDERR_FILENO, "Cannot parse extra args\n");
+            fd_printf(STE, "Cannot parse extra args\n");
             exit(RUNCMD_EXEC_FAIL);
         }
         if ( argc < 1 ) {
-            fd_printf(STDERR_FILENO, "No command given\n");
+            fd_printf(STE, "No command given\n");
             exit(RUNCMD_EXEC_FAIL);
         }
         argv[argc] = NULL;
 
         /* run extenral command */
-        fd_printf(STDERR_FILENO, "$ %s %s\n", cmd, args_extra);
+        fd_printf(STE, "$ %s %s\n", cmd, args_extra);
         establish_child_signal_handlers();
         sigprocmask(SIG_SETMASK, &sigm_old, NULL);
         execvp(argv[0], argv);
 
-        fd_printf(STDERR_FILENO, "exec: %s\n", strerror(errno));
+        fd_printf(STE, "exec: %s\n", strerror(errno));
         exit(RUNCMD_EXEC_FAIL);
     }
 }
@@ -1403,6 +1407,7 @@ show_usage(char *name)
 #else /* defined NO_HELP */
     printf("Help disabled.\n");
 #endif /* of NO_HELP */
+    fflush(stdout);
 }
 
 /**********************************************************************/
@@ -1698,6 +1703,7 @@ parse_args(int argc, char *argv[])
     }
     printf("exit is        : %s\n", opts.exit ? "yes" : "no");
     printf("\n");
+    fflush(stdout);
 #endif /* of NO_HELP */
 }
 
@@ -1706,6 +1712,7 @@ parse_args(int argc, char *argv[])
 int
 main(int argc, char *argv[])
 {
+    int xcode = EXIT_SUCCESS;
     int r;
 
     parse_args(argc, argv);
@@ -1852,9 +1859,10 @@ main(int argc, char *argv[])
         term_erase(tty_fd);
     }
 
-    if ( sig_exit )
+    if ( sig_exit ) {
         fd_pinfof(opts.quiet, "Picocom was killed\r\n");
-    else
+        xcode = EXIT_FAILURE;
+    } else
         fd_pinfof(opts.quiet, "Thanks for using picocom\r\n");
 
 #ifdef UUCP_LOCK_DIR
@@ -1871,7 +1879,7 @@ main(int argc, char *argv[])
         close(log_fd);
     }
 
-    return EXIT_SUCCESS;
+    return xcode;
 }
 
 /**********************************************************************/
