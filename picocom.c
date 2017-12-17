@@ -901,6 +901,7 @@ run_cmd(int fd, const char *cmd, const char *args_extra)
         int r;
 
         /* unmanage terminal, and reset it to canonical mode */
+        term_drain(STI);
         term_remove(STI);
         /* unmanage serial port fd, without reset */
         term_erase(fd);
@@ -1841,14 +1842,8 @@ main(int argc, char *argv[])
 
     /* Terminating picocom */
     fd_pinfof(opts.quiet, "\r\n");
-    fd_pinfof(opts.quiet, "Draining tty...\r\n");
+    fd_pinfof(opts.quiet, "Terminating...\r\n");
     term_drain(tty_fd);
-    /* Give some time to UART to transmit everything. Some systems and
-       / or drivers corrupt the last character(s) if the port is
-       immediately reset, even after a drain. (I guess, drain does not
-       wait for everything to actually be transitted on the wire). */
-    usleep(100000);
-
 
 #ifdef LINENOISE
     cleanup_history();

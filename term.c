@@ -66,6 +66,9 @@
 #include "custbaud_osx.h"
 #endif
 
+/* Time to wait for UART to clear after a drain (in usec). */
+#define DRAIN_DELAY 200000
+
 #include "term.h"
 
 /***************************************************************************/
@@ -403,7 +406,8 @@ term_exitfunc (void)
         for (i = 0; i < MAX_TERMS; i++) {
             if (term.fd[i] == -1)
                 continue;
-            tcflush(term.fd[i], TCIOFLUSH);
+            term_drain(term.fd[i]);
+            tcflush(term.fd[i], TCIFLUSH);
             do {
                 r = tcsetattr(term.fd[i], TCSANOW, &term.origtermios[i]);
             } while ( r < 0 && errno == EINTR );
@@ -412,7 +416,7 @@ term_exitfunc (void)
 
                 tname = ttyname(term.fd[i]);
                 if ( ! tname ) tname = "UNKNOWN";
-                fprintf(stderr, "%s: reset failed for dev %s: %s\n",
+                fprintf(stderr, "%s: reset failed for dev %s: %s\r\n",
                         __FUNCTION__, tname, strerror(errno));
             }
             term.fd[i] = -1;
@@ -1613,6 +1617,12 @@ term_drain(int fd)
             rval = -1;
             break;
         }
+        /* Give some time to the UART to transmit everything. Some
+           systems and / or drivers corrupt the last character(s) if
+           the port is immediately reconfigured, even after a
+           drain. (I guess, drain does not wait for everything to
+           actually be transitted on the wire). */
+        if ( DRAIN_DELAY ) usleep(DRAIN_DELAY);
 
     } while (0);
 
