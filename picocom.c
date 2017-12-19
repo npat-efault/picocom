@@ -233,7 +233,7 @@ int sig_exit = 0;
 #define STO STDOUT_FILENO
 #define STE STDERR_FILENO
 
-int tty_fd;
+int tty_fd = -1;
 int log_fd = -1;
 
 #define TTY_Q_SZ_MIN 256
@@ -346,47 +346,6 @@ uucp_unlock(void)
 }
 
 #endif /* of UUCP_LOCK_DIR */
-
-/**********************************************************************/
-
-void
-fatal (const char *format, ...)
-{
-    char *s, buf[256];
-    va_list args;
-    int len;
-
-    va_start(args, format);
-    len = vsnprintf(buf, sizeof(buf), format, args);
-    buf[sizeof(buf) - 1] = '\0';
-    va_end(args);
-
-    s = "\r\nFATAL: ";
-    writen_ni(STE, s, strlen(s));
-    writen_ni(STE, buf, len);
-    s = "\r\n";
-    writen_ni(STE, s, strlen(s));
-
-#ifdef UUCP_LOCK_DIR
-    uucp_unlock();
-#endif
-
-    if ( opts.initstring ) {
-        free(opts.initstring);
-        opts.initstring = NULL;
-    }
-    if ( tty_q.buff ) {
-        free(tty_q.buff);
-        tty_q.buff = NULL;
-    }
-    free(opts.port);
-    if (opts.log_filename) {
-        free(opts.log_filename);
-        close(log_fd);
-    }
-
-    exit(EXIT_FAILURE);
-}
 
 /**********************************************************************/
 
@@ -550,6 +509,65 @@ read_baud (void)
 }
 
 #endif /* of ifndef LINENOISE */
+
+/**********************************************************************/
+
+void cleanup(int drain, int noreset)
+{
+    if ( tty_fd >= 0 ) {
+        if ( drain )
+            term_drain(tty_fd);
+        term_flush(tty_fd);
+
+        if ( noreset ) {
+            fd_pinfof(opts.quiet, "Skipping tty reset...\r\n");
+            term_erase(tty_fd);
+        }
+    }
+
+#ifdef LINENOISE
+    cleanup_history();
+#endif
+#ifdef UUCP_LOCK_DIR
+    uucp_unlock();
+#endif
+    if ( opts.initstring ) {
+        free(opts.initstring);
+        opts.initstring = NULL;
+    }
+    if ( tty_q.buff ) {
+        free(tty_q.buff);
+        tty_q.buff = NULL;
+    }
+    free(opts.port);
+    if (opts.log_filename) {
+        free(opts.log_filename);
+        close(log_fd);
+    }
+}
+
+void
+fatal (const char *format, ...)
+{
+    char *s, buf[256];
+    va_list args;
+    int len;
+
+    va_start(args, format);
+    len = vsnprintf(buf, sizeof(buf), format, args);
+    buf[sizeof(buf) - 1] = '\0';
+    va_end(args);
+
+    s = "\r\nFATAL: ";
+    writen_ni(STE, s, strlen(s));
+    writen_ni(STE, buf, len);
+    s = "\r\n";
+    writen_ni(STE, s, strlen(s));
+
+    cleanup(0 /* drain*/, 0 /* noreset */);
+
+    exit(EXIT_FAILURE);
+}
 
 /**********************************************************************/
 
@@ -1848,36 +1866,14 @@ main(int argc, char *argv[])
     /* Terminating picocom */
     fd_pinfof(opts.quiet, "\r\n");
     fd_pinfof(opts.quiet, "Terminating...\r\n");
-    term_drain(tty_fd);
 
-#ifdef LINENOISE
-    cleanup_history();
-#endif
-
-    if ( opts.noreset ) {
-        fd_pinfof(opts.quiet, "Skipping tty reset...\r\n");
-        term_erase(tty_fd);
-    }
+    cleanup(1 /* drain */, opts.noreset);
 
     if ( sig_exit ) {
         fd_pinfof(opts.quiet, "Picocom was killed\r\n");
         xcode = EXIT_FAILURE;
     } else
         fd_pinfof(opts.quiet, "Thanks for using picocom\r\n");
-
-#ifdef UUCP_LOCK_DIR
-    uucp_unlock();
-#endif
-
-    if ( tty_q.buff ) {
-        free(tty_q.buff);
-        tty_q.buff = NULL;
-    }
-    free(opts.port);
-    if (opts.log_filename) {
-        free(opts.log_filename);
-        close(log_fd);
-    }
 
     return xcode;
 }
