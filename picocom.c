@@ -1808,15 +1808,6 @@ main(int argc, char *argv[])
     init_history();
 #endif
 
-#ifndef NO_HELP
-    if ( ! opts.noescape ) {
-        fd_pinfof(opts.quiet,
-                  "Type [C-%c] [C-%c] to see available commands\r\n",
-                  KEYC(opts.escape), KEYC(KEY_HELP));
-    }
-#endif
-    fd_pinfof(opts.quiet, "Terminal ready\r\n");
-
     /* Allocate output buffer with initial size */
     tty_q.buff = calloc(TTY_Q_SZ_MIN, sizeof(*tty_q.buff));
     if ( ! tty_q.buff )
@@ -1825,11 +1816,15 @@ main(int argc, char *argv[])
     tty_q.len = 0;
 
     /* Prime output buffer with initstring */
-    if ( ! opts.noinit && opts.initstring ) {
-        int l;
-        l = strlen(opts.initstring);
-        if ( tty_q_push(opts.initstring, l) != l ) {
-            fatal("initstring too long!");
+    if ( opts.initstring ) {
+        if ( opts.noinit ) {
+            fd_pinfof(opts.quiet, "Ignoring init-string (--noinit)\r\n");
+        } else {
+            int l;
+            l = strlen(opts.initstring);
+            if ( tty_q_push(opts.initstring, l) != l ) {
+                fatal("initstring too long!");
+            }
         }
     }
     /* Free initstirng, no longer needed */
@@ -1837,6 +1832,15 @@ main(int argc, char *argv[])
         free(opts.initstring);
         opts.initstring = NULL;
     }
+
+#ifndef NO_HELP
+    if ( ! opts.noescape ) {
+        fd_pinfof(opts.quiet,
+                  "Type [C-%c] [C-%c] to see available commands\r\n",
+                  KEYC(opts.escape), KEYC(KEY_HELP));
+    }
+#endif
+    fd_pinfof(opts.quiet, "Terminal ready\r\n");
 
     /* Enter main processing loop */
     loop();
