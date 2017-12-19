@@ -300,7 +300,7 @@ Picocom accepts the following command-line options.
     responding. Use **echo(1)** or **xxd(1)** to generate special
     characters like a CR or binary data. Example:
 
-        picocom -t "$(echo -e '\r\nATZ\r\n')" /dev/ttyS0
+        picocom -t "$(echo -e 'AAATZ\r\n')" /dev/ttyS0
 
     Note, that the init string is not sent if **--noinit** is
     set. (Default: empty).
