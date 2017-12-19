@@ -1648,6 +1648,7 @@ term_flush(int fd)
 
         r = tcflush(fd, TCIOFLUSH);
         if ( r < 0 ) {
+            term_errno = TERM_EFLUSH;
             rval = -1;
             break;
         }
