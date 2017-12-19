@@ -963,9 +963,8 @@ do_command (unsigned char c)
         return 1;
     case KEY_QUIT:
         term_set_hupcl(tty_fd, 0);
-        term_flush(tty_fd);
         term_apply(tty_fd, 1);
-        term_erase(tty_fd);
+        opts.noreset = 1;
         return 1;
     case KEY_STATUS:
         show_status(dtr_up, rts_up);
