@@ -56,14 +56,17 @@ here.
 
 **C-x**
 
-:   Exit the program: if the **--noreset** option was not given then
-    the serial port is reset to its original settings before exiting;
-    if it was given the serial port is not reset.
+:   Exit the program. If the **--noreset** option is *not* given, then
+    the serial port is reset to its original settings before exiting,
+    and the modem control lines (typically DTR and RTS) are cleared
+    (lowered) signaling a modem hangup; if **--noreset** is given,
+    then the serial port settings are not reset, and the modem control
+    lines remain unaffected.
 
 **C-q**
 
-:   Quit the program _without_ resetting the serial port, regardless of
-    the **--noreset** option.
+:   Quit the program *without* resetting the serial port, exactly as
+    if the **--noreset** option was given.
 
 **C-p**
 
@@ -195,13 +198,14 @@ Picocom accepts the following command-line options.
 
 :   Defines the character that will make picocom enter command-mode
     (see description above). If **x** is given, then **C-x** will make
-    picocom enter command mode. (Default: **a**)
+    picocom enter command mode. See also the **--no-escape**
+    option. (Default: **a**)
 
 **--no-escape** | **-n**
 
 :   Disables the escape character. Picocom will never enter
-    command-mode if this option is enabled. To exit picocom, either
-    close its standard input, or send it the TERM or INT
+    command-mode if this option is enabled. To exit picocom, you must
+    either close its standard input, or send it the TERM or INT
     signal. (Default: Disabled).
 
 **--echo** | **-c**
@@ -213,24 +217,38 @@ Picocom accepts the following command-line options.
 
 **--noinit** | **-i**
 
-:   If given, picocom will not initialize, reset, or otherwise meddle
-    with the serial port at start-up. It will just open it. This is
-    useful, for example, for connecting picocom to already-connected
-    modems, or already configured ports without terminating the
-    connection, or altering the settings. If required, serial port
-    parameters can then be adjusted at run-time by commands.
-    (Default: Disabled)
+:   If given, picocom will not initialize, configure, or otherwise
+    meddle with the serial port at start-up. It will just open
+    it. This is useful, for example, for connecting picocom to
+    already-connected modems, or already configured ports without
+    terminating the connection, or altering their settings. If
+    required, serial port parameters can then be adjusted at run-time
+    by commands. See also the **--noreset** option. (Default:
+    Disabled)
 
 **--noreset** | **-r**
 
 :   If given, picocom will not reset the serial port when exiting. It
-    will just close the filedes and do nothing more. This is useful,
-    for example, for leaving modems connected when exiting
-    picocom. Regardless whether the **--noreset** option is given, the
-    user can exit picocom using the "Quit" command (instead of
-    "Exit"), which never resets the serial port. If **--noreset** is
-    given then "Quit" and "Exit" behave essentially the
-    same. (Default: Disabled)
+    will just close the respective file descriptor and do nothing
+    more. The serial port settings will *not* be restored to their
+    original values and the modem-control lines will *not* be
+    affected. This is useful, for example, for leaving modems
+    connected when exiting picocom. Regardless whether the
+    **--noreset** option is given, the user can exit picocom using the
+    "Quit" command (instead of "Exit"), which never resets the serial
+    port (i.e makes picocom behave exactly as if **--noreset** was
+    given). If **--noreset** is given then "Quit" and "Exit" behave
+    essentially the same. (Default: Disabled)
+
+    NOTICE: Picocom will always set the HUPCL control bit of the
+    serial port, according to the **--noreset** option. If
+    **--noreset** is given, then HUPCL for the port is cleared, and
+    will remain so after exiting picocom. If **--noreset** is *not*
+    given, then HUPCL is set for the port, and will remain so after
+    exiting picocom. This is true, regardless of the way picocom
+    terminates (command, read zero-bytes from standard input, killed
+    by signal, fatal error, etc), and regardless of the **--noinit**
+    option.
 
 **--nolock** | **-l**
 
@@ -295,10 +313,10 @@ Picocom accepts the following command-line options.
     port. The init string is sent exactly as if it was input at the
     terminal. Sending the init string, picocom observes the **--omap**
     output mapping, the **--echo** local-echo setting, and the
-    **-emap** local-echo mapping. This feature is useful, for example,
-    if the serial device needs some special magic strings to start
-    responding. Use **echo(1)** or **xxd(1)** to generate special
-    characters like a CR or binary data. Example:
+    **--emap** local-echo mapping. This feature is useful, for
+    example, if the serial device needs some special magic strings to
+    start responding. Use **echo(1)** or **xxd(1)** to generate
+    special characters like a CR or binary data. Example:
 
         picocom -t "$(echo -e 'AAATZ\r\n')" /dev/ttyS0
 
@@ -323,17 +341,19 @@ Picocom accepts the following command-line options.
 :   Exit picocom if it remains idle for the specified time (in
     milliseconds). Picocom is considered idle if: Nothing is read
     (received) from the serial port, AND there is nothing to write
-    (send) to the serial port, AND nothing is read from the
-    terminal. If **--exit-after** is set to zero, then picocom exits
-    after opening and configuring the serial port, after sending the
-    init string (if any, see option **--initstring**), and imediatelly
-    when it becomes idle. When exiting after being idle, picocom
-    observes the **--noreset** setting as usual. (Default: not set).
+    (send) to the serial port, AND nothing is read from the standard
+    input (terminal). If **--exit-after** is set to zero, then picocom
+    exits after opening and configuring the serial port, after sending
+    the init string (if any, see option **--initstring**), and
+    imediatelly when it becomes idle. When exiting after being idle,
+    picocom drains the O/S serial port ouput buffer (i.e. waits for
+    data already written to the port to be transmitted) and observes
+    the **--noreset** setting as usual. (Default: not set).
 
     NOTICE: If **--exit-after** is set, reading zero bytes from the
     standard input (which usually means that whatever was connected
     there has been closed), will *not* cause picocom to exit. Instead,
-    picocom will keep running, without reading from stdin, and will
+    picocom will keep running, *without* reading from stdin, and will
     exit only when it becomes idle for the specified time, or if it is
     killed by a signal. If **--exit-after** is *not* set, then reading
     zero bytes from the standard input causes picocom to exit, after
@@ -345,14 +365,14 @@ Picocom accepts the following command-line options.
      serial port. Do *not* read *anything* from the standard input or
      from the serial port. When exiting the **--noreset** option is
      observed as usual. With **--exit** and **--noreset** picocom can
-     be used as a crude replacement of **stty(1)**. If an init string
-     is also given (see **--initstring** option), picocom exits
+     be used as a very crude replacement of **stty(1)**. If an init
+     string is also given (see **--initstring** option), picocom exits
      imediatelly after sending (writing) the init string to the serial
-     port. Again, nothing is read from the standard input, or from the
-     serial port. The ouput map (see **--omap**), the local echo
-     option (see **--echo**), and the local-echo map (see **--emap**)
-     are observed when sending the init string. The **--exit** option,
-     overrides the **--exit-after** option. (Default: Disabled)
+     port. In this case, before exiting, picocom drains the O/S serial
+     port output buffer (i.e. waits for data written to the port to be
+     transmitted). Again, nothing is read from the standard input, or
+     from the serial port. The **--exit** option, overrides the
+     **--exit-after** option. (Default: Disabled)
 
 **--quiet** | **-q**
 
@@ -495,22 +515,24 @@ This section summarizes the conditions under which picocom terminates
 its operation and what happens on each such condition:
 
 - The exit command is seen in the standard input. That is, the escape
-  character is seen (default **[C-a]**), followed by the exit command
-  character (default: **[C-x]**). In this case: The contents of the
-  output queue are discarded and the contents of the O/S serial port
-  output buffer (data already written to the port) are drained
-  (i.e. picocom waits for them to be transmitted). Then, if the
-  **--noreset** option is *not* given, the serial port is reset to the
-  settings it had when picocom started, and picocom exits. If
+  character is seen (default **C-a**), followed by the exit command
+  character (default **C-x**). In this case: The contents of the
+  output queue (data read from the standard input, but not yet written
+  to the port) as well as the contents of the O/S serial port output
+  buffer (data already written to the port, but not yet transmitted)
+  are discarded (flushed). Then, if the **--noreset** option is *not*
+  given, the serial port is reset to the settings it had when picocom
+  started, and the modem control lines (typically DTR and RTS) are
+  cleared (lowered), signaling a modem hangup. Picocom then exits. If
   **--noreset** is given, then picocom exits without reseting the
-  serial port.
+  serial port and without affecting the modem control lines.
 
 - The quit command is seen in the standard input. That is, the escape
-  character is seen (default **[C-a]**), followed by the quit command
-  character (default: **[C-q]**). The behavior in this case is similar
-  to that of the exit command, with one difference: The serial port is
-  *not* reset to its original settings, regardless of the
-  **--noreset** option.
+  character is seen (default **C-a**), followed by the quit command
+  character (default **C-q**). The behavior in this case is similar to
+  that of the exit command, with one difference: Picocom behaves as if
+  the **--noreset** option is given (regardless if it actualy is, or
+  not).
 
 - The **--exit** option is given. See the documentation of this option
   for a description of what exactly happens in this case.
@@ -521,28 +543,27 @@ its operation and what happens on each such condition:
 - Zero bytes are read from the standard input. This usually means that
   whatever was connected to picocom's standard input has been closed
   or, if a file was connected, that picocom has read up to the end of
-  the file. In this case, if the **--exit-after** option is not given,
-  picocom stops reading from the standard input, and keeps operating
-  normally (i.e. writing to, and reading from, the serial port) until
-  its output queue is emptied. When this happens, picocom waits for
-  the O/S serial port output buffer to drain and then (subject to the
-  **--noreset** option) resets the serial port to it's initial
-  settings and exits. If the **--exit-after** option is given then,
-  again, picocom stops reading from the standard input and continues
-  operating normally but, in this case, it does so until it becomes
-  idle for the specified amount of time. It then waits for the O/S
-  serial port output buffer to drain and exits, observing the
-  **--noreset** option as usual.
+  the file. In this case, if the **--exit-after** option is *not*
+  given, picocom stops reading from the standard input, and keeps
+  operating normally (i.e. writing to, and reading from, the serial
+  port) until its output queue is emptied. When this happens, picocom
+  waits for the O/S serial port output buffer to drain and then
+  (subject to the **--noreset** option) resets the serial port to it's
+  initial settings, clears the modem-control lines, and exits. If the
+  **--exit-after** option is given then, again, picocom stops reading
+  from the standard input and continues operating normally but, in
+  this case, it does so until it becomes idle for the specified amount
+  of time. It then waits for the O/S serial port output buffer to
+  drain and exits, observing the **--noreset** option as usual.
 
 - Picocom is killed by the TERM or INT signal. In this case picocom
   behaves as if it had received the exit command, that is: The
-  contents of the output queue are discarded and the contents of the
-  O/S serial port output buffer (data already written to the port) are
-  drained (i.e. picocom waits for them to be transmitted). Then, if
-  the **--noreset** option is *not* given, the serial port is reset to
-  the settings it had when picocom started, and picocom exits. If
-  **--noreset** is given, then picocom exits without reseting the
-  serial port.
+  contents of the output queue and the contents of the O/S serial port
+  output buffer are discarded (flushed). Then, if the **--noreset**
+  option is *not* given, the serial port is reset to the settings it
+  had when picocom started, the modem control lines are cleared, and
+  picocom exits. If **--noreset** is given, then picocom exits without
+  reseting the serial port or affecting the modem control lines.
   
 # AUTHOR
 
