@@ -512,13 +512,16 @@ read_baud (void)
 
 /**********************************************************************/
 
-void cleanup(int drain, int noreset)
+void
+cleanup (int drain, int noreset)
 {
     if ( tty_fd >= 0 ) {
+        /* Print msg if they fail? Can't do anything, anyway... */
         if ( drain )
             term_drain(tty_fd);
         term_flush(tty_fd);
-
+        term_set_hupcl(tty_fd, !noreset);
+        term_apply(tty_fd, 1);
         if ( noreset ) {
             fd_pinfof(opts.quiet, "Skipping tty reset...\r\n");
             term_erase(tty_fd);
@@ -564,7 +567,7 @@ fatal (const char *format, ...)
     s = "\r\n";
     writen_ni(STE, s, strlen(s));
 
-    cleanup(0 /* drain*/, 0 /* noreset */);
+    cleanup(0 /* drain */, opts.noreset);
 
     exit(EXIT_FAILURE);
 }
@@ -980,8 +983,6 @@ do_command (unsigned char c)
     case KEY_EXIT:
         return 1;
     case KEY_QUIT:
-        term_set_hupcl(tty_fd, 0);
-        term_apply(tty_fd, 1);
         opts.noreset = 1;
         return 1;
     case KEY_STATUS:
@@ -1728,7 +1729,7 @@ parse_args(int argc, char *argv[])
 /**********************************************************************/
 
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
     int xcode = EXIT_SUCCESS;
     int r;
@@ -1783,7 +1784,6 @@ main(int argc, char *argv[])
     if ( r < 0 )
         fatal("failed to add device %s: %s",
               opts.port, term_strerror(term_errno, errno));
-
     if ( opts.lower_rts ) {
         r = term_lower_rts(tty_fd);
         if ( r < 0 )

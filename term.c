@@ -739,6 +739,17 @@ term_apply (int fd, int now)
 
         term.currtermios[i] = term.nexttermios[i];
 
+        /* Set HUPCL to origtermios as well. Since setting HUPCL
+           affects the behavior on close(2), we most likely want it to
+           also apply when the filedes is implicitly closed by
+           exit(3)ing the program. Since, uppon exiting, we restore
+           the original settings, this wouldn't happen unless we also
+           set HUPCL to origtermios. */
+        if ( term.currtermios[i].c_cflag & HUPCL )
+            term.origtermios[i].c_cflag |= HUPCL;
+        else
+            term.origtermios[i].c_cflag &= ~HUPCL;
+
     } while (0);
 
     return rval;
