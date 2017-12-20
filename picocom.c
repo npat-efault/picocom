@@ -1170,7 +1170,15 @@ msec2tv (struct timeval *tv, long ms)
     return tv;
 }
 
-void
+/* loop-exit reason */
+enum le_reason {
+    LE_CMD,
+    LE_IDLE,
+    LE_STDIN,
+    LE_SIGNAL
+};
+
+enum le_reason
 loop(void)
 {
     enum {
@@ -1205,7 +1213,7 @@ loop(void)
             } else if ( stdin_closed ) {
                 /* stdin closed, output queue empty, and no
                    idle timeout: Exit. */
-                return;
+                return LE_STDIN;
             }
         }
 
@@ -1218,7 +1226,7 @@ loop(void)
         }
         if ( r == 0 ) {
             /* Idle timeout expired */
-            return;
+            return LE_IDLE;
         }
 
         if ( FD_ISSET(STI, &rdset) ) {
@@ -1250,7 +1258,7 @@ loop(void)
                     /* process command key */
                     if ( do_command(c) )
                         /* picocom exit */
-                        return;
+                        return LE_CMD;
                 }
                 state = ST_TRANSPARENT;
                 break;
@@ -1316,6 +1324,7 @@ loop(void)
             tty_q.len -= n;
         }
     }
+    return LE_SIGNAL;
 }
 
 /**********************************************************************/
@@ -1732,6 +1741,7 @@ int
 main (int argc, char *argv[])
 {
     int xcode = EXIT_SUCCESS;
+    int ler;
     int r;
 
     parse_args(argc, argv);
@@ -1861,15 +1871,18 @@ main (int argc, char *argv[])
     fd_pinfof(opts.quiet, "Terminal ready\r\n");
 
     /* Enter main processing loop */
-    loop();
+    ler = loop();
 
     /* Terminating picocom */
     fd_pinfof(opts.quiet, "\r\n");
     fd_pinfof(opts.quiet, "Terminating...\r\n");
 
-    cleanup(1 /* drain */, opts.noreset);
+    if ( ler == LE_CMD || ler == LE_SIGNAL )
+        cleanup(0 /* drain */, opts.noreset);
+    else
+        cleanup(1 /* drain */, opts.noreset);
 
-    if ( sig_exit ) {
+    if ( ler == LE_SIGNAL ) {
         fd_pinfof(opts.quiet, "Picocom was killed\r\n");
         xcode = EXIT_FAILURE;
     } else
