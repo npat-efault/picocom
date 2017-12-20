@@ -1643,6 +1643,63 @@ term_drain(int fd)
 /***************************************************************************/
 
 int
+term_fake_flush(int fd)
+{
+    struct termios tio;
+    int rval, i, r;
+
+    rval = 0;
+
+    do { /* dummy */
+
+        i = term_find(fd);
+        if ( i < 0 ) {
+            rval = -1;
+            break;
+        }
+
+        /* Get current termios */
+        r = tcgetattr(fd, &tio);
+        if ( r < 0 ) {
+            term_errno = TERM_EGETATTR;
+            rval = -1;
+            break;
+        }
+        term.currtermios[i] = tio;
+        /* Set flow-control to none */
+        tio.c_cflag &= ~(CRTSCTS);
+        tio.c_iflag &= ~(IXON | IXOFF | IXANY);
+        /* Apply termios */
+        r = tcsetattr(fd, TCSANOW, &tio);
+        if ( r < 0 ) {
+            term_errno = TERM_ESETATTR;
+            rval = -1;
+            break;
+        }
+        /* Wait for output to drain. Without flow-control this should
+           complete in finite time. */
+        r = tcdrain(fd);
+        if ( r < 0 ) {
+            term_errno = TERM_EDRAIN;
+            rval = -1;
+            break;
+        }
+        /* see comment in term_drain */
+        if ( DRAIN_DELAY ) usleep(DRAIN_DELAY);
+        /* Reset flow-control to original setting. */
+        r = tcsetattr(fd, TCSANOW, &term.currtermios[i]);
+        if ( r < 0 ) {
+            term_errno = TERM_ESETATTR;
+            rval = -1;
+            break;
+        }
+
+    } while (0);
+
+    return rval;
+}
+
+int
 term_flush(int fd)
 {
     int rval, r;

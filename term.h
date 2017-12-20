@@ -65,6 +65,7 @@
  * F term_get_mctl - Get modem control signals status
  * F term_drain - drain the output from the terminal buffer
  * F term_flush - discard terminal input and output queue contents
+ * F term_fake_flush - discard terminal input and output queue contents
  * F term_break - generate a break condition on a device
  * F term_baud_up - return next higher baudrate
  * F term_baud_down - return next lower baudrate
@@ -660,6 +661,17 @@ int term_drain (int fd);
  * Returns negative on failure, non negative on success.
  */
 int term_flush (int fd);
+
+/* F term_fake_flush
+ *
+ * Fake a term_flush, by temporarily configuring the device associated
+ * with the managed fd to no flow-control and waiting until its output
+ * queue drains.
+ *
+ * Returns negative on failure, non-negative on success.
+ */
+int term_fake_flush(int fd);
+
 
 /* F term_break
  *

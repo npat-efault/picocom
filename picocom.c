@@ -520,6 +520,16 @@ cleanup (int drain, int noreset)
         if ( drain )
             term_drain(tty_fd);
         term_flush(tty_fd);
+        /* term_flush does not work with some drivers. If we try to
+           drain or even close the port while there are still data in
+           it's output buffers *and* flow-control is enabled we may
+           block forever. So we "fake" a flush, by temporarily setting
+           f/c to none, waiting for any data in the output buffer to
+           drain, and then reseting f/c to it's original setting. If
+           the real flush above does works, then the fake one should
+           amount to instantaneously switching f/c to none and then
+           back to its propper setting. */
+        if ( opts.flow != FC_NONE ) term_fake_flush(tty_fd);
         term_set_hupcl(tty_fd, !noreset);
         term_apply(tty_fd, 1);
         if ( noreset ) {
