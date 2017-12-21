@@ -66,13 +66,17 @@ picocom.1 : picocom.1.md
 	sed 's/\*\*\[/\*\*/g;s/\]\*\*/\*\*/g' $? \
 	| pandoc -s -t man \
             -Vfooter="Picocom $(VERSION)" -Vdate="`date -I`" \
+	    -Vadjusting='l' \
+	    -Vhyphenate='' \
 	    -o $@
 
 picocom.1.html : picocom.1.md
 	pandoc -s -t html \
+	    --template ~/.pandoc/tmpl/manpage.html \
 	    -c ~/.pandoc/css/normalize-noforms.css \
             -c ~/.pandoc/css/manpage.css \
             --self-contained \
+            -Vversion="v$(VERSION)" -Vdate="`date -I`" \
 	    -o $@ $?
 
 picocom.1.pdf : picocom.1
