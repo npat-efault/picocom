@@ -30,8 +30,6 @@ int fd_vprintf (int fd, const char *format, va_list ap);
 
 int fd_printf (int fd, const char *format, ...);
 
-int fd_pinfof (int quiet, const char *format, ...);
-
 #ifndef LINENOISE
 
 int fd_readline (int fdi, int fdo, char *b, int bsz);

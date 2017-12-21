@@ -319,7 +319,7 @@ uucp_lock(void)
              && kill((pid_t)pid, 0) < 0
              && errno == ESRCH ) {
             /* stale lock file */
-            fd_pinfof(opts.quiet, "\r\nRemoving stale lock: %s\r\n", lockname);
+            pinfo("\r\nRemoving stale lock: %s\r\n", lockname);
             sleep(1);
             unlink(lockname);
         } else {
@@ -514,6 +514,22 @@ read_baud (void)
 
 /**********************************************************************/
 
+int
+pinfo(const char *format, ...)
+{
+    va_list args;
+    int len;
+
+    if ( opts.quiet ) {
+        return 0;
+    }
+    va_start(args, format);
+    len = fd_vprintf(STDOUT_FILENO, format, args);
+    va_end(args);
+
+    return len;
+}
+
 void
 cleanup (int drain, int noreset, int hup)
 {
@@ -535,7 +551,7 @@ cleanup (int drain, int noreset, int hup)
         term_set_hupcl(tty_fd, !noreset || hup);
         term_apply(tty_fd, 1);
         if ( noreset ) {
-            fd_pinfof(opts.quiet, "Skipping tty reset...\r\n");
+            pinfo("Skipping tty reset...\r\n");
             term_erase(tty_fd);
         }
     }
@@ -1243,7 +1259,7 @@ loop(void)
             } while (n < 0 && errno == EINTR);
             if (n == 0) {
                 stdin_closed = 1;
-                fd_pinfof(opts.quiet, "\r\n** stdin closed **\r\n");
+                pinfo("\r\n** read zero bytes from stdin **\r\n");
                 goto skip_proc_STI;
             } else if (n < 0) {
                 /* is this really necessary? better safe than sory! */
@@ -1292,10 +1308,10 @@ loop(void)
                 n = read(tty_fd, &buff_rd, sizeof(buff_rd));
             } while (n < 0 && errno == EINTR);
             if (n == 0) {
-                fatal("term closed");
+                fatal("read zero bytes from port");
             } else if ( n < 0 ) {
                 if ( errno != EAGAIN && errno != EWOULDBLOCK )
-                    fatal("read from term failed: %s", strerror(errno));
+                    fatal("read from port failed: %s", strerror(errno));
             } else {
                 int i;
                 char *bmp = &buff_map[0];
@@ -1321,7 +1337,7 @@ loop(void)
                 n = write(tty_fd, tty_q.buff, sz);
             } while ( n < 0 && errno == EINTR );
             if ( n <= 0 )
-                fatal("write to term failed: %s", strerror(errno));
+                fatal("write to port failed: %s", strerror(errno));
             if ( opts.lecho && opts.log_filename )
                 if ( writen_ni(log_fd, tty_q.buff, n) < n )
                     fatal("write to logfile failed: %s", strerror(errno));
@@ -1401,7 +1417,7 @@ show_usage(char *name)
     printf("  USE_CUSTOM_BAUD is enabled\n");
 #endif
 
-    printf("\nUsage is: %s [options] <tty device>\n", s);
+    printf("\nUsage is: %s [options] <tty port device>\n", s);
     printf("Options are:\n");
     printf("  --<b>aud <baudrate>\n");
     printf("  --<f>low x (=soft,xon/xoff) | h (=hard) | n (=none)\n");
@@ -1761,7 +1777,7 @@ main (int argc, char *argv[])
 
     r = term_lib_init();
     if ( r < 0 )
-        fatal("term_init failed: %s", term_strerror(term_errno, errno));
+        fatal("term_lib_init failed: %s", term_strerror(term_errno, errno));
 
 #ifdef UUCP_LOCK_DIR
     if ( ! opts.nolock ) uucp_lockname(UUCP_LOCK_DIR, opts.port);
@@ -1803,24 +1819,23 @@ main (int argc, char *argv[])
                      !opts.noreset); /* hup-on-close. */
     }
     if ( r < 0 )
-        fatal("failed to add device %s: %s",
-              opts.port, term_strerror(term_errno, errno));
+        fatal("failed to add port: %s", term_strerror(term_errno, errno));
     if ( opts.lower_rts ) {
         r = term_lower_rts(tty_fd);
         if ( r < 0 )
-            fatal("failed to lower RTS of device %s: %s",
-                  opts.port, term_strerror(term_errno, errno));
+            fatal("failed to lower RTS of port: %s",
+                  term_strerror(term_errno, errno));
     }
     if ( opts.lower_dtr ) {
         r = term_lower_dtr(tty_fd);
         if ( r < 0 )
-            fatal("failed to lower DTR of device %s: %s",
-                  opts.port, term_strerror(term_errno, errno));
+            fatal("failed to lower DTR of port: %s",
+                  term_strerror(term_errno, errno));
     }
     r = term_apply(tty_fd, 0);
     if ( r < 0 )
-        fatal("failed to config device %s: %s",
-              opts.port, term_strerror(term_errno, errno));
+        fatal("failed to config port: %s",
+              term_strerror(term_errno, errno));
 
     set_tty_write_sz(term_get_baudrate(tty_fd, NULL));
 
@@ -1836,8 +1851,7 @@ main (int argc, char *argv[])
                 fatal("failed to set I/O device to raw mode: %s",
                       term_strerror(term_errno, errno));
         } else {
-            fd_pinfof(opts.quiet,
-                      "!! STDIN is not a TTY !! Continue anyway...\r\n");
+            pinfo("!! STDIN is not a TTY !! Continue anyway...\r\n");
         }
     } else {
         close(STI);
@@ -1857,7 +1871,7 @@ main (int argc, char *argv[])
     /* Prime output buffer with initstring */
     if ( opts.initstring ) {
         if ( opts.noinit ) {
-            fd_pinfof(opts.quiet, "Ignoring init-string (--noinit)\r\n");
+            pinfo("Ignoring init-string (--noinit)\r\n");
         } else {
             int l;
             l = strlen(opts.initstring);
@@ -1874,19 +1888,18 @@ main (int argc, char *argv[])
 
 #ifndef NO_HELP
     if ( ! opts.noescape ) {
-        fd_pinfof(opts.quiet,
-                  "Type [C-%c] [C-%c] to see available commands\r\n",
-                  KEYC(opts.escape), KEYC(KEY_HELP));
+        pinfo("Type [C-%c] [C-%c] to see available commands\r\n",
+              KEYC(opts.escape), KEYC(KEY_HELP));
     }
 #endif
-    fd_pinfof(opts.quiet, "Terminal ready\r\n");
+    pinfo("Terminal ready\r\n");
 
     /* Enter main processing loop */
     ler = loop();
 
     /* Terminating picocom */
-    fd_pinfof(opts.quiet, "\r\n");
-    fd_pinfof(opts.quiet, "Terminating...\r\n");
+    pinfo("\r\n");
+    pinfo("Terminating...\r\n");
 
     if ( ler == LE_CMD || ler == LE_SIGNAL )
         cleanup(0 /* drain */, opts.noreset, opts.hangup);
@@ -1894,10 +1907,10 @@ main (int argc, char *argv[])
         cleanup(1 /* drain */, opts.noreset, opts.hangup);
 
     if ( ler == LE_SIGNAL ) {
-        fd_pinfof(opts.quiet, "Picocom was killed\r\n");
+        pinfo("Picocom was killed\r\n");
         xcode = EXIT_FAILURE;
     } else
-        fd_pinfof(opts.quiet, "Thanks for using picocom\r\n");
+        pinfo("Thanks for using picocom\r\n");
 
     return xcode;
 }

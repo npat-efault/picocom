@@ -77,22 +77,6 @@ fd_printf (int fd, const char *format, ...)
     return len;
 }
 
-int
-fd_pinfof(int quiet, const char *format, ...)
-{
-    va_list args;
-    int len;
-
-    if ( quiet ) {
-        return 0;
-    }
-    va_start(args, format);
-    len = fd_vprintf(STDOUT_FILENO, format, args);
-    va_end(args);
-
-    return len;
-}
-
 /**********************************************************************/
 
 #ifndef LINENOISE
