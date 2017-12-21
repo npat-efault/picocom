@@ -562,22 +562,15 @@ cleanup (int drain, int noreset)
 void
 fatal (const char *format, ...)
 {
-    char *s, buf[256];
     va_list args;
-    int len;
 
+    fd_printf(STE, "\r\nFATAL: ");
     va_start(args, format);
-    len = vsnprintf(buf, sizeof(buf), format, args);
-    buf[sizeof(buf) - 1] = '\0';
+    fd_vprintf(STE, format, args);
     va_end(args);
+    fd_printf(STE, "\r\n");
 
-    s = "\r\nFATAL: ";
-    writen_ni(STE, s, strlen(s));
-    writen_ni(STE, buf, len);
-    s = "\r\n";
-    writen_ni(STE, s, strlen(s));
-
-    cleanup(0 /* drain */, opts.noreset);
+    cleanup(0 /* drain */, opts.noreset, opts.hangup);
 
     exit(EXIT_FAILURE);
 }

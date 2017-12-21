@@ -26,6 +26,8 @@
 
 ssize_t writen_ni(int fd, const void *buff, size_t n);
 
+int fd_vprintf (int fd, const char *format, va_list ap);
+
 int fd_printf (int fd, const char *format, ...);
 
 int fd_pinfof (int quiet, const char *format, ...);

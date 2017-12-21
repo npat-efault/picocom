@@ -53,26 +53,33 @@ writen_ni(int fd, const void *buff, size_t n)
 }
 
 int
-fd_printf (int fd, const char *format, ...)
+fd_vprintf (int fd, const char *format, va_list ap)
 {
     char buf[256];
-    va_list args;
     int len;
 
-    va_start(args, format);
-    len = vsnprintf(buf, sizeof(buf), format, args);
+    len = vsnprintf(buf, sizeof(buf), format, ap);
     buf[sizeof(buf) - 1] = '\0';
-    va_end(args);
 
     return writen_ni(fd, buf, len);
 }
 
+int
+fd_printf (int fd, const char *format, ...)
+{
+    va_list args;
+    int len;
 
+    va_start(args, format);
+    len = fd_vprintf(fd, format, args);
+    va_end(args);
+
+    return len;
+}
 
 int
 fd_pinfof(int quiet, const char *format, ...)
 {
-    char buf[256];
     va_list args;
     int len;
 
@@ -80,11 +87,10 @@ fd_pinfof(int quiet, const char *format, ...)
         return 0;
     }
     va_start(args, format);
-    len = vsnprintf(buf, sizeof(buf), format, args);
-    buf[sizeof(buf) - 1] = '\0';
+    len = fd_vprintf(STDOUT_FILENO, format, args);
     va_end(args);
 
-    return writen_ni(STDOUT_FILENO, buf, len);
+    return len;
 }
 
 /**********************************************************************/
