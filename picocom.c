@@ -181,6 +181,7 @@ struct {
     int lecho;
     int noinit;
     int noreset;
+    int hangup;
 #if defined (UUCP_LOCK_DIR) || defined (USE_FLOCK)
     int nolock;
 #endif
@@ -208,6 +209,7 @@ struct {
     .lecho = 0,
     .noinit = 0,
     .noreset = 0,
+    .hangup = 0,
 #if defined (UUCP_LOCK_DIR) || defined (USE_FLOCK)
     .nolock = 0,
 #endif
@@ -513,7 +515,7 @@ read_baud (void)
 /**********************************************************************/
 
 void
-cleanup (int drain, int noreset)
+cleanup (int drain, int noreset, int hup)
 {
     if ( tty_fd >= 0 ) {
         /* Print msg if they fail? Can't do anything, anyway... */
@@ -530,7 +532,7 @@ cleanup (int drain, int noreset)
            amount to instantaneously switching f/c to none and then
            back to its propper setting. */
         if ( opts.flow != FC_NONE ) term_fake_flush(tty_fd);
-        term_set_hupcl(tty_fd, !noreset);
+        term_set_hupcl(tty_fd, !noreset || hup);
         term_apply(tty_fd, 1);
         if ( noreset ) {
             fd_pinfof(opts.quiet, "Skipping tty reset...\r\n");
@@ -1411,6 +1413,7 @@ show_usage(char *name)
     printf("  --e<c>ho\n");
     printf("  --no<i>nit\n");
     printf("  --no<r>eset\n");
+    printf("  --hang<u>p\n");
     printf("  --no<l>ock\n");
     printf("  --<s>end-cmd <command>\n");
     printf("  --recei<v>e-cmd <command>\n");
@@ -1460,6 +1463,7 @@ parse_args(int argc, char *argv[])
         {"echo", no_argument, 0, 'c'},
         {"noinit", no_argument, 0, 'i'},
         {"noreset", no_argument, 0, 'r'},
+        {"hangup", no_argument, 0, 'u'},
         {"nolock", no_argument, 0, 'l'},
         {"flow", required_argument, 0, 'f'},
         {"baud", required_argument, 0, 'b'},
@@ -1487,7 +1491,7 @@ parse_args(int argc, char *argv[])
         /* no default error messages printed. */
         opterr = 0;
 
-        c = getopt_long(argc, argv, "hirlcqXnv:s:r:e:f:b:y:d:p:g:t:x:",
+        c = getopt_long(argc, argv, "hirulcqXnv:s:r:e:f:b:y:d:p:g:t:x:",
                         longOptions, &optionIndex);
 
         if (c < 0)
@@ -1525,6 +1529,9 @@ parse_args(int argc, char *argv[])
             break;
         case 'r':
             opts.noreset = 1;
+            break;
+        case 'u':
+            opts.hangup = 1;
             break;
         case 'l':
 #if defined (UUCP_LOCK_DIR) || defined (USE_FLOCK)
@@ -1711,6 +1718,7 @@ parse_args(int argc, char *argv[])
     printf("local echo is  : %s\n", opts.lecho ? "yes" : "no");
     printf("noinit is      : %s\n", opts.noinit ? "yes" : "no");
     printf("noreset is     : %s\n", opts.noreset ? "yes" : "no");
+    printf("hangup is      : %s\n", opts.hangup ? "yes" : "no");
 #if defined (UUCP_LOCK_DIR) || defined (USE_FLOCK)
     printf("nolock is      : %s\n", opts.nolock ? "yes" : "no");
 #endif
@@ -1881,9 +1889,9 @@ main (int argc, char *argv[])
     fd_pinfof(opts.quiet, "Terminating...\r\n");
 
     if ( ler == LE_CMD || ler == LE_SIGNAL )
-        cleanup(0 /* drain */, opts.noreset);
+        cleanup(0 /* drain */, opts.noreset, opts.hangup);
     else
-        cleanup(1 /* drain */, opts.noreset);
+        cleanup(1 /* drain */, opts.noreset, opts.hangup);
 
     if ( ler == LE_SIGNAL ) {
         fd_pinfof(opts.quiet, "Picocom was killed\r\n");
