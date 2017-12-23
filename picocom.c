@@ -99,6 +99,7 @@ const char *flow_str[] = {
 #define KEY_KEYS    CKEY('k') /* show available command keys */
 #define KEY_SEND    CKEY('s') /* send file */
 #define KEY_RECEIVE CKEY('r') /* receive file */
+#define KEY_HEX     CKEY('w') /* write hex */
 #define KEY_BREAK   CKEY('\\') /* break */
 
 /**********************************************************************/
@@ -351,6 +352,57 @@ uucp_unlock(void)
 
 /**********************************************************************/
 
+#define HEXBUF_SZ 128
+#define HEXDELIM " \r;:-_.,/"
+
+#define hexisdelim(c) ( strchr(HEXDELIM, (c)) != NULL )
+
+static inline int
+hex2byte (char c)
+{
+    int r;
+
+    if ( c >= '0' && c <= '9' )
+        r = c - '0';
+    else if ( c >= 'A' && c <= 'F')
+        r = c - 'A' + 10;
+    else if ( c >= 'a' && c <= 'f' )
+        r = c - 'a' + 10;
+    else
+        r = -1;
+
+    return r;
+}
+
+int
+hex2bin(unsigned char *buf, int sz, const char *str)
+{
+    char c;
+    int b0, b1;
+    int i;
+
+    i = 0;
+    while (i < sz) {
+        /* delimiter, end of string, or high nibble */
+        c = *str++;
+        if ( c == '\0' ) break;
+        if ( hexisdelim(c) ) continue;
+        b0 = hex2byte(c);
+        if ( b0 < 0 ) return -1;
+        /* low nibble */
+        c = *str++;
+        if ( c == '\0' ) return -1;
+        b1 = hex2byte(c);
+        if ( b1 < 0 ) return -1;
+        /* pack byte */
+        buf[i++] = (unsigned char)b0 << 4 | (unsigned char)b1;
+    }
+
+    return i;
+}
+
+/**********************************************************************/
+
 #ifndef LINENOISE
 
 char *
@@ -388,6 +440,28 @@ read_baud (void)
     } while (baud < 0);
 
     return baud;
+}
+
+int
+read_hex (unsigned char *buff, int sz)
+{
+    char hexstr[256];
+    int r, n;
+
+    do {
+        fd_printf(STO, "\r\n*** hex: ");
+        r = fd_readline(STI, STO, hexstr, sizeof(hexstr));
+        fd_printf(STO, "\r\n");
+        if ( r < 0 ) {
+            n = 0;
+            break;
+        }
+        n = hex2bin(buff, sz, hexstr);
+        if ( n < 0 )
+            fd_printf(STO, "*** Invalid hex!");
+    } while (n < 0);
+
+    return n;
 }
 
 #else /* LINENOISE defined */
@@ -510,6 +584,29 @@ read_baud (void)
     return baud;
 }
 
+int
+read_hex (unsigned char *buff, int sz)
+{
+    char *hexstr;
+    int n;
+
+    do {
+        fd_printf(STO, "\r\n");
+        hexstr = linenoise("*** hex: ");
+        fd_printf(STO, "\r");
+        if ( hexstr == NULL ) {
+            n = 0;
+            break;
+        }
+        n = hex2bin(buff, sz, hexstr);
+        if ( n < 0 )
+            fd_printf(STO, "*** Invalid hex!");
+        free(hexstr);
+    } while (n < 0);
+
+    return n;
+}
+
 #endif /* of ifndef LINENOISE */
 
 /**********************************************************************/
@@ -524,7 +621,7 @@ pinfo(const char *format, ...)
         return 0;
     }
     va_start(args, format);
-    len = fd_vprintf(STDOUT_FILENO, format, args);
+    len = fd_vprintf(STO, format, args);
     va_end(args);
 
     return len;
@@ -852,6 +949,8 @@ show_keys()
               KEYC(KEY_BREAK));
     fd_printf(STO, "*** [C-%c] : Toggle local echo\r\n",
               KEYC(KEY_LECHO));
+    fd_printf(STO, "*** [C-%c] : Write hex\r\n",
+              KEYC(KEY_HEX));
     fd_printf(STO, "*** [C-%c] : Send file\r\n",
               KEYC(KEY_SEND));
     fd_printf(STO, "*** [C-%c] : Receive file\r\n",
@@ -988,6 +1087,35 @@ run_cmd(int fd, const char *cmd, const char *args_extra)
 
 /**********************************************************************/
 
+int tty_q_push(const char *s, int len) {
+    int i, sz, n;
+    unsigned char *b;
+
+    for (i = 0; i < len; i++) {
+        while (tty_q.len + M_MAXMAP > tty_q.sz) {
+            sz = tty_q.sz * 2;
+            if ( TTY_Q_SZ && sz > TTY_Q_SZ )
+                return i;
+            b = realloc(tty_q.buff, sz);
+            if ( ! b )
+                return i;
+            tty_q.buff = b;
+            tty_q.sz = sz;
+#if 0
+            fd_printf(STO, "New tty_q size: %d\r\n", sz);
+#endif
+        }
+        n = do_map((char *)tty_q.buff + tty_q.len,
+                   opts.omap, s[i]);
+        tty_q.len += n;
+        /* write to STO if local-echo is enabled */
+        if ( opts.lecho )
+            map_and_write(STO, opts.emap, s[i]);
+    }
+
+    return i;
+}
+
 /* Process command key. Returns non-zero if command results in picocom
    exit, zero otherwise. */
 int
@@ -998,7 +1126,8 @@ do_command (unsigned char c)
     int newbaud, newflow, newparity, newbits, newstopbits;
     const char *xfr_cmd;
     char *fname;
-    int r;
+    unsigned char hexbuf[HEXBUF_SZ];
+    int n, r;
 
     switch (c) {
     case KEY_EXIT:
@@ -1140,6 +1269,16 @@ do_command (unsigned char c)
         run_cmd(tty_fd, xfr_cmd, fname);
         free(fname);
         break;
+    case KEY_HEX:
+        n = read_hex(hexbuf, sizeof(hexbuf));
+        if ( n < 0 ) {
+            fd_printf(STO, "*** cannot read hex ***\r\n");
+            break;
+        }
+        if ( tty_q_push((char *)hexbuf, n) != n )
+            fd_printf(STO, "*** output buffer full ***\r\n");
+        fd_printf(STO, "*** wrote %d bytes ***\r\n", n);
+        break;
     case KEY_BREAK:
         term_break(tty_fd);
         fd_printf(STO, "\r\n*** break sent ***\r\n");
@@ -1152,35 +1291,6 @@ do_command (unsigned char c)
 }
 
 /**********************************************************************/
-
-int tty_q_push(const char *s, int len) {
-    int i, sz, n;
-    unsigned char *b;
-
-    for (i = 0; i < len; i++) {
-        while (tty_q.len + M_MAXMAP > tty_q.sz) {
-            sz = tty_q.sz * 2;
-            if ( TTY_Q_SZ && sz > TTY_Q_SZ )
-                return i;
-            b = realloc(tty_q.buff, sz);
-            if ( ! b )
-                return i;
-            tty_q.buff = b;
-            tty_q.sz = sz;
-#if 0
-            fd_printf(STO, "New tty_q size: %d\r\n", sz);
-#endif
-        }
-        n = do_map((char *)tty_q.buff + tty_q.len,
-                   opts.omap, s[i]);
-        tty_q.len += n;
-        /* write to STO if local-echo is enabled */
-        if ( opts.lecho )
-            map_and_write(STO, opts.emap, s[i]);
-    }
-
-    return i;
-}
 
 static struct timeval *
 msec2tv (struct timeval *tv, long ms)
