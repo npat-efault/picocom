@@ -24,6 +24,12 @@ has also served (quite well) as a low-tech serial communications
 program to allow access to all types of devices that provide serial
 consoles. It could also prove useful in many other similar tasks.
 
+In effect, picocom is not an "emulator" per-se. It is a simple program
+that opens, configures, manages a serial port (tty device) and its
+settings, and connects to it the terminal emulator you are, most
+likely, already using (the terminal window application, xterm, rxvt,
+system console, etc).
+
 When picocom starts it opens the tty (serial port) given as its
 non-option argument. Unless the **--noinit** option is given, it
 configures the port to the settings specified by the option-arguments
@@ -141,18 +147,19 @@ here.
 
 :   Toggle local-echo mode.
 
-**C-v**
+**C-w**
 
-:   Show program options (like baud rate, data bits, etc) as well as
-    the actual serial port settings. Only the options and port
-    settings that can be modified online (through commands) are shown,
-    not those that can only be set at the command-line. See
-    **[DISPLAY OF OPTIONS AND PORT SETTINGS]** for details.
+:   Write hex. Picococm prompts the user for a string of hexadecimal
+    values. Values can be entered with or without delimeters
+    (separators). The hexadecimal values are translated to binary and
+    sent to the port, exactly as if input at the terminal (i.e. the
+    **--omap**, **--echo** and **--emap** options are
+    observed). Example: The following sends the characters "ABCD" to
+    the port.
 
-**C-h** or **C-k**
-
-:   Show help or show keys. Prints a short description of all
-    available function (command) keys.
+        C-a C-w
+        *** hex: 41 4243:44
+        *** wrote 4 byes ***
 
 **C-s**
 
@@ -163,6 +170,19 @@ here.
 
 :   Receive (download) a file. See **[SENDING AND RECEIVING FILES]**
     below.
+
+**C-v**
+
+:   Show program options (like baud rate, data bits, etc) as well as
+    the actual serial port settings. Only the options and port
+    settings that can be modified online (through commands) are shown,
+    not those that can only be set at the command-line. See
+    **[DISPLAY OF OPTIONS AND PORT SETTINGS]** for details.
+
+**C-h** or **C-k**
+
+:   Show help, or show keys. Prints a short description of all
+    available function (command) keys.
 
 After performing one of the above operations, the program leaves the
 command mode and enters transparent mode. Example: To increase the
@@ -254,7 +274,7 @@ Picocom accepts the following command-line options.
     options. If **--noreset** is given and **--hangup** is not, then
     HUPCL for the port is cleared and will remain so after exiting
     picocom. If **--noreset** is *not* given, or if both **--noreset**
-    and **--hangup** are given, then HUPCL is set for the port, and
+    and **--hangup** are given, then HUPCL is set for the port and
     will remain so after exiting picocom. This is true, regardless of
     the way picocom terminates (command, read zero-bytes from standard
     input, killed by signal, fatal error, etc), and regardless of the
