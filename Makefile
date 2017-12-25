@@ -1,5 +1,5 @@
 
-VERSION = 3.0
+VERSION = 3.1a
 
 #CC ?= gcc
 CPPFLAGS += -DVERSION_STR=\"$(VERSION)\"
