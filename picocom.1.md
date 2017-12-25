@@ -534,6 +534,22 @@ is a comma-separated list of one or more of the following identifiers:
 - **ignlf** (ignore LF),
 - **bsdel** (map BS to DEL),
 - **delbs** (map DEL to BS)
+- **spchex** (map special chars (< 0x20 || 0x7f), excl. CR, LF, and
+TAB to hex)
+- **tabhex** (map TAB to hex)
+- **crhex** (map CR to hex)
+- **lfhex** (map LF to hex)
+- **8bithex** (map chars with 8th-bit set to hex)
+- **nrmhex** (map normal ascii chars (0x20 <= c < 0x7f) to hex)
+
+The "to hex" mappings (**???hex**) replace the respective characters
+with their hexadecimal representation (in square brackets), like this:
+
+    CR --> [0d]
+
+If more than one mappings are provided that apply to the same
+character, then only the first mapping, in the order listed above, is
+applied.
 
 For example the command:
 

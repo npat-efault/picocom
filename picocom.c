@@ -105,15 +105,21 @@ const char *flow_str[] = {
 /**********************************************************************/
 
 /* implemented caracter mappings */
-#define M_CRLF   (1 << 0) /* map CR  --> LF */
-#define M_CRCRLF (1 << 1) /* map CR  --> CR + LF */
-#define M_IGNCR  (1 << 2) /* map CR  --> <nothing> */
-#define M_LFCR   (1 << 3) /* map LF  --> CR */
-#define M_LFCRLF (1 << 4) /* map LF  --> CR + LF */
-#define M_IGNLF  (1 << 5) /* map LF  --> <nothing> */
-#define M_DELBS  (1 << 6) /* map DEL --> BS */
-#define M_BSDEL  (1 << 7) /* map BS  --> DEL */
-#define M_NFLAGS 8
+#define M_CRLF    (1 << 0)  /* map CR  --> LF */
+#define M_CRCRLF  (1 << 1)  /* map CR  --> CR + LF */
+#define M_IGNCR   (1 << 2)  /* map CR  --> <nothing> */
+#define M_LFCR    (1 << 3)  /* map LF  --> CR */
+#define M_LFCRLF  (1 << 4)  /* map LF  --> CR + LF */
+#define M_IGNLF   (1 << 5)  /* map LF  --> <nothing> */
+#define M_DELBS   (1 << 6)  /* map DEL --> BS */
+#define M_BSDEL   (1 << 7)  /* map BS  --> DEL */
+#define M_SPCHEX  (1 << 8)  /* map special chars --> hex */
+#define M_TABHEX  (1 << 9)  /* map TAB --> hex */
+#define M_CRHEX   (1 << 10)  /* map CR --> hex */
+#define M_LFHEX   (1 << 11) /* map LF --> hex */
+#define M_8BITHEX (1 << 12) /* map 8-bit chars --> hex */
+#define M_NRMHEX  (1 << 13) /* map normal ascii chars --> hex */
+#define M_NFLAGS 14
 
 /* default character mappings */
 #define M_I_DFL 0
@@ -133,6 +139,12 @@ struct map_names_s {
     { "ignlf", M_IGNLF },
     { "delbs", M_DELBS },
     { "bsdel", M_BSDEL },
+    { "spchex", M_SPCHEX },
+    { "tabhex", M_TABHEX },
+    { "crhex", M_CRHEX },
+    { "lfhex", M_LFHEX },
+    { "8bithex", M_8BITHEX },
+    { "nrmhex", M_NRMHEX },
     /* Sentinel */
     { NULL, 0 }
 };
@@ -697,25 +709,33 @@ fatal (const char *format, ...)
 #define M_MAXMAP 4
 
 int
+map2hex (char *b, char c)
+{
+    const char *hexd = "0123456789abcdef";
+
+    b[0] = '[';
+    b[1] = hexd[(unsigned char)c >> 4];
+    b[2] = hexd[(unsigned char)c & 0x0f];
+    b[3] = ']';
+    return 4;
+}
+
+int
 do_map (char *b, int map, char c)
 {
-    int n;
+    int n = -1;
 
     switch (c) {
     case '\x7f':
         /* DEL mapings */
         if ( map & M_DELBS ) {
             b[0] = '\x08'; n = 1;
-        } else {
-            b[0] = c; n = 1;
         }
         break;
     case '\x08':
         /* BS mapings */
         if ( map & M_BSDEL ) {
             b[0] = '\x7f'; n = 1;
-        } else {
-            b[0] = c; n = 1;
         }
         break;
     case '\x0d':
@@ -726,8 +746,8 @@ do_map (char *b, int map, char c)
             b[0] = '\x0d'; b[1] = '\x0a'; n = 2;
         } else if ( map & M_IGNCR ) {
             n = 0;
-        } else {
-            b[0] = c; n = 1;
+        } else if ( map & M_CRHEX ) {
+            n = map2hex(b, c);
         }
         break;
     case '\x0a':
@@ -738,14 +758,42 @@ do_map (char *b, int map, char c)
             b[0] = '\x0d'; b[1] = '\x0a'; n = 2;
         } else if ( map & M_IGNLF ) {
             n = 0;
-        } else {
-            b[0] = c; n = 1;
+        } else if ( map & M_LFHEX ) {
+            n = map2hex(b, c);
+        }
+        break;
+    case '\x09':
+        /* TAB mappings */
+        if ( map & M_TABHEX ) {
+            n = map2hex(b,c);
         }
         break;
     default:
-        b[0] = c; n = 1;
         break;
     }
+
+    if ( n < 0 && map & M_SPCHEX ) {
+        if ( c == '\x7f' || ( (unsigned char)c < 0x20
+                              && c != '\x09' && c != '\x0a'
+                              && c != '\x0d') ) {
+            n = map2hex(b,c);
+        }
+    }
+    if ( n < 0 && map & M_8BITHEX ) {
+        if ( c & 0x80 ) {
+            n = map2hex(b,c);
+        }
+    }
+    if ( n < 0 && map & M_NRMHEX ) {
+        if ( (unsigned char)c >= 0x20 && (unsigned char)c < 0x7f ) {
+            n = map2hex(b,c);
+        }
+    }
+    if ( n < 0 ) {
+        b[0] = c; n = 1;
+    }
+
+    assert(n > 0 && n <= M_MAXMAP);
 
     return n;
 }
@@ -1562,6 +1610,12 @@ show_usage(char *name)
     printf("  ignlf : ignore LF\n");
     printf("  bsdel : map BS --> DEL\n");
     printf("  delbs : map DEL --> BS\n");
+    printf("  spchex : map special chars (excl. CR, LF & TAB) --> hex\n");
+    printf("  tabhex : map TAB --> hex\n");
+    printf("  crhex : map CR --> hex\n");
+    printf("  lfhex : map LF --> hex\n");
+    printf("  8bithex : map 8-bit chars --> hex\n");
+    printf("  nrmhex : map normal ascii chars --> hex\n");
     printf("<?> indicates the equivalent short option.\n");
     printf("Short options are prefixed by \"-\" instead of by \"--\".\n");
 #else /* defined NO_HELP */
