@@ -159,7 +159,7 @@ here.
 
         C-a C-w
         *** hex: 41 4243:44
-        *** wrote 4 byes ***
+        *** wrote 4 bytes ***
 
 **C-s**
 
@@ -269,8 +269,9 @@ Picocom accepts the following command-line options.
     "Exit"), which makes picocom behave *exactly* as if **--noreset**
     was given. See also the **--hangup** option. (Default: Disabled)
 
-    NOTICE: Picocom will always set the HUPCL control bit of the
-    serial port, according to the **--noreset** and **--hangup**
+    NOTICE: Picocom clears the modem control lines on exit by setting
+    the *HUPCL* control bit of the respective port. Picocom always
+    sets HUPCL according to the **--noreset** and **--hangup**
     options. If **--noreset** is given and **--hangup** is not, then
     HUPCL for the port is cleared and will remain so after exiting
     picocom. If **--noreset** is *not* given, or if both **--noreset**
