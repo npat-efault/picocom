@@ -11,7 +11,7 @@
 </head>
 <body>
 <div id="header">
-  <h1 class="title"><div id="pgname">PICOCOM(1)</div><div id="version">v3.0a / 2017-12-23</div></h1>
+  <h1 class="title"><div id="pgname">PICOCOM(1)</div><div id="version">v3.0 / 2017-12-25</div></h1>
 </div>
 <h1 id="name">NAME</h1>
 <p>picocom - minimal dumb-terminal emulation program</p>
@@ -73,7 +73,7 @@
 <dd><p>Write hex. Picococm prompts the user for a string of hexadecimal values. Values can be entered with or without delimeters (separators). The hexadecimal values are translated to binary and sent to the port, exactly as if input at the terminal (i.e. the <strong>--omap</strong>, <strong>--echo</strong> and <strong>--emap</strong> options are observed). Example: The following sends the characters &quot;ABCD&quot; to the port.</p>
 <pre><code>C-a C-w
 *** hex: 41 4243:44
-*** wrote 4 byes ***</code></pre>
+*** wrote 4 bytes ***</code></pre>
 </dd>
 <dt><strong>C-s</strong></dt>
 <dd><p>Send (upload) a file. See <strong><a href="#sending-and-receiving-files">SENDING AND RECEIVING FILES</a></strong> below.</p>
@@ -125,7 +125,7 @@
 </dd>
 <dt><strong>--noreset</strong> | <strong>-r</strong></dt>
 <dd><p>If given, picocom will not reset the serial port when exiting. It will just close the respective file descriptor and do nothing more. The serial port settings will <em>not</em> be restored to their original values and, unless the <strong>--hangup</strong> option is also given, the modem-control lines will <em>not</em> be affected. This is useful, for example, for leaving modems connected when exiting picocom. Regardless whether the <strong>--noreset</strong> option is given, the user can exit picocom using the &quot;Quit&quot; command (instead of &quot;Exit&quot;), which makes picocom behave <em>exactly</em> as if <strong>--noreset</strong> was given. See also the <strong>--hangup</strong> option. (Default: Disabled)</p>
-<p>NOTICE: Picocom will always set the HUPCL control bit of the serial port, according to the <strong>--noreset</strong> and <strong>--hangup</strong> options. If <strong>--noreset</strong> is given and <strong>--hangup</strong> is not, then HUPCL for the port is cleared and will remain so after exiting picocom. If <strong>--noreset</strong> is <em>not</em> given, or if both <strong>--noreset</strong> and <strong>--hangup</strong> are given, then HUPCL is set for the port and will remain so after exiting picocom. This is true, regardless of the way picocom terminates (command, read zero-bytes from standard input, killed by signal, fatal error, etc), and regardless of the <strong>--noinit</strong> option.</p>
+<p>NOTICE: Picocom clears the modem control lines on exit by setting the <em>HUPCL</em> control bit of the respective port. Picocom always sets HUPCL according to the <strong>--noreset</strong> and <strong>--hangup</strong> options. If <strong>--noreset</strong> is given and <strong>--hangup</strong> is not, then HUPCL for the port is cleared and will remain so after exiting picocom. If <strong>--noreset</strong> is <em>not</em> given, or if both <strong>--noreset</strong> and <strong>--hangup</strong> are given, then HUPCL is set for the port and will remain so after exiting picocom. This is true, regardless of the way picocom terminates (command, read zero-bytes from standard input, killed by signal, fatal error, etc), and regardless of the <strong>--noinit</strong> option.</p>
 </dd>
 <dt><strong>--hangup</strong> | <strong>-u</strong></dt>
 <dd><p>If given together with <strong>--noreset</strong>, picocom will not reset the serial port to it's original settings on exit, but it <em>will</em> clear the modem control lines (typically DTR and RTS) to signal a modem hangup. Without the <strong>--noreset</strong> option (explicitly given, or implied by extiting with the &quot;Quit&quot; command) <strong>--hangup</strong> has no effect (without <strong>--noreset</strong> picocom always clears the modem control lines on exit, anyway).</p>
@@ -210,7 +210,16 @@
 <li><strong>ignlf</strong> (ignore LF),</li>
 <li><strong>bsdel</strong> (map BS to DEL),</li>
 <li><strong>delbs</strong> (map DEL to BS)</li>
+<li><strong>spchex</strong> (map special chars (&lt; 0x20 || 0x7f), excl. CR, LF, and TAB to hex)</li>
+<li><strong>tabhex</strong> (map TAB to hex)</li>
+<li><strong>crhex</strong> (map CR to hex)</li>
+<li><strong>lfhex</strong> (map LF to hex)</li>
+<li><strong>8bithex</strong> (map chars with 8th-bit set to hex)</li>
+<li><strong>nrmhex</strong> (map normal ascii chars (0x20 &lt;= c &lt; 0x7f) to hex)</li>
 </ul>
+<p>The &quot;to hex&quot; mappings (<strong>???hex</strong>) replace the respective characters with their hexadecimal representation (in square brackets), like this:</p>
+<pre><code>CR --&gt; [0d]</code></pre>
+<p>If more than one mappings are provided that apply to the same character, then only the first mapping, in the order listed above, is applied.</p>
 <p>For example the command:</p>
 <pre><code>picocom --omap crlf,delbs --imap ignlf,bsdel --emap crcrlf ...</code></pre>
 <p>will:</p>
