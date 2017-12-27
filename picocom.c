@@ -1600,6 +1600,7 @@ show_usage(char *name)
     printf("  --e<X>it\n");
     printf("  --lower-rts\n");
     printf("  --lower-dtr\n");
+    printf("  --<q>uiet\n");
     printf("  --<h>elp\n");
     printf("<map> is a comma-separated list of one or more of:\n");
     printf("  crlf : map CR --> LF\n");
