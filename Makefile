@@ -38,14 +38,14 @@ OBJS += linenoise-1.0/linenoise.o
 linenoise-1.0/linenoise.o : linenoise-1.0/linenoise.c linenoise-1.0/linenoise.h
 
 ## Comment this in to enable custom baudrate support.
-## Works with: Linux (kernels > 2.6), OSX (Tiger and above)
+## Works with: Linux (kernels > 2.6), FreeBSD, macOS (Tiger and above)
 #CPPFLAGS += -DUSE_CUSTOM_BAUD
 
 ## Comment this IN to remove help strings (saves ~ 4-6 Kb).
 #CPPFLAGS += -DNO_HELP
 
 
-OBJS += picocom.o term.o fdio.o split.o termios2.o custbaud_osx.o
+OBJS += picocom.o term.o fdio.o split.o termios2.o custbaud_bsd.o
 picocom : $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
 
@@ -54,7 +54,7 @@ term.o : term.c term.h
 split.o : split.c split.h
 fdio.o : fdio.c fdio.h
 termios2.o : termios2.c termios2.h termbits2.h
-custbaud_osx.o : custbaud_osx.c custbaud_osx.h
+custbaud_bsd.o : custbaud_bsd.c custbaud_bsd.h
 
 .c.o :
 	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ -c $<
@@ -86,7 +86,7 @@ picocom.1.pdf : picocom.1
 clean:
 	rm -f picocom.o term.o fdio.o split.o
 	rm -f linenoise-1.0/linenoise.o
-	rm -f termios2.o custbaud_osx.o
+	rm -f termios2.o custbaud_bsd.o
 	rm -f *~
 	rm -f \#*\#
 

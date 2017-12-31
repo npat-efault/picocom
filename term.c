@@ -61,9 +61,9 @@
 #include "termios2.h"
 #endif
 
-#if defined(__APPLE__) && defined(USE_CUSTOM_BAUD)
-/* only for OSX, Tiger and above */
-#include "custbaud_osx.h"
+#if (defined (__FreeBSD__) || defined(__APPLE__)) && defined(USE_CUSTOM_BAUD)
+/* only for FreeBSD and macOS (Tiger and above) */
+#include "custbaud_bsd.h"
 #endif
 
 /* Time to wait for UART to clear after a drain (in usec). */
@@ -167,22 +167,6 @@ term_perror (const char *prefix)
     return fprintf(stderr, "%s %s\n",
                    prefix, term_strerror(term_errno, errno));
 }
-
-/***************************************************************************/
-
-/* OSX termios.h unfortunately just provides constants for baudrates
-   up to 230k, so we add the missing constants here. */
-
-#if defined(__APPLE__) && defined(HIGH_BAUD)
-
-#ifndef B460800
-#define B460800   460800
-#endif
-#ifndef B921600
-#define B921600   921600
-#endif
-
-#endif /* __APPLE__ */
 
 /***************************************************************************/
 

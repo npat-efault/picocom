@@ -1,11 +1,11 @@
 /*
- * custbaud_osx.c
+ * custbaud_bsd.c
  *
- * Custom baud rate support for OSX.
+ * Custom baud rate support for BSD and macOS.
  *
  * by Joe Merten (https://github.com/Joe-Merten www.jme.de)
  *
- * ATTENTION: OSX specific stuff!
+ * ATTENTION: BSD and macOS specific stuff!
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -35,28 +35,28 @@
  *   looks that this is a bug or limitation in OSX and/or Ftdi driver.
  *   Trying with PL2303 (driver version PL2303_MacOSX_1.6.1_20160309.zip),
  *   baudrates up to 6MBaud were accepted.
+ *   - Have not tested with more recent macOS or Ftdi driver until now.
  */
 
-#if defined(__APPLE__) && defined(USE_CUSTOM_BAUD)
+/* Note that this code might also work with OpenBSD, NetBSD et cetera, but I have not tested.
+ * That's why I only check for `defined (__FreeBSD__)` here.
+ */
+#if (defined (__FreeBSD__) || defined(__APPLE__)) && defined(USE_CUSTOM_BAUD)
 
-#include "custbaud_osx.h"
+#include "custbaud_bsd.h"
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
 #include <sys/ioctl.h>
+#ifdef __APPLE__
 #include <IOKit/serial/ioss.h>
+#endif
 #include "term.h"
 
 /***************************************************************************/
-/* Need to undef tcsetattr to get access to the original tcsetattr()
- * function inside our module.
- */
-#undef tcsetattr
-
-/***************************************************************************/
-/* As we can see in OSX termios.h all the baudrate constants are transparent,
+/* As we can see in FreeBSD and macOS termios.h all the baudrate constants are transparent,
  * like B115200=115200. There is no need for any integer <-> code translation.
- * So we can pass any baudrate we want directly cfsetospeed() & co.
+ * So we can pass any baudrate we want directly to / from cfsetospeed() & co.
  */
 int cfsetospeed_custom(struct termios *tiop, int speed) {
     return cfsetospeed(tiop, speed);
@@ -74,11 +74,18 @@ int cfgetispeed_custom(struct termios *tiop) {
     return cfgetispeed(tiop);
 }
 
+#ifdef __APPLE__
+/***************************************************************************/
+/* Need to undef tcsetattr to get access to the original tcsetattr()
+ * function inside our module.
+ */
+#undef tcsetattr
+
 /***************************************************************************/
 /* The strategy of picocom's terminal handling library is to hold all the
  * terminal settings (including baudrate) using termios struct.
- * Problem on OSX is, that tcsetattr() will fail if termios contains an
- * unusual baudrate (like e.g. 12345 of 12M), The official OSX way to apply
+ * Problem on macOS is, that tcsetattr() will fail if termios contains an
+ * unusual baudrate (like e.g. 12345 of 12M), The official macOS way to apply
  * those baudrates is to use ioctl(IOSSIOSPEED) instead.
  * Our workaround strategy is:
  * - set the baudrate stored in termios back to a standard value (e.g. 9600)
@@ -131,7 +138,8 @@ int tcsetattr_custom(int fd, int optional_actions, const struct termios *tiop) {
 
     return 0;
 }
+#endif /*__APPLE__ */
 
 /***************************************************************************/
 
-#endif /* __APPLE__ && USE_CUSTOM_BAUD */
+#endif /* FreeBSD || __APPLE__ && USE_CUSTOM_BAUD */
