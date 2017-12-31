@@ -3,7 +3,7 @@
  *
  * Custom baud rate support for BSD and macOS.
  *
- * by Joe Merten (https://github.com/Joe-Merten www.jme.de)
+ * by Joe Merten (https://github.com/JoeMerten www.jme.de)
  *
  * ATTENTION: BSD and macOS specific stuff!
  *

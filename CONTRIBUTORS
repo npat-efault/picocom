@@ -54,9 +54,10 @@ comments:
 - Cody Planteen (https://github.com/planteen) contributed the
   implementation of the toggle-RTS command.
 
-- Joe Merten (https://github.com/Joe-Merten) contributed the
+- Joe Merten (https://github.com/JoeMerten) contributed the
   --lower-rts and --lower-dtr options, custom baudrate support for
-  OSX, the --logfile option implementation, and several bug-fixes.
+  FreeBSD and macOS, the --logfile option implementation, and several
+  bug-fixes.
 
 - Maciej Grela (https://github.com/mgrela) contributed the initial
   --initstring  option implementation.
