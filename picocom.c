@@ -251,6 +251,10 @@ int sig_exit = 0;
 int tty_fd = -1;
 int log_fd = -1;
 
+/* RTS and DTR are usually raised upon open serial port (as tested on Linux, FreeBsd and macOS) */
+int rts_up = 1;
+int dtr_up = 1;
+
 #define TTY_Q_SZ_MIN 256
 #ifndef TTY_Q_SZ
 #define TTY_Q_SZ 32768
@@ -889,7 +893,7 @@ stopbits_next (int bits)
 }
 
 void
-show_status (int dtr_up, int rts_up)
+show_status ()
 {
     int baud, bits, stopbits, mctl;
     enum flowcntrl_e flow;
@@ -1169,8 +1173,6 @@ int tty_q_push(const char *s, int len) {
 int
 do_command (unsigned char c)
 {
-    static int dtr_up = 0;
-    static int rts_up = 0;
     int newbaud, newflow, newparity, newbits, newstopbits;
     const char *xfr_cmd;
     char *fname;
@@ -1184,7 +1186,7 @@ do_command (unsigned char c)
         opts.noreset = 1;
         return 1;
     case KEY_STATUS:
-        show_status(dtr_up, rts_up);
+        show_status();
         break;
     case KEY_HELP:
     case KEY_KEYS:
@@ -1990,12 +1992,14 @@ main (int argc, char *argv[])
         if ( r < 0 )
             fatal("failed to lower RTS of port: %s",
                   term_strerror(term_errno, errno));
+        rts_up = 0;
     }
     if ( opts.lower_dtr ) {
         r = term_lower_dtr(tty_fd);
         if ( r < 0 )
             fatal("failed to lower DTR of port: %s",
                   term_strerror(term_errno, errno));
+        dtr_up = 0;
     }
     r = term_apply(tty_fd, 0);
     if ( r < 0 )
