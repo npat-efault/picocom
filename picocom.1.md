@@ -96,7 +96,7 @@ here.
 
 :   Toggle the RTS line. If RTS is up, then lower it. If it is down,
     then raise it. Not supported if the flow control mode is RTS/CTS.
-    Only supported in Linux and OSX.
+    Only supported in Linux and macOS.
 
 **C-backslash**
 
@@ -369,13 +369,13 @@ Picocom accepts the following command-line options.
 :   Lower the RTS control signal after opening the serial port (by
     default RTS is raised after open). Only supported when
     flow-control mode is not set to RTS/CTS, ignored otherwise. Only
-    supported in Linux and OSX.
+    supported in Linux and macOS.
 
 **--lower-dtr**
 
 :   Lower the DTR control signal after opening the serial port (by
-    default DTR is raised after open).  Only supported in Linux and
-    OSX.
+    default DTR is raised after open). Only supported in Linux and
+    macOS.
 
 **--exit-aftrer** | **-x**
 
@@ -584,7 +584,7 @@ operation and what happens in each such condition:
   original settings, and the modem-control lines are cleared signaling
   a modem reset, subject to the **--noreset** and the **--hangup**
   options. After that picocom exits with a success status.
-  
+
 - The quit command is seen in the standard input. That is, the escape
   character is seen (default **C-a**), followed by the quit command
   character (default **C-q**). The behavior in this case is similar to

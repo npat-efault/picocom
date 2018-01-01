@@ -17,7 +17,7 @@ itself inverted) to the microcontroller's reset input pin.
 Problem at open
 ---------------
 
-In both Linux and OSX, we observe that the RTS handshake line will be
+In both Linux and macOS, we observe that the RTS handshake line will be
 driven high (TTL-level output low) when `open()` is called, even when
 the port is used without hardware handshake.
 
@@ -35,7 +35,7 @@ microcontroller.
 
 Using the picocom `--lower-rts` command line option, I measured about
 50µs-70µs on my Linux machine and 250µs-450µs on my old Macbook Pro
-running OSX (both tested with an FTDI FT2232H USB-to-Serial adapter).
+running macOS (both tested with an FTDI FT2232H USB-to-Serial adapter).
 But note that there is no hard guarantee for these times; the OS may
 preempt picocom between the `open()` and the "lower-rts" calls.
 

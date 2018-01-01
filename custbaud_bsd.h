@@ -1,11 +1,11 @@
 /*
- * custbaud_osx.h
+ * custbaud_bsd.h
  *
- * Custom baud rate support for OSX.
+ * Custom baud rate support for BSD and macOS.
  *
- * by Joe Merten (https://github.com/Joe-Merten www.jme.de)
+ * by Joe Merten (https://github.com/JoeMerten www.jme.de)
  *
- * ATTENTION: OSX specific stuff!
+ * ATTENTION: BSD and macOS specific stuff!
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -23,18 +23,20 @@
  * USA
  */
 
-#ifndef CUSTBAUD_OSX_H
-#define CUSTBAUD_OSX_H
+#ifndef CUSTBAUD_BSD_H
+#define CUSTBAUD_BSD_H
 
 #include <termios.h>
 
 /***************************************************************************/
 
-/* OSX termios.h unfortunately just provides constants for baudrates
+/* macOS termios.h unfortunately just provides constants for baudrates
  * up to 230k, so we add the missing constants here. Regardless, that
  * most of the high baudrates needs special handling (implementation in
  * tcsetattr_custom()), we want to provide the values here to have them
  * available for term_baud_up()/down().
+ *
+ * FreeBSD termios.h has 460k and 921k but misses e.g. 500k and >=1M.
  */
 
 #if defined(HIGH_BAUD)
@@ -87,10 +89,12 @@ int cfgetispeed_custom(struct termios *tiop);
 
 /***************************************************************************/
 
-/* Replace tcsetattr function with our osx specific one */
+#ifdef __APPLE__
+/* Replace tcsetattr function with our macOS specific one */
 #define tcsetattr tcsetattr_custom
 int tcsetattr_custom(int fd, int optional_actions, const struct termios *tiop);
+#endif
 
 /***************************************************************************/
 
-#endif /* CUSTBAUD_OSX_H */
+#endif /* CUSTBAUD_BSD_H */
