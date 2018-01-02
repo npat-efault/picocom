@@ -252,7 +252,7 @@ int tty_fd = -1;
 int log_fd = -1;
 
 /* RTS and DTR are usually raised upon opening the serial port (at
-   least as tested on Linux, FreeBsd and macOS) */
+   least as tested on Linux and macOS, but FreeBSD behave different) */
 int rts_up = 1;
 int dtr_up = 1;
 
@@ -1197,6 +1197,8 @@ do_command (unsigned char c)
         fd_printf(STO, "\r\n*** pulse DTR ***\r\n");
         if ( term_pulse_dtr(tty_fd) < 0 )
             fd_printf(STO, "*** FAILED\r\n");
+        else
+            dtr_up = 1;
         break;
     case KEY_TOG_DTR:
         if ( dtr_up )
@@ -2006,6 +2008,12 @@ main (int argc, char *argv[])
     if ( r < 0 )
         fatal("failed to config port: %s",
               term_strerror(term_errno, errno));
+
+    r = term_get_mctl(tty_fd);
+    if ( r >= 0 && r != MCTL_UNAVAIL ) {
+        rts_up = (r & MCTL_RTS) != 0;
+        dtr_up = (r & MCTL_DTR) != 0;
+    }
 
     set_tty_write_sz(term_get_baudrate(tty_fd, NULL));
 

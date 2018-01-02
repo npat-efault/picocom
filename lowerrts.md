@@ -24,6 +24,10 @@ the port is used without hardware handshake.
 This behavior cannot be avoided without patching the linux kernel
 driver (see also http://stackoverflow.com/a/21753723/2880699).
 
+Note, that in FreeBSD the RTS handshake line is not been changed upon
+`open()` but staying left in the state whatever it was before. Tested
+with FreeBSD 11, both Ftdi and Prolific adapters, picocom 3.1.
+
 Work-around using the user-space API
 ------------------------------------
 

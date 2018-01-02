@@ -52,7 +52,11 @@
 #define CMSPAR 0
 #endif
 
-#if defined(__linux__) || defined(__APPLE__)
+
+#if defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
+#define USE_IOCTL
+#endif
+#ifdef USE_IOCTL
 #include <sys/ioctl.h>
 #endif
 
@@ -1309,7 +1313,7 @@ term_pulse_dtr (int fd)
             break;
         }
 
-#if defined(__linux__) || defined(__APPLE__)
+#ifdef USE_IOCTL
         {
             int opins = TIOCM_DTR;
 
@@ -1361,7 +1365,7 @@ term_pulse_dtr (int fd)
                 break;
             }
         }
-#endif /* of __linux__ or __APPLE__ */
+#endif /* of USE_IOCTL */
 
     } while (0);
 
@@ -1385,7 +1389,7 @@ term_raise_dtr(int fd)
             break;
         }
 
-#if defined(__linux__) || defined(__APPLE__)
+#ifdef USE_IOCTL
         {
             int opins = TIOCM_DTR;
 
@@ -1404,7 +1408,7 @@ term_raise_dtr(int fd)
             rval = -1;
             break;
         }
-#endif /* of __linux__ or __APPLE__ */
+#endif /* of USE_IOCTL */
     } while (0);
 
     return rval;
@@ -1428,7 +1432,7 @@ term_lower_dtr(int fd)
             break;
         }
 
-#if defined(__linux__) || defined(__APPLE__)
+#ifdef USE_IOCTL
         {
             int opins = TIOCM_DTR;
 
@@ -1461,7 +1465,7 @@ term_lower_dtr(int fd)
                 break;
             }
         }
-#endif /* of __linux__ or __APPLE__ */
+#endif /* of USE_IOCTL */
     } while (0);
 
     return rval;
@@ -1484,7 +1488,7 @@ term_raise_rts(int fd)
             break;
         }
 
-#if defined(__linux__) || defined(__APPLE__)
+#ifdef USE_IOCTL
         {
             int r;
             int opins = TIOCM_RTS;
@@ -1499,7 +1503,7 @@ term_raise_rts(int fd)
 #else
         term_errno = TERM_ERTSUP;
         rval = -1;
-#endif /* of __linux__ or __APPLE__ */
+#endif /* of USE_IOCTL */
     } while (0);
 
     return rval;
@@ -1522,7 +1526,7 @@ term_lower_rts(int fd)
             break;
         }
 
-#if defined(__linux__) || defined(__APPLE__)
+#ifdef USE_IOCTL
         {
             int r;
             int opins = TIOCM_RTS;
@@ -1537,7 +1541,7 @@ term_lower_rts(int fd)
 #else
         term_errno = TERM_ERTSDOWN;
         rval = -1;
-#endif /* of __linux__ or __APPLE__ */
+#endif /* of USE_IOCTL */
     } while (0);
 
     return rval;
@@ -1559,7 +1563,7 @@ term_get_mctl (int fd)
             break;
         }
 
-#if defined(__linux__) || defined(__APPLE__)
+#ifdef USE_IOCTL
         {
             int r, pmctl;
 
@@ -1578,7 +1582,7 @@ term_get_mctl (int fd)
         }
 #else
         mctl = MCTL_UNAVAIL;
-#endif /* of __linux__ or __APPLE__ */
+#endif /* of USE_IOCTL */
     } while(0);
 
     return mctl;

@@ -96,7 +96,7 @@ here.
 
 :   Toggle the RTS line. If RTS is up, then lower it. If it is down,
     then raise it. Not supported if the flow control mode is RTS/CTS.
-    Only supported in Linux and macOS.
+    Only supported in Linux, FreeBSD and macOS.
 
 **C-backslash**
 
@@ -367,15 +367,15 @@ Picocom accepts the following command-line options.
 **--lower-rts**
 
 :   Lower the RTS control signal after opening the serial port (by
-    default RTS is raised after open). Only supported when
+    default RTS is raised after open on many OS). Only supported when
     flow-control mode is not set to RTS/CTS, ignored otherwise. Only
-    supported in Linux and macOS.
+    supported in Linux, FreeBSD and macOS.
 
 **--lower-dtr**
 
 :   Lower the DTR control signal after opening the serial port (by
-    default DTR is raised after open). Only supported in Linux and
-    macOS.
+    default DTR is raised after open on many OS). Only supported in
+    Linux, FreeBSD and macOS.
 
 **--exit-aftrer** | **-x**
 
