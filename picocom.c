@@ -893,12 +893,17 @@ stopbits_next (int bits)
     return bits;
 }
 
-void
-show_status ()
+/* mode = 0: show all
+   mode = 1: show only mismatches
+   mode = 2: show nothing (just count mismatches)
+   Returns number of config mismatches */
+int
+show_status (int mode)
 {
     int baud, bits, stopbits, mctl;
     enum flowcntrl_e flow;
     enum parity_e parity;
+    int mismatches = 0;
 
     term_refresh(tty_fd);
 
@@ -908,62 +913,95 @@ show_status ()
     bits = term_get_databits(tty_fd);
     stopbits = term_get_stopbits(tty_fd);
 
-    fd_printf(STO, "\r\n");
+    if ( mode != 2 )
+        fd_printf(STO, "\r\n");
 
     if ( baud != opts.baud ) {
-        fd_printf(STO, "*** baud: %d (%d)\r\n", opts.baud, baud);
+        if ( mode != 2 )
+            fd_printf(STO, "*** baud: %d (%d)\r\n", opts.baud, baud);
+        mismatches++;
     } else {
-        fd_printf(STO, "*** baud: %d\r\n", opts.baud);
+        if ( mode == 0 )
+            fd_printf(STO, "*** baud: %d\r\n", opts.baud);
     }
     if ( flow != opts.flow ) {
-        fd_printf(STO, "*** flow: %s (%s)\r\n",
-                  flow_str[opts.flow], flow_str[flow]);
+        if ( mode != 2 )
+            fd_printf(STO, "*** flow: %s (%s)\r\n",
+                      flow_str[opts.flow], flow_str[flow]);
+        mismatches++;
     } else {
-        fd_printf(STO, "*** flow: %s\r\n", flow_str[opts.flow]);
+        if ( mode == 0 )
+            fd_printf(STO, "*** flow: %s\r\n", flow_str[opts.flow]);
     }
     if ( parity != opts.parity ) {
-        fd_printf(STO, "*** parity: %s (%s)\r\n",
-                  parity_str[opts.parity], parity_str[parity]);
+        if ( mode != 2 )
+            fd_printf(STO, "*** parity: %s (%s)\r\n",
+                      parity_str[opts.parity], parity_str[parity]);
+        mismatches++;
     } else {
-        fd_printf(STO, "*** parity: %s\r\n", parity_str[opts.parity]);
+        if ( mode == 0 )
+            fd_printf(STO, "*** parity: %s\r\n", parity_str[opts.parity]);
     }
     if ( bits != opts.databits ) {
-        fd_printf(STO, "*** databits: %d (%d)\r\n", opts.databits, bits);
+        if ( mode != 2 )
+            fd_printf(STO, "*** databits: %d (%d)\r\n", opts.databits, bits);
+        mismatches++;
     } else {
-        fd_printf(STO, "*** databits: %d\r\n", opts.databits);
+        if ( mode == 0 )
+            fd_printf(STO, "*** databits: %d\r\n", opts.databits);
     }
     if ( stopbits != opts.stopbits ) {
-        fd_printf(STO, "*** stopbits: %d (%d)\r\n", opts.stopbits, stopbits);
+        if ( mode != 2 )
+            fd_printf(STO, "*** stopbits: %d (%d)\r\n",
+                      opts.stopbits, stopbits);
+        mismatches++;
     } else {
-        fd_printf(STO, "*** stopbits: %d\r\n", opts.stopbits);
+        if ( mode == 0 )
+            fd_printf(STO, "*** stopbits: %d\r\n", opts.stopbits);
     }
 
     mctl = term_get_mctl(tty_fd);
     if (mctl >= 0 && mctl != MCTL_UNAVAIL) {
-        if ( ((mctl & MCTL_DTR) ? 1 : 0) == dtr_up )
-            fd_printf(STO, "*** dtr: %s\r\n", dtr_up ? "up" : "down");
-        else
-            fd_printf(STO, "*** dtr: %s (%s)\r\n",
-                      dtr_up ? "up" : "down",
-                      (mctl & MCTL_DTR) ? "up" : "down");
-        if ( ((mctl & MCTL_RTS) ? 1 : 0) == rts_up )
-            fd_printf(STO, "*** rts: %s\r\n", rts_up ? "up" : "down");
-        else
-            fd_printf(STO, "*** rts: %s (%s)\r\n",
-                      rts_up ? "up" : "down",
-                      (mctl & MCTL_RTS) ? "up" : "down");
-        fd_printf(STO, "*** mctl: ");
-        fd_printf(STO, "DTR:%c DSR:%c DCD:%c RTS:%c CTS:%c RI:%c\r\n",
-                  (mctl & MCTL_DTR) ? '1' : '0',
-                  (mctl & MCTL_DSR) ? '1' : '0',
-                  (mctl & MCTL_DCD) ? '1' : '0',
-                  (mctl & MCTL_RTS) ? '1' : '0',
-                  (mctl & MCTL_CTS) ? '1' : '0',
-                  (mctl & MCTL_RI) ? '1' : '0');
+        if ( ((mctl & MCTL_DTR) ? 1 : 0) == dtr_up ) {
+            if ( mode == 0 )
+                fd_printf(STO, "*** dtr: %s\r\n",
+                          dtr_up ? "up" : "down");
+        } else {
+            if ( mode != 2 )
+                fd_printf(STO, "*** dtr: %s (%s)\r\n",
+                          dtr_up ? "up" : "down",
+                          (mctl & MCTL_DTR) ? "up" : "down");
+            mismatches++;
+        }
+        if ( ((mctl & MCTL_RTS) ? 1 : 0) == rts_up ) {
+            if ( mode == 0 )
+                fd_printf(STO, "*** rts: %s\r\n",
+                          rts_up ? "up" : "down");
+        } else {
+            if ( mode != 2 )
+                fd_printf(STO, "*** rts: %s (%s)\r\n",
+                          rts_up ? "up" : "down",
+                          (mctl & MCTL_RTS) ? "up" : "down");
+            mismatches++;
+        }
+        if ( mode == 0 ) {
+            fd_printf(STO, "*** mctl: ");
+            fd_printf(STO, "DTR:%c DSR:%c DCD:%c RTS:%c CTS:%c RI:%c\r\n",
+                      (mctl & MCTL_DTR) ? '1' : '0',
+                      (mctl & MCTL_DSR) ? '1' : '0',
+                      (mctl & MCTL_DCD) ? '1' : '0',
+                      (mctl & MCTL_RTS) ? '1' : '0',
+                      (mctl & MCTL_CTS) ? '1' : '0',
+                      (mctl & MCTL_RI) ? '1' : '0');
+        }
     } else {
-        fd_printf(STO, "*** dtr: %s\r\n", dtr_up ? "up" : "down");
-        fd_printf(STO, "*** rts: %s\r\n", rts_up ? "up" : "down");
+        if ( mode == 0 ) {
+            fd_printf(STO, "*** dtr: %s\r\n", dtr_up ? "up" : "down");
+            fd_printf(STO, "*** rts: %s\r\n", rts_up ? "up" : "down");
+        }
     }
+
+    return mismatches;
 }
 
 void
@@ -1187,7 +1225,7 @@ do_command (unsigned char c)
         opts.noreset = 1;
         return 1;
     case KEY_STATUS:
-        show_status();
+        show_status(0);
         break;
     case KEY_HELP:
     case KEY_KEYS:
@@ -2038,6 +2076,12 @@ main (int argc, char *argv[])
 #ifdef LINENOISE
     init_history();
 #endif
+
+    if ( show_status(2) != 0 ) {
+        fd_printf(STO, "*** WARNING: One or more port configuration settings were not applied as desired:");
+        show_status(1);
+        fd_printf(STO, "*** This might depend upon your OS and/or hardware limitations.\r\n\r\n");
+    }
 
     /* Allocate output buffer with initial size */
     tty_q.buff = calloc(TTY_Q_SZ_MIN, sizeof(*tty_q.buff));
