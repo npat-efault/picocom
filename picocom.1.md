@@ -458,6 +458,12 @@ This behavior was introduced in picocom 2.0. Older releases displayed
 only the option values, not the actual serial-port settings
 corresponding to them.
 
+If neither --noinit nor --quiet command line parameters has been
+passed, the port settings were silently checked on startup. If there
+was any mismatch detected between selected and corresponding
+serial-port setting, a warning is displayed and you might use [C-v] to
+check the mismatch details.
+
 
 # SENDING AND RECEIVING FILES
 
