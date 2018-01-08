@@ -893,12 +893,18 @@ stopbits_next (int bits)
     return bits;
 }
 
-void
-show_status ()
+/**********************************************************************/
+
+#define statpf(...) \
+    do { if (! quiet) fd_printf(__VA_ARGS__); } while(0)
+
+int
+show_status (int quiet)
 {
     int baud, bits, stopbits, mctl;
     enum flowcntrl_e flow;
     enum parity_e parity;
+    int mismatch = 0;
 
     term_refresh(tty_fd);
 
@@ -908,63 +914,78 @@ show_status ()
     bits = term_get_databits(tty_fd);
     stopbits = term_get_stopbits(tty_fd);
 
-    fd_printf(STO, "\r\n");
+    statpf(STO, "\r\n");
 
     if ( baud != opts.baud ) {
-        fd_printf(STO, "*** baud: %d (%d)\r\n", opts.baud, baud);
+        mismatch++;
+        statpf(STO, "*** baud: %d (%d)\r\n", opts.baud, baud);
     } else {
-        fd_printf(STO, "*** baud: %d\r\n", opts.baud);
+        statpf(STO, "*** baud: %d\r\n", opts.baud);
     }
     if ( flow != opts.flow ) {
-        fd_printf(STO, "*** flow: %s (%s)\r\n",
+        mismatch++;
+        statpf(STO, "*** flow: %s (%s)\r\n",
                   flow_str[opts.flow], flow_str[flow]);
     } else {
-        fd_printf(STO, "*** flow: %s\r\n", flow_str[opts.flow]);
+        statpf(STO, "*** flow: %s\r\n", flow_str[opts.flow]);
     }
     if ( parity != opts.parity ) {
-        fd_printf(STO, "*** parity: %s (%s)\r\n",
+        mismatch++;
+        statpf(STO, "*** parity: %s (%s)\r\n",
                   parity_str[opts.parity], parity_str[parity]);
     } else {
-        fd_printf(STO, "*** parity: %s\r\n", parity_str[opts.parity]);
+        statpf(STO, "*** parity: %s\r\n", parity_str[opts.parity]);
     }
     if ( bits != opts.databits ) {
-        fd_printf(STO, "*** databits: %d (%d)\r\n", opts.databits, bits);
+        mismatch++;
+        statpf(STO, "*** databits: %d (%d)\r\n", opts.databits, bits);
     } else {
-        fd_printf(STO, "*** databits: %d\r\n", opts.databits);
+        statpf(STO, "*** databits: %d\r\n", opts.databits);
     }
     if ( stopbits != opts.stopbits ) {
-        fd_printf(STO, "*** stopbits: %d (%d)\r\n", opts.stopbits, stopbits);
+        mismatch++;
+        statpf(STO, "*** stopbits: %d (%d)\r\n", opts.stopbits, stopbits);
     } else {
-        fd_printf(STO, "*** stopbits: %d\r\n", opts.stopbits);
+        statpf(STO, "*** stopbits: %d\r\n", opts.stopbits);
     }
 
     mctl = term_get_mctl(tty_fd);
     if (mctl >= 0 && mctl != MCTL_UNAVAIL) {
-        if ( ((mctl & MCTL_DTR) ? 1 : 0) == dtr_up )
-            fd_printf(STO, "*** dtr: %s\r\n", dtr_up ? "up" : "down");
-        else
-            fd_printf(STO, "*** dtr: %s (%s)\r\n",
-                      dtr_up ? "up" : "down",
-                      (mctl & MCTL_DTR) ? "up" : "down");
-        if ( ((mctl & MCTL_RTS) ? 1 : 0) == rts_up )
-            fd_printf(STO, "*** rts: %s\r\n", rts_up ? "up" : "down");
-        else
-            fd_printf(STO, "*** rts: %s (%s)\r\n",
-                      rts_up ? "up" : "down",
-                      (mctl & MCTL_RTS) ? "up" : "down");
-        fd_printf(STO, "*** mctl: ");
-        fd_printf(STO, "DTR:%c DSR:%c DCD:%c RTS:%c CTS:%c RI:%c\r\n",
-                  (mctl & MCTL_DTR) ? '1' : '0',
-                  (mctl & MCTL_DSR) ? '1' : '0',
-                  (mctl & MCTL_DCD) ? '1' : '0',
-                  (mctl & MCTL_RTS) ? '1' : '0',
-                  (mctl & MCTL_CTS) ? '1' : '0',
-                  (mctl & MCTL_RI) ? '1' : '0');
+        if ( ((mctl & MCTL_DTR) ? 1 : 0) == dtr_up ) {
+            statpf(STO, "*** dtr: %s\r\n", dtr_up ? "up" : "down");
+        } else {
+            mismatch++;
+            statpf(STO, "*** dtr: %s (%s)\r\n",
+                   dtr_up ? "up" : "down",
+                   (mctl & MCTL_DTR) ? "up" : "down");
+        }
+        if ( ((mctl & MCTL_RTS) ? 1 : 0) == rts_up ) {
+            statpf(STO, "*** rts: %s\r\n", rts_up ? "up" : "down");
+        } else {
+            mismatch++;
+            statpf(STO, "*** rts: %s (%s)\r\n",
+                   rts_up ? "up" : "down",
+                   (mctl & MCTL_RTS) ? "up" : "down");
+        }
+        statpf(STO, "*** mctl: ");
+        statpf(STO, "DTR:%c DSR:%c DCD:%c RTS:%c CTS:%c RI:%c\r\n",
+               (mctl & MCTL_DTR) ? '1' : '0',
+               (mctl & MCTL_DSR) ? '1' : '0',
+               (mctl & MCTL_DCD) ? '1' : '0',
+               (mctl & MCTL_RTS) ? '1' : '0',
+               (mctl & MCTL_CTS) ? '1' : '0',
+               (mctl & MCTL_RI) ? '1' : '0');
     } else {
-        fd_printf(STO, "*** dtr: %s\r\n", dtr_up ? "up" : "down");
-        fd_printf(STO, "*** rts: %s\r\n", rts_up ? "up" : "down");
+        statpf(STO, "*** dtr: %s\r\n", dtr_up ? "up" : "down");
+        statpf(STO, "*** rts: %s\r\n", rts_up ? "up" : "down");
     }
+
+    return mismatch;
 }
+
+#undef statpf
+
+/**********************************************************************/
 
 void
 show_keys()
@@ -1187,7 +1208,7 @@ do_command (unsigned char c)
         opts.noreset = 1;
         return 1;
     case KEY_STATUS:
-        show_status();
+        show_status(0);
         break;
     case KEY_HELP:
     case KEY_KEYS:
@@ -2016,6 +2037,15 @@ main (int argc, char *argv[])
     }
 
     set_tty_write_sz(term_get_baudrate(tty_fd, NULL));
+
+    /* Check for settings mismatch and print warning */
+    if ( !opts.quiet && !opts.noinit && show_status(1) != 0 ) {
+        pinfo("!! Settings mismatch !!");
+        if ( ! opts.noescape )
+            pinfo(" Type [C-%c] [C-%c] to see actual port settings",
+                  KEYC(opts.escape), KEYC(KEY_STATUS));
+        pinfo("\r\n");
+    }
 
     if ( ! opts.exit ) {
         if ( isatty(STI) ) {
