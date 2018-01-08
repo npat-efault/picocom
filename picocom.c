@@ -931,18 +931,25 @@ show_status (int mode)
 
     if ( mode != 2 ) fd_printf(STO, "\r\n");
 
-    SHOW_STATUS("baud", opts.baud, baud, "%d", opts.baud, baud);
-    SHOW_STATUS("flow", opts.flow, flow, "%s", flow_str[opts.flow], flow_str[flow]);
-    SHOW_STATUS("parity", opts.parity, parity, "%s", parity_str[opts.parity], parity_str[parity]);
-    SHOW_STATUS("databits", opts.databits, databits, "%d", opts.databits, databits);
-    SHOW_STATUS("stopbits", opts.stopbits, stopbits, "%d", opts.stopbits, stopbits);
+    SHOW_STATUS("baud", opts.baud, baud, "%d",
+                opts.baud, baud);
+    SHOW_STATUS("flow", opts.flow, flow, "%s",
+                flow_str[opts.flow], flow_str[flow]);
+    SHOW_STATUS("parity", opts.parity, parity, "%s",
+                parity_str[opts.parity], parity_str[parity]);
+    SHOW_STATUS("databits", opts.databits, databits, "%d",
+                opts.databits, databits);
+    SHOW_STATUS("stopbits", opts.stopbits, stopbits, "%d",
+                opts.stopbits, stopbits);
 
     mctl = term_get_mctl(tty_fd);
     if (mctl >= 0 && mctl != MCTL_UNAVAIL) {
         int dtr_stat = (mctl & MCTL_DTR) ? 1 : 0;
         int rts_stat = (mctl & MCTL_RTS) ? 1 : 0;
-        SHOW_STATUS("dtr", dtr_up, dtr_stat, "%s", downup_str[dtr_up], downup_str[dtr_stat]);
-        SHOW_STATUS("rts", rts_up, rts_stat, "%s", downup_str[rts_up], downup_str[rts_stat]);
+        SHOW_STATUS("dtr", dtr_up, dtr_stat, "%s",
+                    downup_str[dtr_up], downup_str[dtr_stat]);
+        SHOW_STATUS("rts", rts_up, rts_stat, "%s",
+                    downup_str[rts_up], downup_str[rts_stat]);
 
         if ( mode == 0 ) {
             fd_printf(STO,
