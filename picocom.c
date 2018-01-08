@@ -2078,9 +2078,17 @@ main (int argc, char *argv[])
 #endif
 
     if ( !opts.quiet && !opts.noinit && show_status(2) != 0 ) {
-        fd_printf(STO, "*** WARNING: One or more port configuration settings were not applied as desired:");
+#if 1
+        pinfo("!! Settings mismatch !!");
+        if ( ! opts.noescape )
+            pinfo(" Use [C-%c] command to see actual settings",
+                  KEYC(KEY_STATUS));
+        pinfo("\r\n");
+#else
+        pinfo("*** WARNING: One or more port configuration settings were not applied as desired:");
         show_status(1);
-        fd_printf(STO, "*** This might depend upon your OS and/or hardware limitations.\r\n\r\n");
+        pinfo("*** This might depend upon your OS and/or hardware limitations.\r\n\r\n");
+#endif
     }
 
     /* Allocate output buffer with initial size */
