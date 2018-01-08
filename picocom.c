@@ -2081,8 +2081,8 @@ main (int argc, char *argv[])
 #if 1
         pinfo("!! Settings mismatch !!");
         if ( ! opts.noescape )
-            pinfo(" Use [C-%c] command to see actual settings",
-                  KEYC(KEY_STATUS));
+            pinfo(" Type [C-%c] [C-%c] to see actual port settings",
+                  KEYC(opts.escape), KEYC(KEY_STATUS));
         pinfo("\r\n");
 #else
         pinfo("*** WARNING: One or more port configuration settings were not applied as desired:");
