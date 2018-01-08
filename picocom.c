@@ -74,6 +74,11 @@ const char *flow_str[] = {
     [FC_OTHER] = "other",
 };
 
+const char *downup_str[] = {
+    [0] = "down",
+    [1] = "up",
+};
+
 /**********************************************************************/
 
 /* control-key to printable character (lowcase) */
@@ -900,7 +905,18 @@ stopbits_next (int bits)
 int
 show_status (int mode)
 {
-    int baud, bits, stopbits, mctl;
+#define SHOW_STATUS(label, optval, portval, format, optprint, portprint) \
+    if (optval != portval) { \
+        if ( mode != 2 ) \
+            fd_printf(STO, "*** " label ": " format " (" format ")\r\n", \
+                      optprint, portprint); \
+        mismatches++; \
+    } else { \
+        if ( mode == 0 ) \
+            fd_printf(STO, "*** " label ": " format "\r\n", optprint); \
+    }
+
+    int baud, databits, stopbits, mctl;
     enum flowcntrl_e flow;
     enum parity_e parity;
     int mismatches = 0;
@@ -910,83 +926,27 @@ show_status (int mode)
     baud = term_get_baudrate(tty_fd, NULL);
     flow = term_get_flowcntrl(tty_fd);
     parity = term_get_parity(tty_fd);
-    bits = term_get_databits(tty_fd);
+    databits = term_get_databits(tty_fd);
     stopbits = term_get_stopbits(tty_fd);
 
-    if ( mode != 2 )
-        fd_printf(STO, "\r\n");
+    if ( mode != 2 ) fd_printf(STO, "\r\n");
 
-    if ( baud != opts.baud ) {
-        if ( mode != 2 )
-            fd_printf(STO, "*** baud: %d (%d)\r\n", opts.baud, baud);
-        mismatches++;
-    } else {
-        if ( mode == 0 )
-            fd_printf(STO, "*** baud: %d\r\n", opts.baud);
-    }
-    if ( flow != opts.flow ) {
-        if ( mode != 2 )
-            fd_printf(STO, "*** flow: %s (%s)\r\n",
-                      flow_str[opts.flow], flow_str[flow]);
-        mismatches++;
-    } else {
-        if ( mode == 0 )
-            fd_printf(STO, "*** flow: %s\r\n", flow_str[opts.flow]);
-    }
-    if ( parity != opts.parity ) {
-        if ( mode != 2 )
-            fd_printf(STO, "*** parity: %s (%s)\r\n",
-                      parity_str[opts.parity], parity_str[parity]);
-        mismatches++;
-    } else {
-        if ( mode == 0 )
-            fd_printf(STO, "*** parity: %s\r\n", parity_str[opts.parity]);
-    }
-    if ( bits != opts.databits ) {
-        if ( mode != 2 )
-            fd_printf(STO, "*** databits: %d (%d)\r\n", opts.databits, bits);
-        mismatches++;
-    } else {
-        if ( mode == 0 )
-            fd_printf(STO, "*** databits: %d\r\n", opts.databits);
-    }
-    if ( stopbits != opts.stopbits ) {
-        if ( mode != 2 )
-            fd_printf(STO, "*** stopbits: %d (%d)\r\n",
-                      opts.stopbits, stopbits);
-        mismatches++;
-    } else {
-        if ( mode == 0 )
-            fd_printf(STO, "*** stopbits: %d\r\n", opts.stopbits);
-    }
+    SHOW_STATUS("baud", opts.baud, baud, "%d", opts.baud, baud);
+    SHOW_STATUS("flow", opts.flow, flow, "%s", flow_str[opts.flow], flow_str[flow]);
+    SHOW_STATUS("parity", opts.parity, parity, "%s", parity_str[opts.parity], parity_str[parity]);
+    SHOW_STATUS("databits", opts.databits, databits, "%d", opts.databits, databits);
+    SHOW_STATUS("stopbits", opts.stopbits, stopbits, "%d", opts.stopbits, stopbits);
 
     mctl = term_get_mctl(tty_fd);
     if (mctl >= 0 && mctl != MCTL_UNAVAIL) {
-        if ( ((mctl & MCTL_DTR) ? 1 : 0) == dtr_up ) {
-            if ( mode == 0 )
-                fd_printf(STO, "*** dtr: %s\r\n",
-                          dtr_up ? "up" : "down");
-        } else {
-            if ( mode != 2 )
-                fd_printf(STO, "*** dtr: %s (%s)\r\n",
-                          dtr_up ? "up" : "down",
-                          (mctl & MCTL_DTR) ? "up" : "down");
-            mismatches++;
-        }
-        if ( ((mctl & MCTL_RTS) ? 1 : 0) == rts_up ) {
-            if ( mode == 0 )
-                fd_printf(STO, "*** rts: %s\r\n",
-                          rts_up ? "up" : "down");
-        } else {
-            if ( mode != 2 )
-                fd_printf(STO, "*** rts: %s (%s)\r\n",
-                          rts_up ? "up" : "down",
-                          (mctl & MCTL_RTS) ? "up" : "down");
-            mismatches++;
-        }
+        int dtr_stat = (mctl & MCTL_DTR) ? 1 : 0;
+        int rts_stat = (mctl & MCTL_RTS) ? 1 : 0;
+        SHOW_STATUS("dtr", dtr_up, dtr_stat, "%s", downup_str[dtr_up], downup_str[dtr_stat]);
+        SHOW_STATUS("rts", rts_up, rts_stat, "%s", downup_str[rts_up], downup_str[rts_stat]);
+
         if ( mode == 0 ) {
-            fd_printf(STO, "*** mctl: ");
-            fd_printf(STO, "DTR:%c DSR:%c DCD:%c RTS:%c CTS:%c RI:%c\r\n",
+            fd_printf(STO,
+                      "*** mctl: DTR:%c DSR:%c DCD:%c RTS:%c CTS:%c RI:%c\r\n",
                       (mctl & MCTL_DTR) ? '1' : '0',
                       (mctl & MCTL_DSR) ? '1' : '0',
                       (mctl & MCTL_DCD) ? '1' : '0',
@@ -996,12 +956,13 @@ show_status (int mode)
         }
     } else {
         if ( mode == 0 ) {
-            fd_printf(STO, "*** dtr: %s\r\n", dtr_up ? "up" : "down");
-            fd_printf(STO, "*** rts: %s\r\n", rts_up ? "up" : "down");
+            fd_printf(STO, "*** dtr: %s\r\n", downup_str[dtr_up]);
+            fd_printf(STO, "*** rts: %s\r\n", downup_str[rts_up]);
         }
     }
 
     return mismatches;
+#undef SHOW_STATUS
 }
 
 void
