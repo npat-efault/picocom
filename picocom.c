@@ -74,6 +74,7 @@ const char *flow_str[] = {
     [FC_OTHER] = "other",
 };
 
+/* handshake line state names (for rts and dtr) */
 const char *downup_str[] = {
     [0] = "down",
     [1] = "up",
