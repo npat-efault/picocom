@@ -2077,7 +2077,7 @@ main (int argc, char *argv[])
     init_history();
 #endif
 
-    if ( show_status(2) != 0 ) {
+    if ( !opts.quiet && !opts.noinit && show_status(2) != 0 ) {
         fd_printf(STO, "*** WARNING: One or more port configuration settings were not applied as desired:");
         show_status(1);
         fd_printf(STO, "*** This might depend upon your OS and/or hardware limitations.\r\n\r\n");
