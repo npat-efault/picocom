@@ -11,7 +11,7 @@
 </head>
 <body>
 <div id="header">
-  <h1 class="title"><div id="pgname">PICOCOM(1)</div><div id="version">v3.1a / 2018-01-02</div></h1>
+  <h1 class="title"><div id="pgname">PICOCOM(1)</div><div id="version">v3.1a / 2018-01-09</div></h1>
 </div>
 <h1 id="name">NAME</h1>
 <p>picocom - minimal dumb-terminal emulation program</p>
@@ -182,6 +182,7 @@
 <p>This means that a baud rate of 115200bps has been selected (from the command line, or using commands that change the baudrate) but the serial-port is actually operating at 9600bps (the driver may not support the higher setting, and has silently replaced it with a safe default, or the setting may have been changed from outside picocom). If the option and the corresponding serial-port setting are the same, only a single value is shown. Example:</p>
 <pre><code>*** baud: 9600</code></pre>
 <p>This behavior was introduced in picocom 2.0. Older releases displayed only the option values, not the actual serial-port settings corresponding to them.</p>
+<p>On startup, after the serial port is opened and configured (and assuming that neither the <strong>--noinit</strong>, nor the <strong>--quiet</strong> command line options have been given), the port settings are silently checked. If any mismatch is detected between the requested and the actual port settings, a warning message is displayed. You may then use the <strong>[C-v]</strong> command to determine the exact mismatch or mismatches.</p>
 <h1 id="sending-and-receiving-files">SENDING AND RECEIVING FILES</h1>
 <p>Picocom can send and receive files over the serial port using external programs that implement the respective protocols. In Linux typical programs for this purpose are:</p>
 <ul>
