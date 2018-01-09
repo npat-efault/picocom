@@ -1938,7 +1938,8 @@ parse_args(int argc, char *argv[])
     printf("emap is        : "); print_map(opts.emap);
     printf("logfile is     : %s\n", opts.log_filename ? opts.log_filename : "none");
     if ( opts.initstring ) {
-        printf("initstring len : %ld bytes\n", strlen(opts.initstring));
+        printf("initstring len : %lu bytes\n",
+               (unsigned long)strlen(opts.initstring));
     } else {
         printf("initstring     : none\n");
     }
