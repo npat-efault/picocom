@@ -645,7 +645,7 @@ Download the latest release from:
 
 # COPYRIGHT
 
-Copyright (c) 2004-2017 Nick Patavalis
+Copyright (c) 2003-2018 Nick Patavalis
 
 This file is part of Picocom.
 
