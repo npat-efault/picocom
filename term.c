@@ -1339,7 +1339,7 @@ term_pulse_dtr (int fd)
 
             r = tcgetattr(fd, &tio);
             if ( r < 0 ) {
-                term_errno = TERM_ESETATTR;
+                term_errno = TERM_EGETATTR;
                 rval = -1;
                 break;
             }
@@ -1347,7 +1347,6 @@ term_pulse_dtr (int fd)
             tioold = tio;
 
             cfsetospeed(&tio, B0);
-            cfsetispeed(&tio, B0);
             r = tcsetattr(fd, TCSANOW, &tio);
             if ( r < 0 ) {
                 term_errno = TERM_ESETATTR;
@@ -1377,7 +1376,7 @@ term_pulse_dtr (int fd)
 int
 term_raise_dtr(int fd)
 {
-    int rval, r, i;
+    int rval, i;
 
     rval = 0;
 
@@ -1391,7 +1390,7 @@ term_raise_dtr(int fd)
 
 #ifdef USE_IOCTL
         {
-            int opins = TIOCM_DTR;
+            int r, opins = TIOCM_DTR;
 
             r = ioctl(fd, TIOCMBIS, &opins);
             if ( r < 0 ) {
@@ -1401,13 +1400,8 @@ term_raise_dtr(int fd)
             }
         }
 #else
-        r = tcsetattr(fd, TCSANOW, &term.currtermios[i]);
-        if ( r < 0 ) {
-            /* FIXME: perhaps try to update currtermios */
-            term_errno = TERM_ESETATTR;
-            rval = -1;
-            break;
-        }
+        term_errno = TERM_EDTRUP;
+        rval = -1;
 #endif /* of USE_IOCTL */
     } while (0);
 
@@ -1420,7 +1414,7 @@ term_raise_dtr(int fd)
 int
 term_lower_dtr(int fd)
 {
-    int rval, r, i;
+    int rval, i;
 
     rval = 0;
 
@@ -1434,7 +1428,7 @@ term_lower_dtr(int fd)
 
 #ifdef USE_IOCTL
         {
-            int opins = TIOCM_DTR;
+            int r, opins = TIOCM_DTR;
 
             r = ioctl(fd, TIOCMBIC, &opins);
             if ( r < 0 ) {
@@ -1444,27 +1438,8 @@ term_lower_dtr(int fd)
             }
         }
 #else
-        {
-            struct termios tio;
-
-            r = tcgetattr(fd, &tio);
-            if ( r < 0 ) {
-                term_errno = TERM_EGETATTR;
-                rval = -1;
-                break;
-            }
-            term.currtermios[i] = tio;
-
-            cfsetospeed(&tio, B0);
-            cfsetispeed(&tio, B0);
-
-            r = tcsetattr(fd, TCSANOW, &tio);
-            if ( r < 0 ) {
-                term_errno = TERM_ESETATTR;
-                rval = -1;
-                break;
-            }
-        }
+        term_errno = TERM_EDTRDOWN;
+        rval = -1;
 #endif /* of USE_IOCTL */
     } while (0);
 
