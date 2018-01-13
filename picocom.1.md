@@ -366,16 +366,42 @@ Picocom accepts the following command-line options.
 
 **--lower-rts**
 
-:   Lower the RTS control signal after opening the serial port (by
-    default RTS is raised after open on many OS). Only supported when
-    flow-control mode is not set to RTS/CTS, ignored otherwise. Only
-    supported in Linux, FreeBSD and macOS.
+:   Lower the RTS modem control signal after opening the serial port.
+    Only supported when flow-control mode is not set to RTS/CTS,
+    ignored otherwise. Only supported on some systems.
+
+    If neither **--lower-rts** nor **--raise-rts** are given, the
+    state of the RTS signal, after opening and configuring the port, is
+    system dependent. On most systems the signal is raised.
+
+**--raise-rts**
+
+:   Raise the RTS modem control signal after opening the serial port.
+    Only supported when flow-control mode is not set to RTS/CTS,
+    ignored otherwise. Only supported on some systems.
+
+    If neither **--raise-rts** nor **--lower-rts** are given, the
+    state of the RTS signal, after opening and configuring the port, is
+    system dependent. On most systems the signal is raised.
 
 **--lower-dtr**
 
-:   Lower the DTR control signal after opening the serial port (by
-    default DTR is raised after open on many OS). Only supported in
-    Linux, FreeBSD and macOS.
+:   Lower the DTR control signal after opening the serial port. Only
+    supported on some systems.
+
+    If neither **--lower-dtr** nor **--raise-dtr** are given, the
+    state of the DTR signal, after opening and configuring the port,
+    is system dependent. On most systems the signal is raised.
+
+**--raise-dtr**
+
+:   Raise the DTR control signal after opening the serial port. Only
+    supported on some systems.
+
+    If neither **--raise-dtr** nor **--lower-dtr** are given, the
+    state of the DTR signal, after opening and configuring the port,
+    is system dependent. On most systems the signal is raised.
+
 
 **--exit-aftrer** | **-x**
 

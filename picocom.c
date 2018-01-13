@@ -211,6 +211,8 @@ struct {
     int exit;
     int lower_rts;
     int lower_dtr;
+    int raise_rts;
+    int raise_dtr;
     int quiet;
 } opts = {
     .port = NULL,
@@ -239,6 +241,8 @@ struct {
     .exit = 0,
     .lower_rts = 0,
     .lower_dtr = 0,
+    .raise_rts = 0,
+    .raise_dtr = 0,
     .quiet = 0
 };
 
@@ -1681,8 +1685,10 @@ parse_args(int argc, char *argv[])
         {"initstring", required_argument, 0, 't'},
         {"exit-after", required_argument, 0, 'x'},
         {"exit", no_argument, 0, 'X'},
-        {"lower-rts", no_argument, 0, 'R'},
-        {"lower-dtr", no_argument, 0, 'D'},
+        {"lower-rts", no_argument, 0, 1},
+        {"lower-dtr", no_argument, 0, 2},
+        {"raise-rts", no_argument, 0, 3},
+        {"raise-dtr", no_argument, 0, 4},
         {"quiet", no_argument, 0, 'q'},
         {"help", no_argument, 0, 'h'},
         {0, 0, 0, 0}
@@ -1848,11 +1854,17 @@ parse_args(int argc, char *argv[])
         case 't':
             opts.initstring = strdup(optarg);
             break;
-        case 'R':
+        case 1:
             opts.lower_rts = 1;
             break;
-        case 'D':
+        case 2:
             opts.lower_dtr = 1;
+            break;
+        case 3:
+            opts.raise_rts = 1;
+            break;
+        case 4:
+            opts.raise_dtr = 1;
             break;
         case 'x':
             opts.exit_after = strtol(optarg, &ep, 10);
@@ -1882,6 +1894,15 @@ parse_args(int argc, char *argv[])
             exit(EXIT_FAILURE);
         }
     } /* while */
+
+    if ( opts.raise_rts && opts.lower_rts ) {
+        fprintf(stderr, "Both --raise-rts and --lower-rts given\n");
+        exit(EXIT_FAILURE);
+    }
+    if ( opts.raise_dtr && opts.lower_dtr ) {
+        fprintf(stderr, "Both --raise-dtr and --lower-dtr given\n");
+        exit(EXIT_FAILURE);
+    }
 
     /* --exit overrides --exit-after */
     if ( opts.exit ) opts.exit_after = -1;
@@ -2018,6 +2039,13 @@ main (int argc, char *argv[])
             fatal("failed to lower RTS of port: %s",
                   term_strerror(term_errno, errno));
         rts_up = 0;
+    } else if ( opts.raise_rts ) {
+        r = term_raise_rts(tty_fd);
+        if ( r < 0 )
+            fatal("failed to raise RTS of port: %s",
+                  term_strerror(term_errno, errno));
+        rts_up = 1;
+
     }
     if ( opts.lower_dtr ) {
         r = term_lower_dtr(tty_fd);
@@ -2025,6 +2053,12 @@ main (int argc, char *argv[])
             fatal("failed to lower DTR of port: %s",
                   term_strerror(term_errno, errno));
         dtr_up = 0;
+    } else if ( opts.raise_dtr ) {
+        r = term_raise_dtr(tty_fd);
+        if ( r < 0 )
+            fatal("failed to raise DTR of port: %s",
+                  term_strerror(term_errno, errno));
+        dtr_up = 1;
     }
     r = term_apply(tty_fd, 0);
     if ( r < 0 )
