@@ -11,7 +11,7 @@
 </head>
 <body>
 <div id="header">
-  <h1 class="title"><div id="pgname">PICOCOM(1)</div><div id="version">v3.1a / 2018-01-09</div></h1>
+  <h1 class="title"><div id="pgname">PICOCOM(1)</div><div id="version">v3.1a / 2018-01-13</div></h1>
 </div>
 <h1 id="name">NAME</h1>
 <p>picocom - minimal dumb-terminal emulation program</p>
@@ -157,10 +157,20 @@
 <p>Note, that the init string is not sent if <strong>--noinit</strong> is given. (Default: empty).</p>
 </dd>
 <dt><strong>--lower-rts</strong></dt>
-<dd><p>Lower the RTS control signal after opening the serial port (by default RTS is raised after open on many OS). Only supported when flow-control mode is not set to RTS/CTS, ignored otherwise. Only supported in Linux, FreeBSD and macOS.</p>
+<dd><p>Lower the RTS modem control signal after opening the serial port. Only supported when flow-control mode is not set to RTS/CTS, ignored otherwise. Only supported on some systems.</p>
+<p>If neither <strong>--lower-rts</strong> nor <strong>--raise-rts</strong> are given, the state of the RTS signal, after opening and configuring the port, is system dependent. On most systems the signal is raised.</p>
+</dd>
+<dt><strong>--raise-rts</strong></dt>
+<dd><p>Raise the RTS modem control signal after opening the serial port. Only supported when flow-control mode is not set to RTS/CTS, ignored otherwise. Only supported on some systems.</p>
+<p>If neither <strong>--raise-rts</strong> nor <strong>--lower-rts</strong> are given, the state of the RTS signal, after opening and configuring the port, is system dependent. On most systems the signal is raised.</p>
 </dd>
 <dt><strong>--lower-dtr</strong></dt>
-<dd><p>Lower the DTR control signal after opening the serial port (by default DTR is raised after open on many OS). Only supported in Linux, FreeBSD and macOS.</p>
+<dd><p>Lower the DTR control signal after opening the serial port. Only supported on some systems.</p>
+<p>If neither <strong>--lower-dtr</strong> nor <strong>--raise-dtr</strong> are given, the state of the DTR signal, after opening and configuring the port, is system dependent. On most systems the signal is raised.</p>
+</dd>
+<dt><strong>--raise-dtr</strong></dt>
+<dd><p>Raise the DTR control signal after opening the serial port. Only supported on some systems.</p>
+<p>If neither <strong>--raise-dtr</strong> nor <strong>--lower-dtr</strong> are given, the state of the DTR signal, after opening and configuring the port, is system dependent. On most systems the signal is raised.</p>
 </dd>
 <dt><strong>--exit-aftrer</strong> | <strong>-x</strong></dt>
 <dd><p>Exit picocom if it remains idle for the specified time (in milliseconds). Picocom is considered idle if: Nothing is read (received) from the serial port, AND there is nothing to write (send) to the serial port, AND nothing is read from the standard input (terminal). If <strong>--exit-after</strong> is set to zero, then picocom exits after opening and configuring the serial port, after sending the init string (if any, see option <strong>--initstring</strong>) and imediatelly when it becomes idle. When exiting after being idle, picocom drains the O/S serial port ouput buffer (i.e. waits for data already written to the port to be transmitted) and observes the <strong>--noreset</strong> and <strong>--hangup</strong> options as usual. (Default: not set).</p>
@@ -249,7 +259,7 @@ document.write('<a h'+'ref'+'="ma'+'ilto'+':'+e+'" clas'+'s="em' + 'ail">'+e+'<\
 <h1 id="availability">AVAILABILITY</h1>
 <p>Download the latest release from: <a href="https://github.com/npat-efault/picocom/releases" class="uri">https://github.com/npat-efault/picocom/releases</a></p>
 <h1 id="copyright">COPYRIGHT</h1>
-<p>Copyright (c) 2004-2017 Nick Patavalis</p>
+<p>Copyright (c) 2003-2018 Nick Patavalis</p>
 <p>This file is part of Picocom.</p>
 <p>Picocom is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.</p>
 <p>Picocom is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.</p>
