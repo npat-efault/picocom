@@ -56,8 +56,19 @@ So I changed that `#define USE_IOCTL` appropriate.
 But however, there are some issues regarding rts and dtr control for OpenBsd, NetBsd and Dragonfly (see details below).
 
 
+Custom Baudrates
+================
+Tested with 80000 baud.
+Most Bsd variants (except NetBsd) worked well with Ftdi, but not with Prolific adapter (see details below).
+Linux and OSX / macOS still work with both adapters.
+
+
 Issues
 ======
+
+FreeBsd
+-------
+- Custom Baudrates work well with Ftdi adapter. But with Prolific adapter, baudrate switched silently to 9600 baud.
 
 OpenBsd
 -------
@@ -66,11 +77,15 @@ OpenBsd
   Same for interactive toggle via `[C-t]` and `[C-g]`. Toggle rts via `[C-g]` works but toggle
   dtr via `[C-t]` also changes the state of rts (and `term_get_mctl()` reports wrong rts state afterwards).
 - Issues occurs with both Ftdi and Prolific adapters.
+- Custom baudrates with Prolific adapter has the same issue as in FreeBsd.
 
 NetBsd
 ------
 - `term_get_mctl()` sometimes reports wrong values for rts and dtr state (after port open)
 - Issue occurs with both Ftdi and Prolific adapters.
+- Seems that there is no support for custom baudrates.
+  - With Ftdi adapter: "Cannot set the device attributes: Invalid argument".
+  - With Prolific adapter no error message but same behaviour as in FreeBsd.
 
 Dragonfly
 ---------
@@ -78,4 +93,5 @@ Dragonfly
   Need to pass `--nolock` or build with `#define USE_FLOCK` not set.
 - `term_get_mctl()` sometimes reports wrong state for dtr, e.g. when passing `--lower-dtr`.
 - When exit via `[C+x]`, got "term_exitfunc: reset failed for dev /dev/ttyU0: Invalid argument".
+- Custom baudrates with Prolific adapter has the same issue as in FreeBsd.
 

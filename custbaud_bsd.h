@@ -29,9 +29,10 @@
 #define CUSTBAUD_BSD_H
 
 /* Note that this code might also work other BSD variants, but I have only
- * tested with those listed below.
+ * tested with those listed below. Also tested __NetBSD__ but won't work.
  */
-#if (defined (__FreeBSD__) || defined(__APPLE__)) && defined(USE_CUSTOM_BAUD)
+#if (defined (__FreeBSD__) || defined(__OpenBSD__) || \
+     defined(__DragonFly__) || defined(__APPLE__)) && defined(USE_CUSTOM_BAUD)
 
 #define HAS_CUSTOM_BAUD
 
@@ -46,6 +47,9 @@
  * available for term_baud_up()/down().
  *
  * FreeBSD 11.0 termios.h has 460k and 921k but misses e.g. 500k and >=1M.
+ * OpenBSD 6.2 termios.h is missing all >230k (like macOS).
+ * NetBSD 7.1.1 do same as FreeBSD 11.0.
+ * DragonFly 5.0.2 looks same as OpenBSD 6.2.
  */
 
 #if defined(HIGH_BAUD)
@@ -106,5 +110,5 @@ int tcsetattr_custom(int fd, int optional_actions, const struct termios *tiop);
 
 /***************************************************************************/
 
-#endif /* __FreeBSD__ || __APPLE__ && USE_CUSTOM_BAUD */
+#endif /* __FreeBSD__ || __OpenBSD__ || ... || __APPLE__ && USE_CUSTOM_BAUD */
 #endif /* CUSTBAUD_BSD_H */

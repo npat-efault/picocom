@@ -70,7 +70,7 @@
 #endif
 #endif
 
-#if (defined (__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || \
+#if (defined (__FreeBSD__) || defined(__OpenBSD__) || \
      defined(__DragonFly__) || defined(__APPLE__)) && defined(USE_CUSTOM_BAUD)
 /* only for some BSD and macOS (Tiger and above) */
 #include "custbaud_bsd.h"
