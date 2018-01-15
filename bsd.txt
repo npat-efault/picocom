@@ -23,8 +23,8 @@ Note that for Cygwin it needs to implement a `cfmakeraw()` replacement. See also
   https://sourceforge.net/p/ser2net/patches/_discuss/thread/8b87fdad/ed37/attachment/ser2net-2.2-cygwin.patch
 
 
-Accessings serial ports (examples)
-==================================
+Accessing serial ports (examples)
+=================================
 
 - Kubuntu:
   /dev/ttyS0
@@ -44,7 +44,8 @@ Accessings serial ports (examples)
   /dev/ttyU0
 
 - macOS
-  /dev/tty.usbserial-FTGNI4B7
+  /dev/tty.usbserial-FTGNI4B7  (Ftdi)
+  /dev/tty.usbserial           (Prolific)
 
 
 Manual controlling handshake lines
