@@ -23,8 +23,13 @@
  * USA
  */
 
-#include "termios2.h"
-#ifdef HAS_CUSTOM_BAUD
+#if defined(__linux__) && defined(USE_CUSTOM_BAUD)
+
+#include <linux/version.h>
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,0)
+#error "This code requires Linux kernel > 2.6!"
+#endif
+
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
@@ -178,7 +183,7 @@ cf2setispeed_custom(struct termios *tios, int speed)
 
 /***************************************************************************/
 
-#endif /* HAS_CUSTOM_BAUD */
+#endif /* __linux__ && USE_CUSTOM_BAUD */
 
 /*
  * Local Variables:

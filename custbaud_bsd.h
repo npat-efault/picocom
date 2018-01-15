@@ -6,8 +6,6 @@
  * by Joe Merten (https://github.com/JoeMerten www.jme.de)
  *
  * ATTENTION: BSD and macOS specific stuff!
- * This header will `#define HAS_CUSTOM_BAUD` in case of custom baud rate
- * implementation is available for the current target platform.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -27,14 +25,6 @@
 
 #ifndef CUSTBAUD_BSD_H
 #define CUSTBAUD_BSD_H
-
-/* Note that this code might also work other BSD variants, but I have only
- * tested with those listed below. Also tested __NetBSD__ but won't work.
- */
-#if (defined (__FreeBSD__) || defined(__OpenBSD__) || \
-     defined(__DragonFly__) || defined(__APPLE__)) && defined(USE_CUSTOM_BAUD)
-
-#define HAS_CUSTOM_BAUD
 
 #include <termios.h>
 
@@ -110,5 +100,4 @@ int tcsetattr_custom(int fd, int optional_actions, const struct termios *tiop);
 
 /***************************************************************************/
 
-#endif /* __FreeBSD__ || __OpenBSD__ || ... || __APPLE__ && USE_CUSTOM_BAUD */
 #endif /* CUSTBAUD_BSD_H */

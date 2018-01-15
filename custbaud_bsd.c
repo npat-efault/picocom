@@ -38,8 +38,13 @@
  *   - Have not tested with more recent macOS or Ftdi driver until now.
  */
 
+/* Note that this code might also work with other BSD variants, but I have only
+ * tested with those listed below. Also tested __NetBSD__ but won't work. */
+#if (defined (__FreeBSD__) || defined (__OpenBSD__) || \
+     defined (__DragonFly__) || defined (__APPLE__)) && \
+    defined (USE_CUSTOM_BAUD)
+
 #include "custbaud_bsd.h"
-#ifdef HAS_CUSTOM_BAUD
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
@@ -139,4 +144,4 @@ int tcsetattr_custom(int fd, int optional_actions, const struct termios *tiop) {
 
 /***************************************************************************/
 
-#endif /* HAS_CUSTOM_BAUD */
+#endif /* __FreeBSD__ || ... || __APPLE__ && USE_CUSTOM_BAUD */

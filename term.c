@@ -62,19 +62,22 @@
 #include <sys/ioctl.h>
 #endif
 
-#if defined(__linux__) && defined(USE_CUSTOM_BAUD)
-#include <linux/version.h>
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,0)
+
+#ifdef USE_CUSTOM_BAUD
+#if defined (__linux__)
 /* only works for linux, recent kernels */
 #include "termios2.h"
-#endif
-#endif
-
-#if (defined (__FreeBSD__) || defined(__OpenBSD__) || \
-     defined(__DragonFly__) || defined(__APPLE__)) && defined(USE_CUSTOM_BAUD)
-/* only for some BSD and macOS (Tiger and above) */
+#elif defined (__FreeBSD__) || defined (__OpenBSD__) || \
+      defined (__DragonFly__) || defined (__APPLE__)
+/* only for some BSD and macOS (Tiger and above)
+ * Note that this code might also work other BSD variants, but I have only
+ * tested with those listed below. Also tested __NetBSD__ but won't work. */
 #include "custbaud_bsd.h"
+#else
+#error "USE_CUSTOM_BAUD not supported in this system"
 #endif
+#endif /* of USE_CUSTOM_BAUD */
+
 
 /* Time to wait for UART to clear after a drain (in usec). */
 #define DRAIN_DELAY 200000
@@ -315,7 +318,7 @@ Bspeed(speed_t code)
 int
 term_baud_ok(int baud)
 {
-#ifndef HAS_CUSTOM_BAUD
+#ifndef USE_CUSTOM_BAUD
     return (Bcode(baud) != BNONE) ? 1 : 0;
 #else
     return (baud >= 0);
@@ -807,7 +810,7 @@ term_set_baudrate (int fd, int baudrate)
             }
             cfsetispeed(&tio, B0);
         } else {
-#ifdef HAS_CUSTOM_BAUD
+#ifdef USE_CUSTOM_BAUD
             r = cfsetospeed_custom(&tio, baudrate);
             if ( r < 0 ) {
                 term_errno = TERM_ESETOSPEED;
@@ -815,11 +818,11 @@ term_set_baudrate (int fd, int baudrate)
                 break;
             }
             cfsetispeed(&tio, B0);
-#else /* ! defined HAS_CUSTOM_BAUD */
+#else /* ! defined USE_CUSTOM_BAUD */
             term_errno = TERM_EBAUD;
             rval = -1;
             break;
-#endif /* of HAS_CUSTOM_BAUD */
+#endif /* of USE_CUSTOM_BAUD */
         }
 
         term.nexttermios[i] = tio;
@@ -846,7 +849,7 @@ term_get_baudrate (int fd, int *ispeed)
         if ( ispeed ) {
             code = cfgetispeed(&term.currtermios[i]);
             *ispeed = Bspeed(code);
-#ifdef HAS_CUSTOM_BAUD
+#ifdef USE_CUSTOM_BAUD
             if ( *ispeed < 0 ) {
                 *ispeed = cfgetispeed_custom(&term.currtermios[i]);
             }
@@ -855,7 +858,7 @@ term_get_baudrate (int fd, int *ispeed)
         code = cfgetospeed(&term.currtermios[i]);
         ospeed = Bspeed(code);
         if ( ospeed < 0 ) {
-#ifdef HAS_CUSTOM_BAUD
+#ifdef USE_CUSTOM_BAUD
             ospeed = cfgetospeed_custom(&term.currtermios[i]);
             if ( ospeed < 0 ) {
                 term_errno = TERM_EGETSPEED;

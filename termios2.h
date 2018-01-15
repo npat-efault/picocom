@@ -6,8 +6,6 @@
  * by Nick Patavalis (npat@efault.net)
  *
  * ATTENTION: Linux-specific kludge!
- * This header will `#define HAS_CUSTOM_BAUD` in case of custom baud rate
- * implementation is available for the current target platform.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -27,12 +25,6 @@
 
 #ifndef TERMIOS2_H
 #define TERMIOS2_H
-
-#if defined(__linux__) && defined(USE_CUSTOM_BAUD)
-#include <linux/version.h>
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,0)
-
-#define HAS_CUSTOM_BAUD
 
 #include <termios.h>
 
@@ -79,8 +71,6 @@ int cf2setospeed_custom(struct termios *tios, int speed);
 
 /***************************************************************************/
 
-#endif /* of LINUX_VERSION_CODE > KERNEL_VERSION(2,6,0) */
-#endif /* of defined(__linux__) && defined(USE_CUSTOM_BAUD) */
 #endif /* of TERMIOS2_H */
 
 /***************************************************************************/
