@@ -60,15 +60,11 @@
 #include <sys/ioctl.h>
 #endif
 
-#if defined(__linux__) && defined(USE_CUSTOM_BAUD)
 /* only works for linux, recent kernels */
 #include "termios2.h"
-#endif
 
-#if (defined (__FreeBSD__) || defined(__APPLE__)) && defined(USE_CUSTOM_BAUD)
-/* only for FreeBSD and macOS (Tiger and above) */
+/* only for some BSD and macOS (Tiger and above) */
 #include "custbaud_bsd.h"
-#endif
 
 /* Time to wait for UART to clear after a drain (in usec). */
 #define DRAIN_DELAY 200000
@@ -309,7 +305,7 @@ Bspeed(speed_t code)
 int
 term_baud_ok(int baud)
 {
-#ifndef USE_CUSTOM_BAUD
+#ifndef HAS_CUSTOM_BAUD
     return (Bcode(baud) != BNONE) ? 1 : 0;
 #else
     return (baud >= 0);
@@ -801,7 +797,7 @@ term_set_baudrate (int fd, int baudrate)
             }
             cfsetispeed(&tio, B0);
         } else {
-#ifdef USE_CUSTOM_BAUD
+#ifdef HAS_CUSTOM_BAUD
             r = cfsetospeed_custom(&tio, baudrate);
             if ( r < 0 ) {
                 term_errno = TERM_ESETOSPEED;
@@ -809,11 +805,11 @@ term_set_baudrate (int fd, int baudrate)
                 break;
             }
             cfsetispeed(&tio, B0);
-#else /* ! defined USE_CUSTOM_BAUD */
+#else /* ! defined HAS_CUSTOM_BAUD */
             term_errno = TERM_EBAUD;
             rval = -1;
             break;
-#endif /* of USE_CUSTOM_BAUD */
+#endif /* of HAS_CUSTOM_BAUD */
         }
 
         term.nexttermios[i] = tio;
@@ -840,7 +836,7 @@ term_get_baudrate (int fd, int *ispeed)
         if ( ispeed ) {
             code = cfgetispeed(&term.currtermios[i]);
             *ispeed = Bspeed(code);
-#ifdef USE_CUSTOM_BAUD
+#ifdef HAS_CUSTOM_BAUD
             if ( *ispeed < 0 ) {
                 *ispeed = cfgetispeed_custom(&term.currtermios[i]);
             }
@@ -849,7 +845,7 @@ term_get_baudrate (int fd, int *ispeed)
         code = cfgetospeed(&term.currtermios[i]);
         ospeed = Bspeed(code);
         if ( ospeed < 0 ) {
-#ifdef USE_CUSTOM_BAUD
+#ifdef HAS_CUSTOM_BAUD
             ospeed = cfgetospeed_custom(&term.currtermios[i]);
             if ( ospeed < 0 ) {
                 term_errno = TERM_EGETSPEED;

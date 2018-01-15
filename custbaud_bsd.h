@@ -6,6 +6,8 @@
  * by Joe Merten (https://github.com/JoeMerten www.jme.de)
  *
  * ATTENTION: BSD and macOS specific stuff!
+ * This header will `#define HAS_CUSTOM_BAUD` in case of custom baud rate
+ * implementation is available for the current target platform.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -26,6 +28,13 @@
 #ifndef CUSTBAUD_BSD_H
 #define CUSTBAUD_BSD_H
 
+/* Note that this code might also work other BSD variants, but I have only
+ * tested with those listed below.
+ */
+#if (defined (__FreeBSD__) || defined(__APPLE__)) && defined(USE_CUSTOM_BAUD)
+
+#define HAS_CUSTOM_BAUD
+
 #include <termios.h>
 
 /***************************************************************************/
@@ -36,7 +45,7 @@
  * tcsetattr_custom()), we want to provide the values here to have them
  * available for term_baud_up()/down().
  *
- * FreeBSD termios.h has 460k and 921k but misses e.g. 500k and >=1M.
+ * FreeBSD 11.0 termios.h has 460k and 921k but misses e.g. 500k and >=1M.
  */
 
 #if defined(HIGH_BAUD)
@@ -97,4 +106,5 @@ int tcsetattr_custom(int fd, int optional_actions, const struct termios *tiop);
 
 /***************************************************************************/
 
+#endif /* __FreeBSD__ || __APPLE__ && USE_CUSTOM_BAUD */
 #endif /* CUSTBAUD_BSD_H */
