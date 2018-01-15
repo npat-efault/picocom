@@ -62,11 +62,18 @@
 #include <sys/ioctl.h>
 #endif
 
+#if defined(__linux__) && defined(USE_CUSTOM_BAUD)
+#include <linux/version.h>
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,0)
 /* only works for linux, recent kernels */
 #include "termios2.h"
+#endif
 
+#if (defined (__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || \
+     defined(__DragonFly__) || defined(__APPLE__)) && defined(USE_CUSTOM_BAUD)
 /* only for some BSD and macOS (Tiger and above) */
 #include "custbaud_bsd.h"
+#endif
 
 /* Time to wait for UART to clear after a drain (in usec). */
 #define DRAIN_DELAY 200000
