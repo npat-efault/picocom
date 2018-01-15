@@ -52,8 +52,10 @@
 #define CMSPAR 0
 #endif
 
-
-#if defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
+#if defined(__linux__) || \
+    defined(__FreeBSD__) || defined(__OpenBSD__) || \
+    defined(__NetBSD__) || defined(__DragonFly__) || \
+    defined(__APPLE__)
 #define USE_IOCTL
 #endif
 #ifdef USE_IOCTL

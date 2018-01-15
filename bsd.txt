@@ -1,0 +1,81 @@
+Test environment
+================
+
+- VirtualBox host Kubuntu 16.04
+- FreeBsd 11.0 (VM)
+- OpenBsd 6.2 (VM)
+- NetBsd 7.1.1 (VM)
+- Dragonfly 5.0.2 (VM)
+- OSX 10.11.6 El Capitan (native on Macbook Pro)
+- macOS 10.12 Sierra (native on Macbook Pro)
+- Kubuntu 16.04 (native on Macbook Pro)
+- all above on Intel x86 64 Bit
+- Cygwin 5.1 on Windows XP 32 Bit host
+- Ftdi FT232R, max 1MBaud (chip can 3MBaud, but hw rs232 level shifter is specified for just 1MBaud)
+- Prolific PL2303, max 230kBaud (chip can 12MBaud, but hw rs232 level shifter is specified for just 230kBaud)
+- Unknown Asus onboard (16550 compatible?) uart chip, max 115kBaud.
+  Just minor testing with this uart, because it seems that it don't supports non standard baudrates.
+
+For Cygwin, I'd just checked if it will build and ran `picocom -h`. I'd personally failed opening a serial port within Cygwin.
+Note that for Cygwin it needs to implement a `cfmakeraw()` replacement. See also:
+  https://cygwin.com/ml/cygwin/2008-09/msg00295.html
+  https://sourceforge.net/p/ser2net/patches/9/
+  https://sourceforge.net/p/ser2net/patches/_discuss/thread/8b87fdad/ed37/attachment/ser2net-2.2-cygwin.patch
+
+
+Accessings serial ports (examples)
+==================================
+
+- Kubuntu:
+  /dev/ttyS0
+  /dev/ttyUSB0
+
+- FreeBsd:
+  /dev/ttyu0
+  /dev/ttyU0
+
+- OpenBsd:
+  /dev/cuaU0
+
+- NetBsd:
+  /dev/ttyU0
+
+- Dragonfly:
+  /dev/ttyU0
+
+- macOS
+  /dev/tty.usbserial-FTGNI4B7
+
+
+Manual controlling handshake lines
+==================================
+
+All above listed Bsd variants (FreeBsd, OpenBsd, NetBsd, Dragonfly and even macOS) fail when trying to control the handshake lines
+(rts and dtr) using the `tcsetattr()` based default implementation. But they all basically work with the `ioctl()` based alternate code.
+So I changed that `#define USE_IOCTL` appropriate.
+But however, there are some issues regarding rts and dtr control for OpenBsd, NetBsd and Dragonfly (see details below).
+
+
+Issues
+======
+
+OpenBsd
+-------
+- `term_get_mctl()` sometimes reports wrong values for rts and dtr state (after port open).
+- `--lower-rts` works as expected, but `--lower-dtr` lowers both rts and dtr lines.
+  Same for interactive toggle via `[C-t]` and `[C-g]`. Toggle rts via `[C-g]` works but toggle
+  dtr via `[C-t]` also changes the state of rts (and `term_get_mctl()` reports wrong rts state afterwards).
+- Issues occurs with both Ftdi and Prolific adapters.
+
+NetBsd
+------
+- `term_get_mctl()` sometimes reports wrong values for rts and dtr state (after port open)
+- Issue occurs with both Ftdi and Prolific adapters.
+
+Dragonfly
+---------
+- Got "FATAL: cannot lock /dev/ttyU0: Operation not supported" on startup.
+  Need to pass `--nolock` or build with `#define USE_FLOCK` not set.
+- `term_get_mctl()` sometimes reports wrong state for dtr, e.g. when passing `--lower-dtr`.
+- When exit via `[C+x]`, got "term_exitfunc: reset failed for dev /dev/ttyU0: Invalid argument".
+

@@ -255,8 +255,8 @@ int sig_exit = 0;
 int tty_fd = -1;
 int log_fd = -1;
 
-/* RTS and DTR are usually raised upon opening the serial port (at
-   least as tested on Linux and macOS, but FreeBSD behave different) */
+/* RTS and DTR are usually raised upon opening the serial port (at least
+   as tested on Linux, OpenBSD and macOS, but FreeBSD behave different) */
 int rts_up = 1;
 int dtr_up = 1;
 
