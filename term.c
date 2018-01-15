@@ -68,6 +68,7 @@
 /* only works for linux, recent kernels */
 #include "termios2.h"
 #endif
+#endif
 
 #if (defined (__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || \
      defined(__DragonFly__) || defined(__APPLE__)) && defined(USE_CUSTOM_BAUD)
