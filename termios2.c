@@ -23,6 +23,8 @@
  * USA
  */
 
+#include "custbaud.h"
+
 #if defined(__linux__) && defined(USE_CUSTOM_BAUD)
 
 #include <linux/version.h>

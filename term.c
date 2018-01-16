@@ -52,6 +52,8 @@
 #define CMSPAR 0
 #endif
 
+/* On these systems, use the TIOCM[BIS|BIC|GET] ioctls to manipulate
+ * the modem control lines (DTR / RTS) */
 #if defined(__linux__) || \
     defined(__FreeBSD__) || defined(__OpenBSD__) || \
     defined(__NetBSD__) || defined(__DragonFly__) || \
@@ -62,22 +64,10 @@
 #include <sys/ioctl.h>
 #endif
 
-
+#include "custbaud.h"
 #ifdef USE_CUSTOM_BAUD
-#if defined (__linux__)
-/* only works for linux, recent kernels */
-#include "termios2.h"
-#elif defined (__FreeBSD__) || defined (__OpenBSD__) || \
-      defined (__DragonFly__) || defined (__APPLE__)
-/* only for some BSD and macOS (Tiger and above)
- * Note that this code might also work other BSD variants, but I have only
- * tested with those listed below. Also tested __NetBSD__ but won't work. */
-#include "custbaud_bsd.h"
-#else
-#error "USE_CUSTOM_BAUD not supported in this system"
+#include CUSTOM_BAUD_HEAD
 #endif
-#endif /* of USE_CUSTOM_BAUD */
-
 
 /* Time to wait for UART to clear after a drain (in usec). */
 #define DRAIN_DELAY 200000

@@ -55,6 +55,8 @@
 #include "linenoise-1.0/linenoise.h"
 #endif
 
+#include "custbaud.h"
+
 /**********************************************************************/
 
 /* parity modes names */
