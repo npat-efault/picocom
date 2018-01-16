@@ -275,6 +275,7 @@ struct tty_q {
     .buff = NULL
 };
 
+#define STI_RD_SZ 128
 #define TTY_RD_SZ 128
 
 int tty_write_sz;
@@ -1440,11 +1441,11 @@ loop(void)
 
         if ( FD_ISSET(STI, &rdset) ) {
             /* read from terminal */
-            char rx_buf[64];
+            char buff_rd[STI_RD_SZ];
             int i;
 
             do {
-                n = read(STI, rx_buf, sizeof(rx_buf));
+                n = read(STI, buff_rd, sizeof(buff_rd));
             } while (n < 0 && errno == EINTR);
             if (n == 0) {
                 stdin_closed = 1;
@@ -1459,7 +1460,7 @@ loop(void)
             }
 
             for ( i = 0; i < n; i++ ) {
-                c = rx_buf[i];
+                c = buff_rd[i];
                 switch (state) {
                 case ST_COMMAND:
                     if ( c == opts.escape ) {
