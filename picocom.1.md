@@ -90,14 +90,13 @@ here.
 **C-t**
 
 :   Toggle the DTR line. If DTR is up, then lower it. If it is down,
-    then raise it.
+    then raise it. May not be supported on some systems.
 
 **C-g**
 
 :   Toggle the RTS line. If RTS is up, then lower it. If it is down,
     then raise it. Not supported if the flow control mode is RTS/CTS.
-    Only supported in Linux, FreeBSD, OpenBSD, NetBSD, DragonFly and
-    macOS.
+    May not be supported on some systems.
 
 **C-backslash**
 
