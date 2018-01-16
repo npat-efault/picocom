@@ -277,7 +277,7 @@ struct tty_q {
     .buff = NULL
 };
 
-#define STI_RD_SZ 128
+#define STI_RD_SZ 16
 #define TTY_RD_SZ 128
 
 int tty_write_sz;
@@ -1399,7 +1399,6 @@ loop(void)
     } state;
     fd_set rdset, wrset;
     int r, n;
-    unsigned char c;
     int stdin_closed;
 
     state = ST_TRANSPARENT;
@@ -1445,6 +1444,7 @@ loop(void)
             /* read from terminal */
             char buff_rd[STI_RD_SZ];
             int i;
+            unsigned char c;
 
             do {
                 n = read(STI, buff_rd, sizeof(buff_rd));
