@@ -38,7 +38,8 @@ OBJS += linenoise-1.0/linenoise.o
 linenoise-1.0/linenoise.o : linenoise-1.0/linenoise.c linenoise-1.0/linenoise.h
 
 ## Comment this in to enable custom baudrate support.
-## Works with: Linux (kernels > 2.6), FreeBSD, macOS (Tiger and above)
+## Works with: Linux (kernels > 2.6), FreeBSD, OpenBSD, DragonFly,
+##             macOS (Tiger and above)
 #CPPFLAGS += -DUSE_CUSTOM_BAUD
 
 ## Comment this IN to remove help strings (saves ~ 4-6 Kb).

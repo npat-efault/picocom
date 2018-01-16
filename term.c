@@ -52,23 +52,32 @@
 #define CMSPAR 0
 #endif
 
-
-#if defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
+#if defined(__linux__) || \
+    defined(__FreeBSD__) || defined(__OpenBSD__) || \
+    defined(__NetBSD__) || defined(__DragonFly__) || \
+    defined(__APPLE__)
 #define USE_IOCTL
 #endif
 #ifdef USE_IOCTL
 #include <sys/ioctl.h>
 #endif
 
-#if defined(__linux__) && defined(USE_CUSTOM_BAUD)
+
+#ifdef USE_CUSTOM_BAUD
+#if defined (__linux__)
 /* only works for linux, recent kernels */
 #include "termios2.h"
-#endif
-
-#if (defined (__FreeBSD__) || defined(__APPLE__)) && defined(USE_CUSTOM_BAUD)
-/* only for FreeBSD and macOS (Tiger and above) */
+#elif defined (__FreeBSD__) || defined (__OpenBSD__) || \
+      defined (__DragonFly__) || defined (__APPLE__)
+/* only for some BSD and macOS (Tiger and above)
+ * Note that this code might also work other BSD variants, but I have only
+ * tested with those listed below. Also tested __NetBSD__ but won't work. */
 #include "custbaud_bsd.h"
+#else
+#error "USE_CUSTOM_BAUD not supported in this system"
 #endif
+#endif /* of USE_CUSTOM_BAUD */
+
 
 /* Time to wait for UART to clear after a drain (in usec). */
 #define DRAIN_DELAY 200000

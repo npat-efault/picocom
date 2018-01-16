@@ -38,10 +38,11 @@
  *   - Have not tested with more recent macOS or Ftdi driver until now.
  */
 
-/* Note that this code might also work with OpenBSD, NetBSD et cetera, but I have not tested.
- * That's why I only check for `defined (__FreeBSD__)` here.
- */
-#if (defined (__FreeBSD__) || defined(__APPLE__)) && defined(USE_CUSTOM_BAUD)
+/* Note that this code might also work with other BSD variants, but I have only
+ * tested with those listed below. Also tested __NetBSD__ but won't work. */
+#if (defined (__FreeBSD__) || defined (__OpenBSD__) || \
+     defined (__DragonFly__) || defined (__APPLE__)) && \
+    defined (USE_CUSTOM_BAUD)
 
 #include "custbaud_bsd.h"
 #include <string.h>
@@ -54,9 +55,10 @@
 #include "term.h"
 
 /***************************************************************************/
-/* As we can see in FreeBSD and macOS termios.h all the baudrate constants are transparent,
- * like B115200=115200. There is no need for any integer <-> code translation.
- * So we can pass any baudrate we want directly to / from cfsetospeed() & co.
+/* As we can see in BSD and macOS termios.h all the baudrate constants are
+ * transparent, like B115200=115200. There is no need for any integer <-> code
+ * translation. So we can pass any baudrate we want directly to / from
+ * cfsetospeed() & co.
  */
 int cfsetospeed_custom(struct termios *tiop, int speed) {
     return cfsetospeed(tiop, speed);
@@ -142,4 +144,4 @@ int tcsetattr_custom(int fd, int optional_actions, const struct termios *tiop) {
 
 /***************************************************************************/
 
-#endif /* FreeBSD || __APPLE__ && USE_CUSTOM_BAUD */
+#endif /* __FreeBSD__ || ... || __APPLE__ && USE_CUSTOM_BAUD */

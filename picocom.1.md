@@ -96,7 +96,8 @@ here.
 
 :   Toggle the RTS line. If RTS is up, then lower it. If it is down,
     then raise it. Not supported if the flow control mode is RTS/CTS.
-    Only supported in Linux, FreeBSD and macOS.
+    Only supported in Linux, FreeBSD, OpenBSD, NetBSD, DragonFly and
+    macOS.
 
 **C-backslash**
 

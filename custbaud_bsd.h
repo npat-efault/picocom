@@ -36,7 +36,10 @@
  * tcsetattr_custom()), we want to provide the values here to have them
  * available for term_baud_up()/down().
  *
- * FreeBSD termios.h has 460k and 921k but misses e.g. 500k and >=1M.
+ * FreeBSD 11.0 termios.h has 460k and 921k but misses e.g. 500k and >=1M.
+ * OpenBSD 6.2 termios.h is missing all >230k (like macOS).
+ * NetBSD 7.1.1 do same as FreeBSD 11.0.
+ * DragonFly 5.0.2 looks same as OpenBSD 6.2.
  */
 
 #if defined(HIGH_BAUD)
