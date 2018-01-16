@@ -1439,11 +1439,12 @@ loop(void)
         }
 
         if ( FD_ISSET(STI, &rdset) ) {
-
             /* read from terminal */
+            char rx_buf[64];
+            int i;
 
             do {
-                n = read(STI, &c, 1);
+                n = read(STI, rx_buf, sizeof(rx_buf));
             } while (n < 0 && errno == EINTR);
             if (n == 0) {
                 stdin_closed = 1;
@@ -1457,30 +1458,33 @@ loop(void)
                     goto skip_proc_STI;
             }
 
-            switch (state) {
-            case ST_COMMAND:
-                if ( c == opts.escape ) {
-                    /* pass the escape character down */
-                    if ( tty_q_push((char *)&c, 1) != 1 )
-                        fd_printf(STO, "\x07");
-                } else {
-                    /* process command key */
-                    if ( do_command(c) )
-                        /* picocom exit */
-                        return LE_CMD;
+            for ( i = 0; i < n; i++ ) {
+                c = rx_buf[i];
+                switch (state) {
+                case ST_COMMAND:
+                    if ( c == opts.escape ) {
+                        /* pass the escape character down */
+                        if ( tty_q_push((char *)&c, 1) != 1 )
+                            fd_printf(STO, "\x07");
+                    } else {
+                        /* process command key */
+                        if ( do_command(c) )
+                            /* picocom exit */
+                            return LE_CMD;
+                    }
+                    state = ST_TRANSPARENT;
+                    break;
+                case ST_TRANSPARENT:
+                    if ( ! opts.noescape && c == opts.escape )
+                        state = ST_COMMAND;
+                    else
+                        if ( tty_q_push((char *)&c, 1) != 1 )
+                            fd_printf(STO, "\x07");
+                    break;
+                default:
+                    assert(0);
+                    break;
                 }
-                state = ST_TRANSPARENT;
-                break;
-            case ST_TRANSPARENT:
-                if ( ! opts.noescape && c == opts.escape )
-                    state = ST_COMMAND;
-                else
-                    if ( tty_q_push((char *)&c, 1) != 1 )
-                        fd_printf(STO, "\x07");
-                break;
-            default:
-                assert(0);
-                break;
             }
         }
     skip_proc_STI:
