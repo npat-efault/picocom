@@ -30,6 +30,7 @@
 
 #if defined (__linux__)
 
+/* Enable by-default for kernels > 2.6.0 on x86 and x86_64 only */
 #include <linux/version.h>
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,0)
 #if defined (__x86__) || defined (__x86_64__) || defined (USE_CUSTOM_BAUD)
@@ -40,9 +41,20 @@
 #endif /* of arch */
 #endif /* of version */
 
-#elif defined (__FreeBSD__) || defined (__OpenBSD__) || \
-      defined (__DragonFly__) || defined (__APPLE__)
+#elif defined (__APPLE__)
 
+/* ?? Maybe enable by-default for specific versions ?? */
+#define CUSTOM_BAUD_HEAD "custbaud_bsd.h"
+
+#elif defined (__NetBSD__)
+
+/* Do not enable by default */
+#define CUSTOM_BAUD_HEAD "custbaud_bsd.h"
+
+#elif defined (__FreeBSD__) || defined (__OpenBSD__) || \
+      defined (__DragonFly__)
+
+/* I believe it doesn't hurt to enable by-default for these */
 #ifndef USE_CUSTOM_BAUD
 #define USE_CUSTOM_BAUD
 #endif
