@@ -4,9 +4,10 @@
  *
  * General purpose terminal handling library.
  *
- * Nick Patavalis (npat@efault.net)
+ * by Nick Patavalis (npat@efault.net)
  *
- * originaly by Pantelis Antoniou (panto@intranet.gr), Nick Patavalis
+ * originaly by Pantelis Antoniou (https://github.com/pantoniou),
+ *              Nick Patavalis
  *
  * Documentation can be found in the header file "term.h".
  *

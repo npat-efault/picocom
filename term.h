@@ -81,7 +81,8 @@
  *
  * by Nick Patavalis (npat@efault.net)
  *
- * originaly by Pantelis Antoniou (panto@intranet.gr), Nick Patavalis
+ * originaly by Pantelis Antoniou (https://github.com/pantoniou),
+ *              Nick Patavalis
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
