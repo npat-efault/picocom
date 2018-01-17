@@ -42,8 +42,9 @@
 
 /* Note that this code might also work with other BSD variants, but I have only
  * tested with those listed below. Also tested __NetBSD__ but won't work. */
-#if (defined (__FreeBSD__) || defined (__OpenBSD__) || \
-     defined (__DragonFly__) || defined (__APPLE__)) && \
+#if (defined (__FreeBSD__) || defined (__NetBSD__) ||       \
+     defined (__OpenBSD__) || defined (__DragonFly__) ||    \
+     defined (__APPLE__)) &&                                \
     defined (USE_CUSTOM_BAUD)
 
 #include "custbaud_bsd.h"
