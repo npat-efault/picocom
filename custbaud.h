@@ -5,7 +5,7 @@
  * Automatically enable custom baudrate support for systems (OS /
  * version / architecture combinations) we know it works.
  *
- * by Nick Patavalis (npat@inaccessnetworks.com)
+ * by Nick Patavalis (npat@efault.net)
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as

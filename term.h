@@ -79,7 +79,7 @@
  * E flocntrl_t - library supported folw-control modes
  * M MAX_TERM - maximum number of fds that can be managed
  *
- * by Nick Patavalis (npat@inaccessnetworks.com)
+ * by Nick Patavalis (npat@efault.net)
  *
  * originaly by Pantelis Antoniou (panto@intranet.gr), Nick Patavalis
  *

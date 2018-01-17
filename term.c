@@ -4,7 +4,7 @@
  *
  * General purpose terminal handling library.
  *
- * Nick Patavalis (npat@inaccessnetworks.com)
+ * Nick Patavalis (npat@efault.net)
  *
  * originaly by Pantelis Antoniou (panto@intranet.gr), Nick Patavalis
  *
