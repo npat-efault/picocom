@@ -143,7 +143,7 @@ values.
 
 The details of how the kernel updates the termios2 structure with the
 baudrate values supplied by the serial drivers can be seen in file
-"drivers/tty/tty_ioctl.c", function "tty_termios_encode_baud_rate()"
-which is what the serial drivers call to notify the kernel about the
-effective baudrate.
+"drivers/tty/tty_ioctl.c", or "drivers/tty/tty_baudrate.c" function
+"tty_termios_encode_baud_rate()" which is what the serial drivers call
+to notify the kernel about the effective baudrate.
 
