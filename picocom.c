@@ -1632,11 +1632,13 @@ show_usage(char *name)
     printf("  --omap <map> (output mappings)\n");
     printf("  --emap <map> (local-echo mappings)\n");
     printf("  --lo<g>file <filename>\n");
-    printf("  --inits<t>ring <s>\n");
+    printf("  --inits<t>ring <string>\n");
     printf("  --e<x>it-after <msec>\n");
     printf("  --e<X>it\n");
     printf("  --lower-rts\n");
+    printf("  --raise-rts\n");
     printf("  --lower-dtr\n");
+    printf("  --raise-dtr\n");
     printf("  --<q>uiet\n");
     printf("  --<h>elp\n");
     printf("<map> is a comma-separated list of one or more of:\n");
