@@ -813,6 +813,7 @@ term_set_baudrate (int fd, int baudrate)
                 rval = -1;
                 break;
             }
+            /* ispeed = 0, means same as ospeed (see POSIX) */
             cfsetispeed(&tio, B0);
         } else {
 #ifdef USE_CUSTOM_BAUD
@@ -822,6 +823,7 @@ term_set_baudrate (int fd, int baudrate)
                 rval = -1;
                 break;
             }
+            /* ispeed = 0, means same as ospeed (see POSIX) */
             cfsetispeed(&tio, B0);
 #else /* ! defined USE_CUSTOM_BAUD */
             term_errno = TERM_EBAUD;
@@ -1360,6 +1362,7 @@ term_pulse_dtr (int fd)
 
             tioold = tio;
 
+            /* ospeed = 0, means hangup (see POSIX) */
             cfsetospeed(&tio, B0);
             r = tcsetattr(fd, TCSANOW, &tio);
             if ( r < 0 ) {
