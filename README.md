@@ -17,13 +17,13 @@ low-tech serial communications program to allow access to all types of
 devices that provide serial consoles. It could also prove useful in
 many other similar tasks.
 
-It is ideal for embedded systems since its memory footprint is minimal
-(approximately 30K, when stripped). Apart from being a handy little
-tool, *picocom's* source distribution includes a simple, easy to use,
-and thoroughly documented terminal-management library, which could
-serve other projects as well. This library hides the termios(3) calls,
-and provides a less complex and safer (though certainly less
-feature-rich) interface.
+It is ideal for embedded systems since its memory footprint is small
+(approximately 40K, when stripped and minimally configured). Apart
+from being a handy little tool, *picocom's* source distribution
+includes a simple, easy to use, and thoroughly documented
+terminal-management library, which could serve other projects as
+well. This library hides the termios(3) calls, and provides a less
+complex and safer (though certainly less feature-rich) interface.
 
 *picocom* runs and is, primarily, tested on Linux. With no, or with
 minor, modifications it will run (and most of its features will work)
