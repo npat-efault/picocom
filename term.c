@@ -421,6 +421,7 @@ term_exitfunc (void)
                set). */
             flock(term.fd[i], LOCK_UN);
 #endif
+            close(term.fd[i]);
             term.fd[i] = -1;
         }
     } while (0);

@@ -679,6 +679,8 @@ cleanup (int drain, int noreset, int hup)
                comments in term.c/term_exitfunc() for more. */
             flock(tty_fd, LOCK_UN);
 #endif
+            close(tty_fd);
+            tty_fd = -1;
         }
     }
 
