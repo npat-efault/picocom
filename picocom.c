@@ -674,6 +674,11 @@ cleanup (int drain, int noreset, int hup)
         if ( noreset ) {
             pinfo("Skipping tty reset...\r\n");
             term_erase(tty_fd);
+#ifdef USE_FLOCK
+            /* Explicitly unlock tty_fd before exiting. See
+               comments in term.c/term_exitfunc() for more. */
+            flock(tty_fd, LOCK_UN);
+#endif
         }
     }
 
