@@ -25,7 +25,7 @@ serve other projects as well. This library hides the termios(3) calls,
 and provides a less complex and safer (though certainly less
 feature-rich) interface.
 
-*picocom* runs and has, mostly, been tested on Linux. With no, or with
+*picocom* runs and is, primarily, tested on Linux. With no, or with
 minor, modifications it will run (and most of its features will work)
 on any Unix-like system with a reasonably POSIX-compatible termios(3)
 interface. Patches to support idiosyncrasies of specific Unix-like
