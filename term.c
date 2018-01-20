@@ -35,6 +35,9 @@
 #include <errno.h>
 #include <unistd.h>
 #include <termios.h>
+#ifdef USE_FLOCK
+#include <sys/file.h>
+#endif
 
 /* glibc for MIPS has its own bits/termios.h which does not define
  * CMSPAR, so we use the value from the generic bits/termios.h
@@ -407,6 +410,17 @@ term_exitfunc (void)
                 fprintf(stderr, "%s: reset failed for dev %s: %s\r\n",
                         __FUNCTION__, tname, strerror(errno));
             }
+#ifdef USE_FLOCK
+            /* Explicitly unlock the file. If the file is not in fact
+               flock(2)'ed, no harm is done. This should normally not
+               be necessary. Normally, exiting the program should take
+               care of unlocking the file. Unfortuntelly, it has been
+               observed that, on some systems, exiting or closing an
+               flock(2)'ed tty fd has peculiar side effects (like not
+               reseting the modem-control lines, even if HUPCL is
+               set). */
+            flock(term.fd[i], LOCK_UN);
+#endif
             term.fd[i] = -1;
         }
     } while (0);
