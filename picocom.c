@@ -1986,6 +1986,47 @@ parse_args(int argc, char *argv[])
 
 /**********************************************************************/
 
+void
+set_dtr_rts (void)
+{
+    int r;
+    if ( opts.lower_rts ) {
+        r = term_lower_rts(tty_fd);
+        if ( r < 0 )
+            fatal("failed to lower RTS of port: %s",
+                  term_strerror(term_errno, errno));
+        rts_up = 0;
+    } else if ( opts.raise_rts ) {
+        r = term_raise_rts(tty_fd);
+        if ( r < 0 )
+            fatal("failed to raise RTS of port: %s",
+                  term_strerror(term_errno, errno));
+        rts_up = 1;
+    }
+
+    if ( opts.lower_dtr ) {
+        r = term_lower_dtr(tty_fd);
+        if ( r < 0 )
+            fatal("failed to lower DTR of port: %s",
+                  term_strerror(term_errno, errno));
+        dtr_up = 0;
+    } else if ( opts.raise_dtr ) {
+        r = term_raise_dtr(tty_fd);
+        if ( r < 0 )
+            fatal("failed to raise DTR of port: %s",
+                  term_strerror(term_errno, errno));
+        dtr_up = 1;
+    }
+    /* Try to read the status of the modem-conrtol lines from the
+       port. */
+    r = term_get_mctl(tty_fd);
+    if ( r >= 0 && r != MCTL_UNAVAIL ) {
+        rts_up = (r & MCTL_RTS) != 0;
+        dtr_up = (r & MCTL_DTR) != 0;
+    }
+}
+
+
 int
 main (int argc, char *argv[])
 {
@@ -2042,43 +2083,17 @@ main (int argc, char *argv[])
     }
     if ( r < 0 )
         fatal("failed to add port: %s", term_strerror(term_errno, errno));
-    if ( opts.lower_rts ) {
-        r = term_lower_rts(tty_fd);
-        if ( r < 0 )
-            fatal("failed to lower RTS of port: %s",
-                  term_strerror(term_errno, errno));
-        rts_up = 0;
-    } else if ( opts.raise_rts ) {
-        r = term_raise_rts(tty_fd);
-        if ( r < 0 )
-            fatal("failed to raise RTS of port: %s",
-                  term_strerror(term_errno, errno));
-        rts_up = 1;
-
-    }
-    if ( opts.lower_dtr ) {
-        r = term_lower_dtr(tty_fd);
-        if ( r < 0 )
-            fatal("failed to lower DTR of port: %s",
-                  term_strerror(term_errno, errno));
-        dtr_up = 0;
-    } else if ( opts.raise_dtr ) {
-        r = term_raise_dtr(tty_fd);
-        if ( r < 0 )
-            fatal("failed to raise DTR of port: %s",
-                  term_strerror(term_errno, errno));
-        dtr_up = 1;
-    }
+    /* Set DTR and RTS status, as quickly as possible after opening
+       the serial port (i.e. before configuring it) */
+    set_dtr_rts();
     r = term_apply(tty_fd, 0);
     if ( r < 0 )
         fatal("failed to config port: %s",
               term_strerror(term_errno, errno));
-
-    r = term_get_mctl(tty_fd);
-    if ( r >= 0 && r != MCTL_UNAVAIL ) {
-        rts_up = (r & MCTL_RTS) != 0;
-        dtr_up = (r & MCTL_DTR) != 0;
-    }
+    /* Set DTR and RTS status *again* after configuring the port. On
+       some systems term_apply() resets the status of DTR and / or
+       RTS */
+    set_dtr_rts();
 
     set_tty_write_sz(term_get_baudrate(tty_fd, NULL));
 
