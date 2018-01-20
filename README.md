@@ -23,9 +23,13 @@ tool, *picocom's* source distribution includes a simple, easy to use,
 and thoroughly documented terminal-management library, which could
 serve other projects as well. This library hides the termios(3) calls,
 and provides a less complex and safer (though certainly less
-feature-rich) interface. *picocom* runs on Linux, and with no or minor
-modifications it could run on any Unix-like system with the termios(3)
-library.
+feature-rich) interface.
+
+*picocom* runs and has, mostly, been tested on Linux. With no, or with
+minor, modifications it will run (and most of its features will work)
+on any Unix-like system with a reasonably POSIX-compatible termios(3)
+interface. Patches to support idiosyncrasies of specific Unix-like
+operating systems are very welcome.
 
 For a description of picocom's operation, its command line options,
 and usage examples, see the manual page included in the source
