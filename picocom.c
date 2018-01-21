@@ -540,13 +540,14 @@ void
 init_history (void)
 {
     char *home_directory;
+    int home_directory_len;
 
     home_directory = getenv("HOME");
     if (home_directory) {
-        history_file_path = malloc(strlen(home_directory) + 2 +
-                                   strlen(HISTFILE));
-        strcpy(history_file_path, home_directory);
-        if (home_directory[strlen(home_directory)-1] != '/') {
+        home_directory_len = strlen(home_directory);
+        history_file_path = malloc(home_directory_len + 2 + strlen(HISTFILE));
+        memcpy(history_file_path, home_directory, home_directory_len + 1);
+        if (home_directory[home_directory_len - 1] != '/') {
             strcat(history_file_path, "/");
         }
         strcat(history_file_path, HISTFILE);
