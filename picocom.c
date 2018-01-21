@@ -496,7 +496,7 @@ file_completion_cb (const char *buf, linenoiseCompletions *lc)
     DIR *dirp;
     struct dirent *dp;
     char *basec, *basen, *dirc, *dirn;
-    int baselen, dirlen;
+    int baselen, dirlen, namelen;
     char *fullpath;
     struct stat filestat;
 
@@ -510,13 +510,14 @@ file_completion_cb (const char *buf, linenoiseCompletions *lc)
 
     if (dirp) {
         while ((dp = readdir(dirp)) != NULL) {
+            namelen = strlen(dp->d_name);
             if (strncmp(basen, dp->d_name, baselen) == 0) {
                 /* add 2 extra bytes for possible / in middle & at end */
-                fullpath = (char *) malloc(strlen(dp->d_name) + dirlen + 3);
-                strcpy(fullpath, dirn);
+                fullpath = (char *) malloc(namelen + dirlen + 3);
+                memcpy(fullpath, dirn, dirlen + 1);
                 if (fullpath[dirlen-1] != '/')
                     strcat(fullpath, "/");
-                strcat(fullpath, dp->d_name);
+                strncat(fullpath, dp->d_name, namelen);
                 if (stat(fullpath, &filestat) == 0) {
                     if (S_ISDIR(filestat.st_mode)) {
                         strcat(fullpath, "/");
