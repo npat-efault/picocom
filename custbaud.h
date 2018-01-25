@@ -41,9 +41,20 @@
 #endif /* of arch */
 #endif /* of version */
 
-#elif defined (__APPLE__)
+#elif defined (__APPLE__) && defined(__MACH__)
 
-/* ?? Maybe enable by-default for specific versions ?? */
+#include <AvailabilityMacros.h>
+#include <TargetConditionals.h>
+#if TARGET_IPHONE_SIMULATOR
+/* Do not enable by default for iOS in Xcode simulator */
+#elif TARGET_OS_IPHONE
+/* Do not enable by default for iOS until it has been tested */
+#elif TARGET_OS_MAC
+/* Enable by-default for macOS / OSX >= 10.4 (Tiger) */
+#ifndef USE_CUSTOM_BAUD
+#define USE_CUSTOM_BAUD
+#endif
+#endif /* of TARGET_OS_... */
 #define CUSTOM_BAUD_HEAD "custbaud_bsd.h"
 
 #elif defined (__NetBSD__)
