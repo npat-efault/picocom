@@ -33,7 +33,7 @@
 /* Enable by-default for kernels > 2.6.0 on x86 and x86_64 only */
 #include <linux/version.h>
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,0)
-#if defined (__x86__) || defined (__x86_64__) || defined (USE_CUSTOM_BAUD)
+#if defined (__i386__) || defined (__x86_64__) || defined (USE_CUSTOM_BAUD)
 #ifndef USE_CUSTOM_BAUD
 #define USE_CUSTOM_BAUD
 #endif
