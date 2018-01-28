@@ -50,10 +50,12 @@
 #elif TARGET_OS_IPHONE
 /* Do not enable by default for iOS until it has been tested */
 #elif TARGET_OS_MAC
-/* Enable by-default for macOS / OSX >= 10.4 (Tiger) */
+#if defined (__i386__) || defined (__x86_64__)
+/* Enable by-default for Intel Mac, macOS / OSX >= 10.4 (Tiger) */
 #ifndef USE_CUSTOM_BAUD
 #define USE_CUSTOM_BAUD
 #endif
+#endif /* of arch */
 #endif /* of TARGET_OS_... */
 #define CUSTOM_BAUD_HEAD "custbaud_bsd.h"
 
