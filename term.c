@@ -1774,6 +1774,43 @@ term_break(int fd)
 
 /**************************************************************************/
 
+int
+term_read (int fd, void *buf, unsigned int bufsz)
+{
+    int rval;
+    struct term_s *t;
+
+    do { /* dummy */
+        t = term_find(fd);
+        if ( ! t ) {
+            rval = -1;
+            break;
+        }
+        rval = read(t->fd, buf, bufsz);
+    } while (0);
+
+    return rval;
+}
+
+int
+term_write (int fd, const void *buf, unsigned int bufsz)
+{
+    int rval;
+    struct term_s *t;
+
+    do { /* dummy */
+        t = term_find(fd);
+        if ( ! t ) {
+            rval = -1;
+            break;
+        }
+        rval = write(t->fd, buf, bufsz);
+    } while (0);
+
+    return rval;
+}
+
+
 /*
  * Local Variables:
  * mode:c

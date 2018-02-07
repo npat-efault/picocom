@@ -1514,7 +1514,7 @@ loop(void)
             /* read from port */
 
             do {
-                n = read(tty_fd, &buff_rd, sizeof(buff_rd));
+                n = term_read(tty_fd, &buff_rd, sizeof(buff_rd));
             } while (n < 0 && errno == EINTR);
             if (n == 0) {
                 fatal("read zero bytes from port");
@@ -1543,7 +1543,7 @@ loop(void)
             int sz;
             sz = (tty_q.len < tty_write_sz) ? tty_q.len : tty_write_sz;
             do {
-                n = write(tty_fd, tty_q.buff, sz);
+                n = term_write(tty_fd, tty_q.buff, sz);
             } while ( n < 0 && errno == EINTR );
             if ( n <= 0 )
                 fatal("write to port failed: %s", strerror(errno));
