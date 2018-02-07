@@ -1261,11 +1261,11 @@ term_set(int fd,
 
         i = term_find(fd);
         if ( i < 0 ) {
-            ni = term_add(fd);
-            if ( ni < 0 ) {
+            if ( term_add(fd) < 0 ) {
                 rval = -1;
                 break;
             }
+            ni = term_find(fd);
         } else {
             ni = i;
         }
