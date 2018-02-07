@@ -66,6 +66,7 @@ const char *parity_str[] = {
     [P_ODD] = "odd",
     [P_MARK] = "mark",
     [P_SPACE] = "space",
+    [P_ERROR] = "error",
 };
 
 /* flow control modes names */
@@ -74,6 +75,7 @@ const char *flow_str[] = {
     [FC_RTSCTS] = "RTS/CTS",
     [FC_XONXOFF] = "xon/xoff",
     [FC_OTHER] = "other",
+    [FC_ERROR] = "error",
 };
 
 /**********************************************************************/
@@ -850,8 +852,8 @@ baud_down (int baud)
     return nb;
 }
 
-int
-flow_next (int flow)
+enum flowcntrl_e
+flow_next (enum flowcntrl_e flow)
 {
     switch(flow) {
     case FC_NONE:
@@ -871,8 +873,8 @@ flow_next (int flow)
     return flow;
 }
 
-int
-parity_next (int parity)
+enum parity_e
+parity_next (enum parity_e parity)
 {
     switch(parity) {
     case P_NONE:
