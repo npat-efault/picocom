@@ -328,15 +328,16 @@ term_baud_std(int baud)
 
 /**************************************************************************/
 
-static int
+static struct term_s *
 term_find_next_free (void)
 {
-    int rval, i;
+    int i;
+    struct term_s *rval;
 
     do { /* dummy */
         if ( ! term_initted ) {
             term_errno = TERM_ENOINIT;
-            rval = -1;
+            rval = NULL;
             break;
         }
 
@@ -345,11 +346,11 @@ term_find_next_free (void)
 
         if ( i == MAX_TERMS ) {
             term_errno = TERM_EFULL;
-            rval = -1;
+            rval = NULL;
             break;
         }
 
-        rval = i;
+        rval = &term[i];
     } while (0);
 
     return rval;
@@ -357,15 +358,16 @@ term_find_next_free (void)
 
 /***************************************************************************/
 
-static int
+static struct term_s *
 term_find (int fd)
 {
-    int rval, i;
+    int i;
+    struct term_s *rval;
 
     do { /* dummy */
         if ( ! term_initted ) {
             term_errno = TERM_ENOINIT;
-            rval = -1;
+            rval = NULL;
             break;
         }
 
@@ -374,11 +376,11 @@ term_find (int fd)
 
         if ( i == MAX_TERMS ) {
             term_errno = TERM_ENOTFOUND;
-            rval = -1;
+            rval = NULL;
             break;
         }
 
-        rval = i;
+        rval = &term[i];
     } while (0);
 
     return rval;
@@ -479,13 +481,14 @@ term_lib_init (void)
 int
 term_add (int fd)
 {
-    int rval, r, i;
+    int rval, r;
+    struct term_s *t;
 
     rval = 0;
 
     do { /* dummy */
-        i = term_find(fd);
-        if ( i >= 0 ) {
+        t = term_find(fd);
+        if ( t ) {
             term_errno = TERM_EEXISTS;
             rval = -1;
             break;
@@ -497,22 +500,22 @@ term_add (int fd)
             break;
         }
 
-        i = term_find_next_free();
-        if ( i < 0 ) {
+        t = term_find_next_free();
+        if ( ! t ) {
             rval = -1;
             break;
         }
 
-        r = tcgetattr(fd, &term[i].origtermios);
+        r = tcgetattr(fd, &t->origtermios);
         if ( r < 0 ) {
             term_errno = TERM_EGETATTR;
             rval = -1;
             break;
         }
 
-        term[i].currtermios = term[i].origtermios;
-        term[i].nexttermios = term[i].origtermios;
-        term[i].fd = fd;
+        t->currtermios = t->origtermios;
+        t->nexttermios = t->origtermios;
+        t->fd = fd;
     } while (0);
 
     return rval;
@@ -523,25 +526,26 @@ term_add (int fd)
 int
 term_remove(int fd)
 {
-    int rval, r, i;
+    int rval, r;
+    struct term_s *t;
 
     rval = 0;
 
     do { /* dummy */
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             rval = -1;
             break;
         }
 
         do { /* dummy */
-            r = tcflush(term[i].fd, TCIOFLUSH);
+            r = tcflush(t->fd, TCIOFLUSH);
             if ( r < 0 ) {
                 term_errno = TERM_EFLUSH;
                 rval = -1;
                 break;
             }
-            r = tcsetattr(term[i].fd, TCSANOW, &term[i].origtermios);
+            r = tcsetattr(t->fd, TCSANOW, &t->origtermios);
             if ( r < 0 ) {
                 term_errno = TERM_ESETATTR;
                 rval = -1;
@@ -549,7 +553,7 @@ term_remove(int fd)
             }
         } while (0);
 
-        term[i].fd = -1;
+        t->fd = -1;
     } while (0);
 
     return rval;
@@ -560,18 +564,19 @@ term_remove(int fd)
 int
 term_erase(int fd)
 {
-    int rval, i;
+    int rval;
+    struct term_s *t;
 
     rval = 0;
 
     do { /* dummy */
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             rval = -1;
             break;
         }
 
-        term[i].fd = -1;
+        t->fd = -1;
     } while (0);
 
     return rval;
@@ -582,32 +587,33 @@ term_erase(int fd)
 int
 term_replace (int oldfd, int newfd)
 {
-    int rval, r, i;
+    int rval, r;
+    struct term_s *t;
 
     rval = 0;
 
     do { /* dummy */
 
-        i = term_find(oldfd);
-        if ( i < 0 ) {
+        t = term_find(oldfd);
+        if ( ! t ) {
             rval = -1;
             break;
         }
 
-        r = tcsetattr(newfd, TCSANOW, &term[i].currtermios);
+        r = tcsetattr(newfd, TCSANOW, &t->currtermios);
         if ( r < 0 ) {
             term_errno = TERM_ESETATTR;
             rval = -1;
             break;
         }
-        r = tcgetattr(newfd, &term[i].currtermios);
+        r = tcgetattr(newfd, &t->currtermios);
         if ( r < 0 ) {
             term_errno = TERM_EGETATTR;
             rval = -1;
             break;
         }
 
-        term[i].fd = newfd;
+        t->fd = newfd;
 
     } while (0);
 
@@ -619,38 +625,39 @@ term_replace (int oldfd, int newfd)
 int
 term_reset (int fd)
 {
-    int rval, r, i;
+    int rval, r;
+    struct term_s *t;
 
     rval = 0;
 
     do { /* dummy */
 
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             rval = -1;
             break;
         }
 
-        r = tcflush(term[i].fd, TCIOFLUSH);
+        r = tcflush(t->fd, TCIOFLUSH);
         if ( r < 0 ) {
             term_errno = TERM_EFLUSH;
             rval = -1;
             break;
         }
-        r = tcsetattr(term[i].fd, TCSANOW, &term[i].origtermios);
+        r = tcsetattr(t->fd, TCSANOW, &t->origtermios);
         if ( r < 0 ) {
             term_errno = TERM_ESETATTR;
             rval = -1;
             break;
         }
-        r = tcgetattr(term[i].fd, &term[i].currtermios);
+        r = tcgetattr(t->fd, &t->currtermios);
         if ( r < 0 ) {
             term_errno = TERM_EGETATTR;
             rval = -1;
             break;
         }
 
-        term[i].nexttermios = term[i].currtermios;
+        t->nexttermios = t->currtermios;
     } while (0);
 
     return rval;
@@ -661,19 +668,20 @@ term_reset (int fd)
 int
 term_revert (int fd)
 {
-    int rval, i;
+    int rval;
+    struct term_s *t;
 
     rval = 0;
 
     do { /* dummy */
 
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             rval = -1;
             break;
         }
 
-        term[i].nexttermios = term[i].currtermios;
+        t->nexttermios = t->currtermios;
 
     } while (0);
 
@@ -685,19 +693,20 @@ term_revert (int fd)
 int
 term_refresh (int fd)
 {
-    int rval, r, i;
+    int rval, r;
+    struct term_s *t;
 
     rval = 0;
 
     do { /* dummy */
 
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             rval = -1;
             break;
         }
 
-        r = tcgetattr(fd, &term[i].currtermios);
+        r = tcgetattr(fd, &t->currtermios);
         if ( r < 0 ) {
             term_errno = TERM_EGETATTR;
             rval = -1;
@@ -714,7 +723,8 @@ term_refresh (int fd)
 int
 term_apply (int fd, int now)
 {
-    int when, rval, r, i;
+    int when, rval, r;
+    struct term_s *t;
 
     when = now ? TCSANOW : TCSAFLUSH;
 
@@ -722,26 +732,26 @@ term_apply (int fd, int now)
 
     do { /* dummy */
 
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             rval = -1;
             break;
         }
 
-        r = tcsetattr(term[i].fd, when, &term[i].nexttermios);
+        r = tcsetattr(t->fd, when, &t->nexttermios);
         if ( r < 0 ) {
             term_errno = TERM_ESETATTR;
             rval = -1;
             break;
         }
-        r = tcgetattr(term[i].fd, &term[i].nexttermios);
+        r = tcgetattr(t->fd, &t->nexttermios);
         if ( r < 0 ) {
             term_errno = TERM_EGETATTR;
             rval = -1;
             break;
         }
 
-        term[i].currtermios = term[i].nexttermios;
+        t->currtermios = t->nexttermios;
 
         /* Set HUPCL to origtermios as well. Since setting HUPCL
            affects the behavior on close(2), we most likely want it to
@@ -749,10 +759,10 @@ term_apply (int fd, int now)
            exit(3)ing the program. Since, uppon exiting, we restore
            the original settings, this wouldn't happen unless we also
            set HUPCL to origtermios. */
-        if ( term[i].currtermios.c_cflag & HUPCL )
-            term[i].origtermios.c_cflag |= HUPCL;
+        if ( t->currtermios.c_cflag & HUPCL )
+            t->origtermios.c_cflag |= HUPCL;
         else
-            term[i].origtermios.c_cflag &= ~HUPCL;
+            t->origtermios.c_cflag &= ~HUPCL;
 
     } while (0);
 
@@ -764,23 +774,24 @@ term_apply (int fd, int now)
 int
 term_set_raw (int fd)
 {
-    int rval, i;
+    int rval;
+    struct term_s *t;
 
     rval = 0;
 
     do { /* dummy */
 
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             rval = -1;
             break;
         }
 
         /* BSD raw mode */
-        cfmakeraw(&term[i].nexttermios);
+        cfmakeraw(&t->nexttermios);
         /* one byte at a time, no timer */
-        term[i].nexttermios.c_cc[VMIN] = 1;
-        term[i].nexttermios.c_cc[VTIME] = 0;
+        t->nexttermios.c_cc[VMIN] = 1;
+        t->nexttermios.c_cc[VTIME] = 0;
 
     } while (0);
 
@@ -792,7 +803,8 @@ term_set_raw (int fd)
 int
 term_set_baudrate (int fd, int baudrate)
 {
-    int rval, r, i;
+    int rval, r;
+    struct term_s *t;
     speed_t spd;
     struct termios tio;
 
@@ -800,13 +812,13 @@ term_set_baudrate (int fd, int baudrate)
 
     do { /* dummy */
 
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             rval = -1;
             break;
         }
 
-        tio = term[i].nexttermios;
+        tio = t->nexttermios;
         spd = Bcode(baudrate);
         if ( spd != BNONE ) {
             r = cfsetospeed(&tio, spd);
@@ -834,7 +846,7 @@ term_set_baudrate (int fd, int baudrate)
 #endif /* of USE_CUSTOM_BAUD */
         }
 
-        term[i].nexttermios = tio;
+        t->nexttermios = tio;
 
     } while (0);
 
@@ -845,30 +857,31 @@ int
 term_get_baudrate (int fd, int *ispeed)
 {
     speed_t code;
-    int i, ospeed;
+    int ospeed;
+    struct term_s *t;
 
     do { /* dummy */
 
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             ospeed = -1;
             break;
         }
 
         if ( ispeed ) {
-            code = cfgetispeed(&term[i].currtermios);
+            code = cfgetispeed(&t->currtermios);
             *ispeed = Bspeed(code);
 #ifdef USE_CUSTOM_BAUD
             if ( *ispeed < 0 ) {
-                *ispeed = cfgetispeed_custom(&term[i].currtermios);
+                *ispeed = cfgetispeed_custom(&t->currtermios);
             }
 #endif
         }
-        code = cfgetospeed(&term[i].currtermios);
+        code = cfgetospeed(&t->currtermios);
         ospeed = Bspeed(code);
         if ( ospeed < 0 ) {
 #ifdef USE_CUSTOM_BAUD
-            ospeed = cfgetospeed_custom(&term[i].currtermios);
+            ospeed = cfgetospeed_custom(&t->currtermios);
             if ( ospeed < 0 ) {
                 term_errno = TERM_EGETSPEED;
             }
@@ -887,20 +900,21 @@ term_get_baudrate (int fd, int *ispeed)
 int
 term_set_parity (int fd, enum parity_e parity)
 {
-    int rval, i;
+    int rval;
+    struct term_s *t;
     struct termios *tiop;
 
     rval = 0;
 
     do { /* dummy */
 
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             rval = -1;
             break;
         }
 
-        tiop = &term[i].nexttermios;
+        tiop = &t->nexttermios;
 
         switch (parity) {
         case P_EVEN:
@@ -937,18 +951,18 @@ enum parity_e
 term_get_parity (int fd)
 {
     tcflag_t flg;
-    int i;
+    struct term_s *t;
     enum parity_e parity;
 
     do { /* dummy */
 
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             parity = P_ERROR;
             break;
         }
 
-        flg = term[i].currtermios.c_cflag;
+        flg = t->currtermios.c_cflag;
         if ( ! (flg & PARENB) ) {
             parity = P_NONE;
         } else if ( flg & CMSPAR ) {
@@ -967,20 +981,21 @@ term_get_parity (int fd)
 int
 term_set_databits (int fd, int databits)
 {
-    int rval, i;
+    int rval;
+    struct term_s *t;
     struct termios *tiop;
 
     rval = 0;
 
     do { /* dummy */
 
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             rval = -1;
             break;
         }
 
-        tiop = &term[i].nexttermios;
+        tiop = &t->nexttermios;
 
         switch (databits) {
         case 5:
@@ -1011,17 +1026,18 @@ int
 term_get_databits (int fd)
 {
     tcflag_t flg;
-    int i, bits;
+    struct term_s *t;
+    int bits;
 
     do { /* dummy */
 
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             bits = -1;
             break;
         }
 
-        flg = term[i].currtermios.c_cflag & CSIZE;
+        flg = t->currtermios.c_cflag & CSIZE;
         switch (flg) {
         case CS5:
             bits = 5;
@@ -1048,20 +1064,21 @@ term_get_databits (int fd)
 int
 term_set_stopbits (int fd, int stopbits)
 {
-    int rval, i;
+    int rval;
+    struct term_s *t;
     struct termios *tiop;
 
     rval = 0;
 
     do { /* dummy */
 
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             rval = -1;
             break;
         }
 
-        tiop = &term[i].nexttermios;
+        tiop = &t->nexttermios;
 
         switch (stopbits) {
         case 1:
@@ -1085,17 +1102,18 @@ term_set_stopbits (int fd, int stopbits)
 int
 term_get_stopbits (int fd)
 {
-    int i, bits;
+    struct term_s *t;
+    int bits;
 
     do { /* dummy */
 
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             bits = -1;
             break;
         }
 
-        bits = (term[i].currtermios.c_cflag & CSTOPB) ? 2 : 1;
+        bits = (t->currtermios.c_cflag & CSTOPB) ? 2 : 1;
 
     } while (0);
 
@@ -1107,20 +1125,21 @@ term_get_stopbits (int fd)
 int
 term_set_flowcntrl (int fd, enum flowcntrl_e flowcntl)
 {
-    int rval, i;
+    int rval;
+    struct term_s *t;
     struct termios *tiop;
 
     rval = 0;
 
     do { /* dummy */
 
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             rval = -1;
             break;
         }
 
-        tiop = &term[i].nexttermios;
+        tiop = &t->nexttermios;
 
         switch (flowcntl) {
         case FC_RTSCTS:
@@ -1150,21 +1169,21 @@ term_set_flowcntrl (int fd, enum flowcntrl_e flowcntl)
 enum flowcntrl_e
 term_get_flowcntrl (int fd)
 {
-    int i;
+    struct term_s *t;
     enum flowcntrl_e flow;
     int rtscts, xoff, xon;
 
     do { /* dummy */
 
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             flow = FC_ERROR;
             break;
         }
 
-        rtscts = (term[i].currtermios.c_cflag & CRTSCTS) ? 1 : 0;
-        xoff = (term[i].currtermios.c_iflag & IXOFF) ? 1 : 0;
-        xon = (term[i].currtermios.c_iflag & (IXON | IXANY)) ? 1 : 0;
+        rtscts = (t->currtermios.c_cflag & CRTSCTS) ? 1 : 0;
+        xoff = (t->currtermios.c_iflag & IXOFF) ? 1 : 0;
+        xon = (t->currtermios.c_iflag & (IXON | IXANY)) ? 1 : 0;
 
         if ( rtscts && ! xoff && ! xon ) {
             flow = FC_RTSCTS;
@@ -1186,20 +1205,21 @@ term_get_flowcntrl (int fd)
 int
 term_set_local(int fd, int local)
 {
-    int rval, i;
+    int rval;
+    struct term_s *t;
     struct termios *tiop;
 
     rval = 0;
 
     do { /* dummy */
 
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             rval = -1;
             break;
         }
 
-        tiop = &term[i].nexttermios;
+        tiop = &t->nexttermios;
 
         if ( local )
             tiop->c_cflag |= CLOCAL;
@@ -1216,20 +1236,21 @@ term_set_local(int fd, int local)
 int
 term_set_hupcl (int fd, int on)
 {
-    int rval, i;
+    int rval;
+    struct term_s *t;
     struct termios *tiop;
 
     rval = 0;
 
     do { /* dummy */
 
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             rval = -1;
             break;
         }
 
-        tiop = &term[i].nexttermios;
+        tiop = &t->nexttermios;
 
         if ( on )
             tiop->c_cflag |= HUPCL;
@@ -1252,25 +1273,27 @@ term_set(int fd,
          enum flowcntrl_e fc,
          int local, int hup_close)
 {
-    int rval, r, i, ni;
+    int rval, r;
+    struct term_s *t;
+    struct term_s *nt;
     struct termios tio;
 
     rval = 0;
 
     do { /* dummy */
 
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             if ( term_add(fd) < 0 ) {
                 rval = -1;
                 break;
             }
-            ni = term_find(fd);
+            nt = term_find(fd);
         } else {
-            ni = i;
+            nt = t;
         }
 
-        tio = term[ni].nexttermios;
+        tio = nt->nexttermios;
 
         do { /* dummy */
 
@@ -1303,12 +1326,12 @@ term_set(int fd,
         } while (0);
 
         if ( rval < 0 ) {
-            if ( i < 0 )
+            if ( ! t )
                 /* new addition. must be removed */
-                term[ni].fd = -1;
+                nt->fd = -1;
             else
                 /* just revert to previous settings */
-                term[ni].nexttermios = tio;
+                nt->nexttermios = tio;
         }
 
     } while (0);
@@ -1321,14 +1344,15 @@ term_set(int fd,
 int
 term_pulse_dtr (int fd)
 {
-    int rval, r, i;
+    int rval, r;
+    struct term_s *t;
 
     rval = 0;
 
     do { /* dummy */
 
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             rval = -1;
             break;
         }
@@ -1379,7 +1403,7 @@ term_pulse_dtr (int fd)
 
             r = tcsetattr(fd, TCSANOW, &tioold);
             if ( r < 0 ) {
-                term[i].currtermios = tio;
+                t->currtermios = tio;
                 term_errno = TERM_ESETATTR;
                 rval = -1;
                 break;
@@ -1397,14 +1421,15 @@ term_pulse_dtr (int fd)
 int
 term_raise_dtr(int fd)
 {
-    int rval, i;
+    int rval;
+    struct term_s *t;
 
     rval = 0;
 
     do { /* dummy */
 
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             rval = -1;
             break;
         }
@@ -1435,14 +1460,15 @@ term_raise_dtr(int fd)
 int
 term_lower_dtr(int fd)
 {
-    int rval, i;
+    int rval;
+    struct term_s *t;
 
     rval = 0;
 
     do { /* dummy */
 
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             rval = -1;
             break;
         }
@@ -1472,14 +1498,15 @@ term_lower_dtr(int fd)
 int
 term_raise_rts(int fd)
 {
-    int rval, i;
+    int rval;
+    struct term_s *t;
 
     rval = 0;
 
     do { /* dummy */
 
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             rval = -1;
             break;
         }
@@ -1510,14 +1537,15 @@ term_raise_rts(int fd)
 int
 term_lower_rts(int fd)
 {
-    int rval, i;
+    int rval;
+    struct term_s *t;
 
     rval = 0;
 
     do { /* dummy */
 
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             rval = -1;
             break;
         }
@@ -1549,12 +1577,13 @@ term_lower_rts(int fd)
 int
 term_get_mctl (int fd)
 {
-    int mctl, i;
+    int mctl;
+    struct term_s *t;
 
     do { /* dummy */
 
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             mctl = -1;
             break;
         }
@@ -1588,13 +1617,14 @@ int
 term_drain(int fd)
 {
     int rval, r;
+    struct term_s *t;
 
     rval = 0;
 
     do { /* dummy */
 
-        r = term_find(fd);
-        if ( r < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             rval = -1;
             break;
         }
@@ -1630,14 +1660,15 @@ int
 term_fake_flush(int fd)
 {
     struct termios tio;
-    int rval, i, r;
+    int rval, r;
+    struct term_s *t;
 
     rval = 0;
 
     do { /* dummy */
 
-        i = term_find(fd);
-        if ( i < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             rval = -1;
             break;
         }
@@ -1649,7 +1680,7 @@ term_fake_flush(int fd)
             rval = -1;
             break;
         }
-        term[i].currtermios = tio;
+        t->currtermios = tio;
         /* Set flow-control to none */
         tio.c_cflag &= ~(CRTSCTS);
         tio.c_iflag &= ~(IXON | IXOFF | IXANY);
@@ -1671,7 +1702,7 @@ term_fake_flush(int fd)
         /* see comment in term_drain */
         if ( DRAIN_DELAY ) usleep(DRAIN_DELAY);
         /* Reset flow-control to original setting. */
-        r = tcsetattr(fd, TCSANOW, &term[i].currtermios);
+        r = tcsetattr(fd, TCSANOW, &t->currtermios);
         if ( r < 0 ) {
             term_errno = TERM_ESETATTR;
             rval = -1;
@@ -1687,13 +1718,14 @@ int
 term_flush(int fd)
 {
     int rval, r;
+    struct term_s *t;
 
     rval = 0;
 
     do { /* dummy */
 
-        r = term_find(fd);
-        if ( r < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             rval = -1;
             break;
         }
@@ -1716,13 +1748,14 @@ int
 term_break(int fd)
 {
     int rval, r;
+    struct term_s *t;
 
     rval = 0;
 
     do { /* dummy */
 
-        r = term_find(fd);
-        if ( r < 0 ) {
+        t = term_find(fd);
+        if ( ! t ) {
             rval = -1;
             break;
         }
