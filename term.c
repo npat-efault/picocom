@@ -83,11 +83,11 @@
 static int term_initted;
 
 static struct term_s {
-    int fd[MAX_TERMS];
-    struct termios origtermios[MAX_TERMS];
-    struct termios currtermios[MAX_TERMS];
-    struct termios nexttermios[MAX_TERMS];
-} term;
+    int fd;
+    struct termios origtermios;
+    struct termios currtermios;
+    struct termios nexttermios;
+} term[MAX_TERMS];
 
 /***************************************************************************/
 
@@ -341,7 +341,7 @@ term_find_next_free (void)
         }
 
         for (i = 0; i < MAX_TERMS; i++)
-            if ( term.fd[i] == -1 ) break;
+            if ( term[i].fd == -1 ) break;
 
         if ( i == MAX_TERMS ) {
             term_errno = TERM_EFULL;
@@ -370,7 +370,7 @@ term_find (int fd)
         }
 
         for (i = 0; i < MAX_TERMS; i++)
-            if (term.fd[i] == fd) break;
+            if (term[i].fd == fd) break;
 
         if ( i == MAX_TERMS ) {
             term_errno = TERM_ENOTFOUND;
@@ -396,17 +396,17 @@ term_exitfunc (void)
             break;
 
         for (i = 0; i < MAX_TERMS; i++) {
-            if (term.fd[i] == -1)
+            if (term[i].fd == -1)
                 continue;
-            term_drain(term.fd[i]);
-            tcflush(term.fd[i], TCIFLUSH);
+            term_drain(term[i].fd);
+            tcflush(term[i].fd, TCIFLUSH);
             do {
-                r = tcsetattr(term.fd[i], TCSANOW, &term.origtermios[i]);
+                r = tcsetattr(term[i].fd, TCSANOW, &term[i].origtermios);
             } while ( r < 0 && errno == EINTR );
             if ( r < 0 ) {
                 const char *tname;
 
-                tname = ttyname(term.fd[i]);
+                tname = ttyname(term[i].fd);
                 if ( ! tname ) tname = "UNKNOWN";
                 fprintf(stderr, "%s: reset failed for dev %s: %s\r\n",
                         __FUNCTION__, tname, strerror(errno));
@@ -420,10 +420,10 @@ term_exitfunc (void)
                flock(2)'ed tty fd has peculiar side effects (like not
                reseting the modem-control lines, even if HUPCL is
                set). */
-            flock(term.fd[i], LOCK_UN);
+            flock(term[i].fd, LOCK_UN);
 #endif
-            close(term.fd[i]);
-            term.fd[i] = -1;
+            close(term[i].fd);
+            term[i].fd = -1;
         }
     } while (0);
 }
@@ -441,26 +441,26 @@ term_lib_init (void)
         if ( term_initted ) {
             /* reset all terms back to their original settings */
             for (i = 0; i < MAX_TERMS; i++) {
-                if (term.fd[i] == -1)
+                if (term[i].fd == -1)
                     continue;
-                tcflush(term.fd[i], TCIOFLUSH);
+                tcflush(term[i].fd, TCIOFLUSH);
                 do {
-                    r = tcsetattr(term.fd[i], TCSANOW, &term.origtermios[i]);
+                    r = tcsetattr(term[i].fd, TCSANOW, &term[i].origtermios);
                 } while ( r < 0 && errno == EINTR );
                 if ( r < 0 ) {
                     const char *tname;
 
-                    tname = ttyname(term.fd[i]);
+                    tname = ttyname(term[i].fd);
                     if ( ! tname ) tname = "UNKNOWN";
                     fprintf(stderr, "%s: reset failed for dev %s: %s\n",
                             __FUNCTION__, tname, strerror(errno));
                 }
-                term.fd[i] = -1;
+                term[i].fd = -1;
             }
         } else {
             /* initialize term structure. */
             for (i = 0; i < MAX_TERMS; i++)
-                term.fd[i] = -1;
+                term[i].fd = -1;
             if ( atexit(term_exitfunc) != 0 ) {
                 term_errno = TERM_EATEXIT;
                 rval = -1;
@@ -503,16 +503,16 @@ term_add (int fd)
             break;
         }
 
-        r = tcgetattr(fd, &term.origtermios[i]);
+        r = tcgetattr(fd, &term[i].origtermios);
         if ( r < 0 ) {
             term_errno = TERM_EGETATTR;
             rval = -1;
             break;
         }
 
-        term.currtermios[i] = term.origtermios[i];
-        term.nexttermios[i] = term.origtermios[i];
-        term.fd[i] = fd;
+        term[i].currtermios = term[i].origtermios;
+        term[i].nexttermios = term[i].origtermios;
+        term[i].fd = fd;
     } while (0);
 
     return rval;
@@ -535,13 +535,13 @@ term_remove(int fd)
         }
 
         do { /* dummy */
-            r = tcflush(term.fd[i], TCIOFLUSH);
+            r = tcflush(term[i].fd, TCIOFLUSH);
             if ( r < 0 ) {
                 term_errno = TERM_EFLUSH;
                 rval = -1;
                 break;
             }
-            r = tcsetattr(term.fd[i], TCSANOW, &term.origtermios[i]);
+            r = tcsetattr(term[i].fd, TCSANOW, &term[i].origtermios);
             if ( r < 0 ) {
                 term_errno = TERM_ESETATTR;
                 rval = -1;
@@ -549,7 +549,7 @@ term_remove(int fd)
             }
         } while (0);
 
-        term.fd[i] = -1;
+        term[i].fd = -1;
     } while (0);
 
     return rval;
@@ -571,7 +571,7 @@ term_erase(int fd)
             break;
         }
 
-        term.fd[i] = -1;
+        term[i].fd = -1;
     } while (0);
 
     return rval;
@@ -594,20 +594,20 @@ term_replace (int oldfd, int newfd)
             break;
         }
 
-        r = tcsetattr(newfd, TCSANOW, &term.currtermios[i]);
+        r = tcsetattr(newfd, TCSANOW, &term[i].currtermios);
         if ( r < 0 ) {
             term_errno = TERM_ESETATTR;
             rval = -1;
             break;
         }
-        r = tcgetattr(newfd, &term.currtermios[i]);
+        r = tcgetattr(newfd, &term[i].currtermios);
         if ( r < 0 ) {
             term_errno = TERM_EGETATTR;
             rval = -1;
             break;
         }
 
-        term.fd[i] = newfd;
+        term[i].fd = newfd;
 
     } while (0);
 
@@ -631,26 +631,26 @@ term_reset (int fd)
             break;
         }
 
-        r = tcflush(term.fd[i], TCIOFLUSH);
+        r = tcflush(term[i].fd, TCIOFLUSH);
         if ( r < 0 ) {
             term_errno = TERM_EFLUSH;
             rval = -1;
             break;
         }
-        r = tcsetattr(term.fd[i], TCSANOW, &term.origtermios[i]);
+        r = tcsetattr(term[i].fd, TCSANOW, &term[i].origtermios);
         if ( r < 0 ) {
             term_errno = TERM_ESETATTR;
             rval = -1;
             break;
         }
-        r = tcgetattr(term.fd[i], &term.currtermios[i]);
+        r = tcgetattr(term[i].fd, &term[i].currtermios);
         if ( r < 0 ) {
             term_errno = TERM_EGETATTR;
             rval = -1;
             break;
         }
 
-        term.nexttermios[i] = term.currtermios[i];
+        term[i].nexttermios = term[i].currtermios;
     } while (0);
 
     return rval;
@@ -673,7 +673,7 @@ term_revert (int fd)
             break;
         }
 
-        term.nexttermios[i] = term.currtermios[i];
+        term[i].nexttermios = term[i].currtermios;
 
     } while (0);
 
@@ -697,7 +697,7 @@ term_refresh (int fd)
             break;
         }
 
-        r = tcgetattr(fd, &term.currtermios[i]);
+        r = tcgetattr(fd, &term[i].currtermios);
         if ( r < 0 ) {
             term_errno = TERM_EGETATTR;
             rval = -1;
@@ -728,20 +728,20 @@ term_apply (int fd, int now)
             break;
         }
 
-        r = tcsetattr(term.fd[i], when, &term.nexttermios[i]);
+        r = tcsetattr(term[i].fd, when, &term[i].nexttermios);
         if ( r < 0 ) {
             term_errno = TERM_ESETATTR;
             rval = -1;
             break;
         }
-        r = tcgetattr(term.fd[i], &term.nexttermios[i]);
+        r = tcgetattr(term[i].fd, &term[i].nexttermios);
         if ( r < 0 ) {
             term_errno = TERM_EGETATTR;
             rval = -1;
             break;
         }
 
-        term.currtermios[i] = term.nexttermios[i];
+        term[i].currtermios = term[i].nexttermios;
 
         /* Set HUPCL to origtermios as well. Since setting HUPCL
            affects the behavior on close(2), we most likely want it to
@@ -749,10 +749,10 @@ term_apply (int fd, int now)
            exit(3)ing the program. Since, uppon exiting, we restore
            the original settings, this wouldn't happen unless we also
            set HUPCL to origtermios. */
-        if ( term.currtermios[i].c_cflag & HUPCL )
-            term.origtermios[i].c_cflag |= HUPCL;
+        if ( term[i].currtermios.c_cflag & HUPCL )
+            term[i].origtermios.c_cflag |= HUPCL;
         else
-            term.origtermios[i].c_cflag &= ~HUPCL;
+            term[i].origtermios.c_cflag &= ~HUPCL;
 
     } while (0);
 
@@ -777,10 +777,10 @@ term_set_raw (int fd)
         }
 
         /* BSD raw mode */
-        cfmakeraw(&term.nexttermios[i]);
+        cfmakeraw(&term[i].nexttermios);
         /* one byte at a time, no timer */
-        term.nexttermios[i].c_cc[VMIN] = 1;
-        term.nexttermios[i].c_cc[VTIME] = 0;
+        term[i].nexttermios.c_cc[VMIN] = 1;
+        term[i].nexttermios.c_cc[VTIME] = 0;
 
     } while (0);
 
@@ -806,7 +806,7 @@ term_set_baudrate (int fd, int baudrate)
             break;
         }
 
-        tio = term.nexttermios[i];
+        tio = term[i].nexttermios;
         spd = Bcode(baudrate);
         if ( spd != BNONE ) {
             r = cfsetospeed(&tio, spd);
@@ -834,7 +834,7 @@ term_set_baudrate (int fd, int baudrate)
 #endif /* of USE_CUSTOM_BAUD */
         }
 
-        term.nexttermios[i] = tio;
+        term[i].nexttermios = tio;
 
     } while (0);
 
@@ -856,19 +856,19 @@ term_get_baudrate (int fd, int *ispeed)
         }
 
         if ( ispeed ) {
-            code = cfgetispeed(&term.currtermios[i]);
+            code = cfgetispeed(&term[i].currtermios);
             *ispeed = Bspeed(code);
 #ifdef USE_CUSTOM_BAUD
             if ( *ispeed < 0 ) {
-                *ispeed = cfgetispeed_custom(&term.currtermios[i]);
+                *ispeed = cfgetispeed_custom(&term[i].currtermios);
             }
 #endif
         }
-        code = cfgetospeed(&term.currtermios[i]);
+        code = cfgetospeed(&term[i].currtermios);
         ospeed = Bspeed(code);
         if ( ospeed < 0 ) {
 #ifdef USE_CUSTOM_BAUD
-            ospeed = cfgetospeed_custom(&term.currtermios[i]);
+            ospeed = cfgetospeed_custom(&term[i].currtermios);
             if ( ospeed < 0 ) {
                 term_errno = TERM_EGETSPEED;
             }
@@ -900,7 +900,7 @@ term_set_parity (int fd, enum parity_e parity)
             break;
         }
 
-        tiop = &term.nexttermios[i];
+        tiop = &term[i].nexttermios;
 
         switch (parity) {
         case P_EVEN:
@@ -948,7 +948,7 @@ term_get_parity (int fd)
             break;
         }
 
-        flg = term.currtermios[i].c_cflag;
+        flg = term[i].currtermios.c_cflag;
         if ( ! (flg & PARENB) ) {
             parity = P_NONE;
         } else if ( flg & CMSPAR ) {
@@ -980,7 +980,7 @@ term_set_databits (int fd, int databits)
             break;
         }
 
-        tiop = &term.nexttermios[i];
+        tiop = &term[i].nexttermios;
 
         switch (databits) {
         case 5:
@@ -1021,7 +1021,7 @@ term_get_databits (int fd)
             break;
         }
 
-        flg = term.currtermios[i].c_cflag & CSIZE;
+        flg = term[i].currtermios.c_cflag & CSIZE;
         switch (flg) {
         case CS5:
             bits = 5;
@@ -1061,7 +1061,7 @@ term_set_stopbits (int fd, int stopbits)
             break;
         }
 
-        tiop = &term.nexttermios[i];
+        tiop = &term[i].nexttermios;
 
         switch (stopbits) {
         case 1:
@@ -1095,7 +1095,7 @@ term_get_stopbits (int fd)
             break;
         }
 
-        bits = (term.currtermios[i].c_cflag & CSTOPB) ? 2 : 1;
+        bits = (term[i].currtermios.c_cflag & CSTOPB) ? 2 : 1;
 
     } while (0);
 
@@ -1120,7 +1120,7 @@ term_set_flowcntrl (int fd, enum flowcntrl_e flowcntl)
             break;
         }
 
-        tiop = &term.nexttermios[i];
+        tiop = &term[i].nexttermios;
 
         switch (flowcntl) {
         case FC_RTSCTS:
@@ -1162,9 +1162,9 @@ term_get_flowcntrl (int fd)
             break;
         }
 
-        rtscts = (term.currtermios[i].c_cflag & CRTSCTS) ? 1 : 0;
-        xoff = (term.currtermios[i].c_iflag & IXOFF) ? 1 : 0;
-        xon = (term.currtermios[i].c_iflag & (IXON | IXANY)) ? 1 : 0;
+        rtscts = (term[i].currtermios.c_cflag & CRTSCTS) ? 1 : 0;
+        xoff = (term[i].currtermios.c_iflag & IXOFF) ? 1 : 0;
+        xon = (term[i].currtermios.c_iflag & (IXON | IXANY)) ? 1 : 0;
 
         if ( rtscts && ! xoff && ! xon ) {
             flow = FC_RTSCTS;
@@ -1199,7 +1199,7 @@ term_set_local(int fd, int local)
             break;
         }
 
-        tiop = &term.nexttermios[i];
+        tiop = &term[i].nexttermios;
 
         if ( local )
             tiop->c_cflag |= CLOCAL;
@@ -1229,7 +1229,7 @@ term_set_hupcl (int fd, int on)
             break;
         }
 
-        tiop = &term.nexttermios[i];
+        tiop = &term[i].nexttermios;
 
         if ( on )
             tiop->c_cflag |= HUPCL;
@@ -1270,7 +1270,7 @@ term_set(int fd,
             ni = i;
         }
 
-        tio = term.nexttermios[ni];
+        tio = term[ni].nexttermios;
 
         do { /* dummy */
 
@@ -1305,10 +1305,10 @@ term_set(int fd,
         if ( rval < 0 ) {
             if ( i < 0 )
                 /* new addition. must be removed */
-                term.fd[ni] = -1;
+                term[ni].fd = -1;
             else
                 /* just revert to previous settings */
-                term.nexttermios[ni] = tio;
+                term[ni].nexttermios = tio;
         }
 
     } while (0);
@@ -1379,7 +1379,7 @@ term_pulse_dtr (int fd)
 
             r = tcsetattr(fd, TCSANOW, &tioold);
             if ( r < 0 ) {
-                term.currtermios[i] = tio;
+                term[i].currtermios = tio;
                 term_errno = TERM_ESETATTR;
                 rval = -1;
                 break;
@@ -1649,7 +1649,7 @@ term_fake_flush(int fd)
             rval = -1;
             break;
         }
-        term.currtermios[i] = tio;
+        term[i].currtermios = tio;
         /* Set flow-control to none */
         tio.c_cflag &= ~(CRTSCTS);
         tio.c_iflag &= ~(IXON | IXOFF | IXANY);
@@ -1671,7 +1671,7 @@ term_fake_flush(int fd)
         /* see comment in term_drain */
         if ( DRAIN_DELAY ) usleep(DRAIN_DELAY);
         /* Reset flow-control to original setting. */
-        r = tcsetattr(fd, TCSANOW, &term.currtermios[i]);
+        r = tcsetattr(fd, TCSANOW, &term[i].currtermios);
         if ( r < 0 ) {
             term_errno = TERM_ESETATTR;
             rval = -1;
