@@ -73,6 +73,8 @@
  * F term_baud_std - check if baudrate is on of our listed standard baudrates
  * F term_strerror - return a string describing current error condition
  * F term_perror - print a string describing the current error condition
+ * F term_read - read bytes
+ * F term_write - write bytes
  * G term_errno - current error condition of the library
  * E term_errno_e - error condition codes
  * E parity_t - library supported parity types
@@ -688,6 +690,20 @@ int term_fake_flush(int fd);
  * Returns negative on failure, non negative on success.
  */
 int term_break(int fd);
+
+/* F term_read
+ *
+ * Reads in data from the device.
+ * Returns negative on failure, or number of bytes read.
+ */
+int term_read (int fd, void *buf, unsigned int bufsz);
+
+/* F term_write
+ *
+ * Writes data out to the device.
+ * Returns negative on failure, or number of bytes written.
+ */
+int term_write (int fd, const void *buf, unsigned int bufsz);
 
 /***************************************************************************/
 
