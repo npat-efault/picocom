@@ -706,7 +706,7 @@ term_refresh (int fd)
             break;
         }
 
-        r = tcgetattr(fd, &t->currtermios);
+        r = tcgetattr(t->fd, &t->currtermios);
         if ( r < 0 ) {
             term_errno = TERM_EGETATTR;
             rval = -1;
@@ -1361,7 +1361,7 @@ term_pulse_dtr (int fd)
         {
             int opins = TIOCM_DTR;
 
-            r = ioctl(fd, TIOCMBIC, &opins);
+            r = ioctl(t->fd, TIOCMBIC, &opins);
             if ( r < 0 ) {
                 term_errno = TERM_EDTRDOWN;
                 rval = -1;
@@ -1370,7 +1370,7 @@ term_pulse_dtr (int fd)
 
             sleep(1);
 
-            r = ioctl(fd, TIOCMBIS, &opins);
+            r = ioctl(t->fd, TIOCMBIS, &opins);
             if ( r < 0 ) {
                 term_errno = TERM_EDTRUP;
                 rval = -1;
@@ -1381,7 +1381,7 @@ term_pulse_dtr (int fd)
         {
             struct termios tio, tioold;
 
-            r = tcgetattr(fd, &tio);
+            r = tcgetattr(t->fd, &tio);
             if ( r < 0 ) {
                 term_errno = TERM_EGETATTR;
                 rval = -1;
@@ -1392,7 +1392,7 @@ term_pulse_dtr (int fd)
 
             /* ospeed = 0, means hangup (see POSIX) */
             cfsetospeed(&tio, B0);
-            r = tcsetattr(fd, TCSANOW, &tio);
+            r = tcsetattr(t->fd, TCSANOW, &tio);
             if ( r < 0 ) {
                 term_errno = TERM_ESETATTR;
                 rval = -1;
@@ -1401,7 +1401,7 @@ term_pulse_dtr (int fd)
 
             sleep(1);
 
-            r = tcsetattr(fd, TCSANOW, &tioold);
+            r = tcsetattr(t->fd, TCSANOW, &tioold);
             if ( r < 0 ) {
                 t->currtermios = tio;
                 term_errno = TERM_ESETATTR;
@@ -1438,7 +1438,7 @@ term_raise_dtr(int fd)
         {
             int r, opins = TIOCM_DTR;
 
-            r = ioctl(fd, TIOCMBIS, &opins);
+            r = ioctl(t->fd, TIOCMBIS, &opins);
             if ( r < 0 ) {
                 term_errno = TERM_EDTRUP;
                 rval = -1;
@@ -1477,7 +1477,7 @@ term_lower_dtr(int fd)
         {
             int r, opins = TIOCM_DTR;
 
-            r = ioctl(fd, TIOCMBIC, &opins);
+            r = ioctl(t->fd, TIOCMBIC, &opins);
             if ( r < 0 ) {
                 term_errno = TERM_EDTRDOWN;
                 rval = -1;
@@ -1516,7 +1516,7 @@ term_raise_rts(int fd)
             int r;
             int opins = TIOCM_RTS;
 
-            r = ioctl(fd, TIOCMBIS, &opins);
+            r = ioctl(t->fd, TIOCMBIS, &opins);
             if ( r < 0 ) {
                 term_errno = TERM_ERTSUP;
                 rval = -1;
@@ -1555,7 +1555,7 @@ term_lower_rts(int fd)
             int r;
             int opins = TIOCM_RTS;
 
-            r = ioctl(fd, TIOCMBIC, &opins);
+            r = ioctl(t->fd, TIOCMBIC, &opins);
             if ( r < 0 ) {
                 term_errno = TERM_ERTSDOWN;
                 rval = -1;
@@ -1592,7 +1592,7 @@ term_get_mctl (int fd)
         {
             int r, pmctl;
 
-            r = ioctl(fd, TIOCMGET, &pmctl);
+            r = ioctl(t->fd, TIOCMGET, &pmctl);
             if (r < 0) {
                 mctl = -1;
                 break;
@@ -1632,9 +1632,9 @@ term_drain(int fd)
         do {
 #ifdef __BIONIC__
             /* See: http://dan.drown.org/android/src/gdb/no-tcdrain */
-            r = ioctl(fd, TCSBRK, 1);
+            r = ioctl(t->fd, TCSBRK, 1);
 #else
-            r = tcdrain(fd);
+            r = tcdrain(t->fd);
 #endif
         } while ( r < 0 && errno == EINTR);
         if ( r < 0 ) {
@@ -1674,7 +1674,7 @@ term_fake_flush(int fd)
         }
 
         /* Get current termios */
-        r = tcgetattr(fd, &tio);
+        r = tcgetattr(t->fd, &tio);
         if ( r < 0 ) {
             term_errno = TERM_EGETATTR;
             rval = -1;
@@ -1685,7 +1685,7 @@ term_fake_flush(int fd)
         tio.c_cflag &= ~(CRTSCTS);
         tio.c_iflag &= ~(IXON | IXOFF | IXANY);
         /* Apply termios */
-        r = tcsetattr(fd, TCSANOW, &tio);
+        r = tcsetattr(t->fd, TCSANOW, &tio);
         if ( r < 0 ) {
             term_errno = TERM_ESETATTR;
             rval = -1;
@@ -1693,7 +1693,7 @@ term_fake_flush(int fd)
         }
         /* Wait for output to drain. Without flow-control this should
            complete in finite time. */
-        r = tcdrain(fd);
+        r = tcdrain(t->fd);
         if ( r < 0 ) {
             term_errno = TERM_EDRAIN;
             rval = -1;
@@ -1702,7 +1702,7 @@ term_fake_flush(int fd)
         /* see comment in term_drain */
         if ( DRAIN_DELAY ) usleep(DRAIN_DELAY);
         /* Reset flow-control to original setting. */
-        r = tcsetattr(fd, TCSANOW, &t->currtermios);
+        r = tcsetattr(t->fd, TCSANOW, &t->currtermios);
         if ( r < 0 ) {
             term_errno = TERM_ESETATTR;
             rval = -1;
@@ -1730,7 +1730,7 @@ term_flush(int fd)
             break;
         }
 
-        r = tcflush(fd, TCIOFLUSH);
+        r = tcflush(t->fd, TCIOFLUSH);
         if ( r < 0 ) {
             term_errno = TERM_EFLUSH;
             rval = -1;
@@ -1760,7 +1760,7 @@ term_break(int fd)
             break;
         }
 
-        r = tcsendbreak(fd, 0);
+        r = tcsendbreak(t->fd, 0);
         if ( r < 0 ) {
             term_errno = TERM_EBREAK;
             rval = -1;
