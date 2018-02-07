@@ -80,8 +80,9 @@
 
 /***************************************************************************/
 
+static int term_initted;
+
 static struct term_s {
-    int init;
     int fd[MAX_TERMS];
     struct termios origtermios[MAX_TERMS];
     struct termios currtermios[MAX_TERMS];
@@ -333,7 +334,7 @@ term_find_next_free (void)
     int rval, i;
 
     do { /* dummy */
-        if ( ! term.init ) {
+        if ( ! term_initted ) {
             term_errno = TERM_ENOINIT;
             rval = -1;
             break;
@@ -362,7 +363,7 @@ term_find (int fd)
     int rval, i;
 
     do { /* dummy */
-        if ( ! term.init ) {
+        if ( ! term_initted ) {
             term_errno = TERM_ENOINIT;
             rval = -1;
             break;
@@ -391,7 +392,7 @@ term_exitfunc (void)
     int r, i;
 
     do { /* dummy */
-        if ( ! term.init )
+        if ( ! term_initted )
             break;
 
         for (i = 0; i < MAX_TERMS; i++) {
@@ -437,7 +438,7 @@ term_lib_init (void)
     rval = 0;
 
     do { /* dummy */
-        if ( term.init ) {
+        if ( term_initted ) {
             /* reset all terms back to their original settings */
             for (i = 0; i < MAX_TERMS; i++) {
                 if (term.fd[i] == -1)
@@ -466,7 +467,7 @@ term_lib_init (void)
                 break;
             }
             /* ok. term struct is now initialized. */
-            term.init = 1;
+            term_initted = 1;
         }
     } while(0);
 
