@@ -403,7 +403,7 @@ term_exitfunc (void)
                 r = tcsetattr(term.fd[i], TCSANOW, &term.origtermios[i]);
             } while ( r < 0 && errno == EINTR );
             if ( r < 0 ) {
-                char *tname;
+                const char *tname;
 
                 tname = ttyname(term.fd[i]);
                 if ( ! tname ) tname = "UNKNOWN";
@@ -447,7 +447,7 @@ term_lib_init (void)
                     r = tcsetattr(term.fd[i], TCSANOW, &term.origtermios[i]);
                 } while ( r < 0 && errno == EINTR );
                 if ( r < 0 ) {
-                    char *tname;
+                    const char *tname;
 
                     tname = ttyname(term.fd[i]);
                     if ( ! tname ) tname = "UNKNOWN";
