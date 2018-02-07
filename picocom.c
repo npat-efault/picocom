@@ -130,7 +130,7 @@ const char *flow_str[] = {
 
 /* character mapping names */
 struct map_names_s {
-    char *name;
+    const char *name;
     int flag;
 } map_names[] = {
     { "crlf", M_CRLF },
@@ -154,7 +154,8 @@ struct map_names_s {
 int
 parse_map (char *s)
 {
-    char *m, *t;
+    const char *m;
+    char *t;
     int f, flags, i;
 
     flags = 0;
