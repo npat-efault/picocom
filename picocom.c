@@ -1932,17 +1932,9 @@ parse_args(int argc, char *argv[])
         fprintf(stderr, "Run with '--help'.\n");
         exit(EXIT_FAILURE);
     }
-    opts.port = strdup(argv[optind++]);
+    opts.port = strdup(argv[argc-1]);
     if ( ! opts.port ) {
         fprintf(stderr, "Out of memory\n");
-        exit(EXIT_FAILURE);
-    }
-
-    if ( argc != optind ) {
-        fprintf(stderr, "Unexpected non-option arguments: ");
-        while (argc != optind)
-            fprintf(stderr, "%s ", argv[optind++]);
-        fprintf(stderr, "\n");
         exit(EXIT_FAILURE);
     }
 
