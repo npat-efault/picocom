@@ -5,20 +5,14 @@
 # Or arrange for it to be sourced by your ".bashrc",
 # Or copy it in /etc/bash_completion.d (it will be sourced automatically)
 #
-# The idea is to provide simple custom completions for options names
-# and options values, while keeping the standard ones (variable,
-# pathname, etc) if the custom ones don't produce matches. It does not
-# depend on the "bash-completion" package (just plain bash) and it
-# does not use any of its helper functions.
+# The idea is to provide simple custom completions for option names
+# and option values, while keeping the standard ones (variable,
+# pathname, etc) if the custom ones don't produce matches. This script
+# does not depend on the "bash-completion" package (just plain bash)
+# and it does not use any of its helper functions.
 #
 # The code is not bullet-proof; you *can* confuse it with strange
-# input if you try. There is also a known issue with giving option
-# values like this:
-#
-#     --option="value"  or   --option='value'
-#
-# That is, with an equal *and* within quotes. The solution is also
-# known. For simplicty, though, I decided not to include it.
+# input if you try.
 #
 # See also:
 #   Bash mapage (man bash)
@@ -36,7 +30,8 @@
 #
 # by Nick Patavalis (npat@efault.net)
 #
-# This program is free software; you can redistribute it and/or modify# it under the terms of the GNU General Public License as published by
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
 #
@@ -51,7 +46,7 @@
 # USA
 #
 
-# _npat_split_line
+# _picocom_split_line
 #
 # Splits line into words. Line is split in almost exatcly the same way
 # as readline does it. Using this function, you can specify your own
@@ -67,8 +62,7 @@
 # either by delimiter characters (which do not appear in the resulting
 # word-straem) or by separator characters, which do.
 #
-#
-function _npat_split_line()
+function _picocom_split_line()
 {
     local delimiters=$' \t\n'
     local separators=$'='
@@ -204,7 +198,7 @@ _picocom_dequote()
     for (( i=0; i<${#quoted}; i++ )); do
         c=${quoted:i:1}
         c1=${quoted:i+1:1}
-        #echo "  [$c] [$c1] [$inside]"
+        #echo "  [$c] [$c1] [$inside]" > $DEBUG
         if [[ -z $inside ]]; then
             if [[ $c == '\' ]]; then
                 let i++
@@ -288,7 +282,7 @@ _picocom()
     mappings=( crlf crcrlf igncr lfcr lfcrlf ignlf delbs bsdel \
               spchex tabhex crhex lfhex 8bithex nrmhex )
 
-    _npat_split_line
+    _picocom_split_line
     cur="${words[-1]}"
     prev="${words[-2]}"
     #cur="${COMP_WORDS[COMP_CWORD]}"
@@ -323,8 +317,8 @@ _picocom()
         -I | --imap | -O | --omap | -E | --emap )
             [[ "$cur" =~ ^[\'\"]?[A-Za-z0-9,\ \\]*[\'\"]?$ ]] || return 0
             _picocom_filter_mappings
-            cur1="${cur##*[, ]}"
-            cur0="${cur%$cur1}"
+            cur1=${cur##*[, ]}
+            cur0=${cur%"$cur1"}
             echo "$cur0 | $cur1 |" > $DEBUG
             local IFS=$'\n'
             COMPREPLY=( $(compgen -P "$cur0" -S ","  -W "${mapfilt[*]}" -- "$cur1") )
