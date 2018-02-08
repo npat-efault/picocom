@@ -1,0 +1,401 @@
+# Simple custom bash completion for picocom.
+#
+# Source this file like this:
+#     . <picocom-src-dir>/bash-completion/picocom
+# Or arrange for it to be sourced by your ".bashrc",
+# Or copy it in /etc/bash_completion.d (it will be sourced automatically)
+#
+# The idea is to provide simple custom completions for options names
+# and options values, while keeping the standard ones (variable,
+# pathname, etc) if the custom ones don't produce matches. It does not
+# depend on the "bash-completion" package (just plain bash) and it
+# does not use any of its helper functions.
+#
+# The code is not bullet-proof; you *can* confuse it with strange
+# input if you try. There is also a known issue with giving option
+# values like this:
+#
+#     --option="value"  or   --option='value'
+#
+# That is, with an equal *and* within quotes. The solution is also
+# known. For simplicty, though, I decided not to include it.
+#
+# See also:
+#   Bash mapage (man bash)
+#   Bash reference manual, sections 8.6, 8.7, 8.8
+#   The bash-completion project / package
+#     https://github.com/scop/bash-completion
+#   https://debian-administration.org/article/
+#     316/An_introduction_to_bash_completion_part_1
+#   https://debian-administration.org/article/
+#     316/An_introduction_to_bash_completion_part_2
+#
+# Tested with:
+#   GNU bash, version 4.3.48(1)-release (x86_64-pc-linux-gnu)
+#   GNU bash, version 4.4.18(1)-release (x86_64-unknown-linux-gnu)
+#
+# by Nick Patavalis (npat@efault.net)
+#
+# This program is free software; you can redistribute it and/or modify# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+# USA
+#
+
+# _npat_split_line
+#
+# Splits line into words. Line is split in almost exatcly the same way
+# as readline does it. Using this function, you can specify your own
+# delimiter and separator characters without having to mess with
+# COMP_WORDBREAKS (which may affect other completion functions /
+# scripts). In addtion, this function takes into account COMP_POINT
+# and splits up to it, which may help when completing to the middle of
+# an argument.
+#
+# Line is split taking into account quoting (backslash, single and
+# double), as well as ${...}  and $(...). Double-quotes, ${..} and
+# $(..} can nest inside each other at any depth. Words are broken up
+# either by delimiter characters (which do not appear in the resulting
+# word-straem) or by separator characters, which do.
+#
+#
+function _npat_split_line()
+{
+    local delimiters=$' \t\n'
+    local separators=$'='
+    local line wbreaks state word c c1 i
+    local -a stack
+
+    while getopts "d:s:" flag "$@"; do
+        case $flag in
+            d) delimiters=$OPTARG ;;
+            s) separators=$OPTARG ;;
+        esac
+    done
+
+    # state names: ' (single quote),
+    #              " (double quote),
+    #              { (string-brace),
+    #              ( (string-paren)
+    #              ` (backquote)
+    #              D (delimiter)
+    #              W (naked word)
+    #    
+    # ", ${, and $( can nest inside each-other any number of times
+
+    wbreaks=$delimiters$separators
+    line=${COMP_LINE:0:$COMP_POINT}
+    state=D
+    for (( i=0; i<${#line}; i++)); do
+        c=${line:i:1}
+        c1=${line:i+1:1}
+        #echo "  [$i\t$c\t$c1\t$state\t$word\t\t${stack[*]} ]" > $DEBUG
+        if [[ $state == D || $state == W ]]; then
+            if [[ $c == [$wbreaks] ]]; then
+                if [[ $state == W ]]; then
+                    words+=( "$word" )
+                    word=
+                    state=D
+                fi
+                # handling of separators vs delimiters. Separators are
+                # treated like delimiters, but they do appear in the
+                # word stream. Consequitive separators are treated as
+                # a single word. Ex:
+                #
+                #      ab=@c=d  =@=   e=f
+                #
+                # will be split like this:
+                #
+                #      ab | =@ | c | = | d | =@= | e | = | f
+                #
+                # assuming that = and @ are separators
+                if [[ $c == [$separators] ]]; then
+                    while [[ $c == [$separators] ]]; do
+                        word+=$c
+                        let i++
+                        c=${line:i:1}
+                    done
+                    words+=( "$word" )
+                    word=
+                    let i--
+                fi
+                continue
+            elif [[ $c == [\'\"\`] ]]; then
+                stack+=( W )
+                state=$c
+            elif [[ $c == '\' ]]; then
+                word+=$c
+                let i++
+                c=$c1
+                state=W
+            elif [[ $c == '$' && ( $c1 == '(' || $c1 == '{' )  ]]; then
+                word+=$c
+                let i++
+                c=$c1
+                stack+=( W )
+                state=$c1
+            else
+                state=W
+            fi
+            word+=$c
+        elif [[ $state == "'" ]]; then
+             if [[ $c == "'" ]]; then
+                 state=${stack[-1]}
+                 unset stack[-1]
+             fi
+             word+=$c
+        elif [[ $state == '"' ]]; then
+            if [[ $c == '\' ]]; then
+                word+=$c
+                let i++
+                c=$c1
+            elif [[ $c == '`' ]]; then
+                stack+=( W )
+                state=$c                
+            elif [[ $c == '$' && ( $c1 == '(' || $c1 == '{' ) ]]; then
+                let i++
+                word+=$c
+                c=$c1
+                stack+=( $state )
+                state=$c1
+            elif [[ $c == '"' ]]; then
+                state=${stack[-1]}
+                unset stack[-1]
+            fi
+            word+=$c
+        elif [[ $state == '(' || $state == '{' || state == '`' ]]; then
+            if [[ $c == [\'\"] ]]; then
+                stack+=( $state )
+                state=$c
+            elif [[ $c == '\' ]]; then
+                word+=$c
+                let i++
+                c=$c1
+            elif [[ $c == '$' && ( $c1 == '(' || $c1 == '{' ) ]]; then
+                let i++
+                word+=$c
+                c=$c1
+                stack+=( $state )
+                state=$c
+            elif [[ $state$c == '{}' || $state$c == "()" || $state$c == '``' ]]; then
+                state=${stack[-1]}
+                unset stack[-1]
+            fi
+            word+=$c
+        fi
+    done
+    words+=( "$word" )
+}
+
+_picocom_dequote()
+{
+    local quoted="$1"
+    local word i inside
+
+    for (( i=0; i<${#quoted}; i++ )); do
+        c=${quoted:i:1}
+        c1=${quoted:i+1:1}
+        #echo "  [$c] [$c1] [$inside]"
+        if [[ -z $inside ]]; then
+            if [[ $c == '\' ]]; then
+                let i++
+                c=$c1
+            elif [[ $c == [\'\"] ]]; then
+                inside=$c
+                continue
+            fi
+        elif [[ $inside == "'" ]]; then
+            if [[ $c == "'" ]]; then
+                inside=
+                continue
+            fi
+        elif [[ $inside == '"' ]]; then
+            if [[ $c == '\' ]]; then
+                let i++
+                c=$c1
+            elif [[ $c == '"' ]]; then
+                inside=
+                continue
+            fi
+        fi
+        word+=$c
+    done
+    echo "$word"
+}
+
+_picocom_filter_mappings()
+{
+    local IFS cur1 m c found
+    local -a cura
+
+    cur1=$(_picocom_dequote "$cur")    
+    IFS=$', \t'
+    cura=( $cur1 )
+    IFS=$' \t\n'
+    for m in "${mappings[@]}"; do
+        found=
+        for c in "${cura[@]}"; do
+            [[ $c == "$m" ]] && { found=yes; break; }
+        done
+        [[ -z $found ]] && mapfilt+=( "$m" )
+    done
+}
+
+# Check if $1 is valid picocom option name
+_picocom_is_opt()
+{
+    local e match="$1"
+    for e in "${opts[@]}"; do
+        [[ $e == "$match" ]] && return 0
+    done
+    return 1
+}
+
+# Custom completion function for picocom
+_picocom()
+{
+    local cur cur0 cur1 prev
+    local -a opts baudrates mappings mapfilt
+    local DEBUG=/dev/pts/8
+    
+    opts=( --baud --flow --databits --stopbits --parity \
+           --lower-rts --lower-dtr --raise-rts --raise-dtr \
+           --imap --omap --emap
+           --echo --initstring \
+           --noinit --noreset --hangup \
+           --receive-cmd --send-cmd \
+           --escape --no-escape \
+           --logfile \
+           --exit-after --exit \
+           --nolock \
+           --quiet --help \
+    )
+
+    baudrates=( 50 75 110 134 150 200 300 600 1200 1800 2400 4800 9600 \
+               19200 38400 57600 115200 \
+               230400 460800 500000 576000 921600 1000000 1152000 1500000 \
+               2000000 2500000 3000000 3500000 4000000 )
+
+    mappings=( crlf crcrlf igncr lfcr lfcrlf ignlf delbs bsdel \
+              spchex tabhex crhex lfhex 8bithex nrmhex )
+
+    _npat_split_line
+    cur="${words[-1]}"
+    prev="${words[-2]}"
+    #cur="${COMP_WORDS[COMP_CWORD]}"
+    #prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    echo > $DEBUG
+    echo "------------" > $DEBUG
+    echo COMP_LINE "$COMP_LINE" > $DEBUG
+    echo COMP_POINT $COMP_POINT > $DEBUG
+    echo COMP_CWORD $COMP_CWORD > $DEBUG
+    local wrd
+    for wrd in "${COMP_WORDS[@]}"; do
+        echo -n "$wrd | " > $DEBUG
+    done
+    echo > $DEBUG
+    echo "$prev | $cur | " > $DEBUG
+
+    # Try to handle option values given with "="
+    if [[ $cur == "=" ]]; then
+        _picocom_is_opt "$prev" && cur=
+    fi
+    if [[ $prev == "=" && $COMP_CWORD -gt 1 ]]; then
+        prev1="${COMP_WORDS[COMP_CWORD-2]}"
+        _picocom_is_opt "$prev1" && prev="$prev1"
+    fi
+
+    case "$prev" in
+        -v | --receive-cmd | -s | --send-cmd)
+            # nothing special, just default completion
+            return 0
+            ;;
+        -I | --imap | -O | --omap | -E | --emap )
+            [[ "$cur" =~ ^[\'\"]?[A-Za-z0-9,\ \\]*[\'\"]?$ ]] || return 0
+            _picocom_filter_mappings
+            cur1="${cur##*[, ]}"
+            cur0="${cur%$cur1}"
+            echo "$cur0 | $cur1 |" > $DEBUG
+            local IFS=$'\n'
+            COMPREPLY=( $(compgen -P "$cur0" -S ","  -W "${mapfilt[*]}" -- "$cur1") )
+            echo "${COMPREPLY[*]}" > $DEBUG
+            if [[ ${#COMPREPLY[@]} -ne 0 ]]; then
+               compopt -o nospace
+               # This only works for bash-4.4 and newer
+               compopt -o nosort > /dev/null 2>&1
+            fi
+            return 0
+            ;;
+        -e | --escape)
+            # nothing special, just default completion
+            return 0
+            ;;
+        -f | --flow)
+            COMPREPLY=( $(compgen -W "hard soft none" -- "$cur") )
+            return 0
+            ;;
+        -b | --baud)
+            COMPREPLY=( $(compgen -W "${baudrates[*]}" -- "$cur") )
+            if [[ ${#COMPREPLY[@]} -ne 0 ]]; then
+               # This only works for bash 4.4 and newer
+               compopt -o nosort > /dev/null 2>&1
+            fi
+            return 0
+            ;;
+        -y | --parity)
+            COMPREPLY=( $(compgen -W "even odd none" -- "$cur") )
+            return 0
+            ;;        
+        -d | --databits)
+            COMPREPLY=( $(compgen -W "5 6 7 8" -- "$cur") )
+            return 0
+            ;;
+        -p | --stopbits)
+            COMPREPLY=( $(compgen -W "1 2" -- "$cur") )
+            return 0
+            ;;
+        -g | --logfile)
+            # nothing special, just default completion
+            return 0
+            ;;
+        -t | --initstring)
+            # nothing special, just default completion
+            return 0
+            ;;
+        -x | --exit-after)
+            # nothing special, just default completion
+            return 0
+            ;;
+        *)
+            ;;
+    esac
+    
+    if [[ ${cur} = -* ]] ; then
+        COMPREPLY=( $(compgen -W "${opts[*]}" -- "$cur") )
+        # This only works for bash 4.4 and newer
+        compopt -o nosort > /dev/null 2>&1
+        return 0
+    fi
+
+    if [[ -z $cur ]]; then
+        COMPREPLY=( $(compgen -G "/dev/tty*") )
+        return 0
+    fi
+}
+
+# Bind custom completion function to command
+complete -o default -o bashdefault -F _picocom picocom
+
+# Local variables:
+# mode: sh
+# End:
