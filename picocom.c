@@ -1867,9 +1867,11 @@ parse_args(int argc, char *argv[])
             }
             break;
         case 'g':
+            if ( opts.log_filename ) free(opts.log_filename);
             opts.log_filename = strdup(optarg);
             break;
         case 't':
+            if ( opts.initstring ) free(opts.initstring);
             opts.initstring = strdup(optarg);
             break;
         case 1:
