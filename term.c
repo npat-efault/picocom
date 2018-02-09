@@ -398,17 +398,18 @@ term_exitfunc (void)
             break;
 
         for (i = 0; i < MAX_TERMS; i++) {
-            if (term[i].fd == -1)
+            struct term_s *t = &term[i];
+            if (t->fd == -1)
                 continue;
-            term_drain(term[i].fd);
-            tcflush(term[i].fd, TCIFLUSH);
+            term_drain(t->fd);
+            tcflush(t->fd, TCIFLUSH);
             do {
-                r = tcsetattr(term[i].fd, TCSANOW, &term[i].origtermios);
+                r = tcsetattr(t->fd, TCSANOW, &t->origtermios);
             } while ( r < 0 && errno == EINTR );
             if ( r < 0 ) {
                 const char *tname;
 
-                tname = ttyname(term[i].fd);
+                tname = ttyname(t->fd);
                 if ( ! tname ) tname = "UNKNOWN";
                 fprintf(stderr, "%s: reset failed for dev %s: %s\r\n",
                         __FUNCTION__, tname, strerror(errno));
@@ -422,10 +423,10 @@ term_exitfunc (void)
                flock(2)'ed tty fd has peculiar side effects (like not
                reseting the modem-control lines, even if HUPCL is
                set). */
-            flock(term[i].fd, LOCK_UN);
+            flock(t->fd, LOCK_UN);
 #endif
-            close(term[i].fd);
-            term[i].fd = -1;
+            close(t->fd);
+            t->fd = -1;
         }
     } while (0);
 }
@@ -443,21 +444,22 @@ term_lib_init (void)
         if ( term_initted ) {
             /* reset all terms back to their original settings */
             for (i = 0; i < MAX_TERMS; i++) {
-                if (term[i].fd == -1)
+                struct term_s *t = &term[i];
+                if (t->fd == -1)
                     continue;
-                tcflush(term[i].fd, TCIOFLUSH);
+                tcflush(t->fd, TCIOFLUSH);
                 do {
-                    r = tcsetattr(term[i].fd, TCSANOW, &term[i].origtermios);
+                    r = tcsetattr(t->fd, TCSANOW, &t->origtermios);
                 } while ( r < 0 && errno == EINTR );
                 if ( r < 0 ) {
                     const char *tname;
 
-                    tname = ttyname(term[i].fd);
+                    tname = ttyname(t->fd);
                     if ( ! tname ) tname = "UNKNOWN";
                     fprintf(stderr, "%s: reset failed for dev %s: %s\n",
                             __FUNCTION__, tname, strerror(errno));
                 }
-                term[i].fd = -1;
+                t->fd = -1;
             }
         } else {
             /* initialize term structure. */
