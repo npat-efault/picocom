@@ -1,4 +1,4 @@
-# Simple custom bash completion for picocom.
+# Custom bash completion for picocom.
 #
 # Source this file like this:
 #     . <picocom-src-dir>/bash-completion/picocom
@@ -57,16 +57,20 @@
 # an argument.
 #
 # Line is split taking into account quoting (backslash, single and
-# double), as well as ${...}  and $(...). Double-quotes, ${..} and
-# $(..} can nest inside each other at any depth. Words are broken up
-# either by delimiter characters (which do not appear in the resulting
-# word-straem) or by separator characters, which do.
+# double), as well as ${...}, $(...), and backquoting. Double-quotes,
+# ${..} and $(..} can nest inside each other at any depth (because
+# that's how readline treats them when splitting).
+#
+# Words are broken-up either by delimiter characters (which do not
+# appear in the resulting word-stream) or by separator characters,
+# which do. Consequitive separator characters are treated as single
+# word.
 #
 function _picocom_split_line()
 {
     local delimiters=$' \t\n'
-    local separators=$'='
-    local line wbreaks state word c c1 i
+    local separators=$'=><'
+    local flag line wbreaks state word c c1 i
     local -a stack
 
     while getopts "d:s:" flag "$@"; do
@@ -100,18 +104,7 @@ function _picocom_split_line()
                     word=
                     state=D
                 fi
-                # handling of separators vs delimiters. Separators are
-                # treated like delimiters, but they do appear in the
-                # word stream. Consequitive separators are treated as
-                # a single word. Ex:
-                #
-                #      ab=@c=d  =@=   e=f
-                #
-                # will be split like this:
-                #
-                #      ab | =@ | c | = | d | =@= | e | = | f
-                #
-                # assuming that = and @ are separators
+                # handle separators
                 if [[ $c == [$separators] ]]; then
                     while [[ $c == [$separators] ]]; do
                         word+=$c
@@ -142,11 +135,21 @@ function _picocom_split_line()
             fi
             word+=$c
         elif [[ $state == "'" ]]; then
-             if [[ $c == "'" ]]; then
-                 state=${stack[-1]}
-                 unset stack[-1]
-             fi
-             word+=$c
+            if [[ $c == "'" ]]; then
+                state=${stack[-1]}
+                unset stack[-1]
+            fi
+            word+=$c
+        elif [[ $state == '`' ]]; then
+            if [[ $c == '\' ]]; then
+                word+=$c
+                let i++
+                c=$c1
+            elif [[ $c == '`' ]]; then
+                state=${stack[-1]}
+                unset stack[-1]
+            fi
+            word+=$c
         elif [[ $state == '"' ]]; then
             if [[ $c == '\' ]]; then
                 word+=$c
@@ -166,8 +169,8 @@ function _picocom_split_line()
                 unset stack[-1]
             fi
             word+=$c
-        elif [[ $state == '(' || $state == '{' || state == '`' ]]; then
-            if [[ $c == [\'\"] ]]; then
+        elif [[ $state == '(' || $state == '{' ]]; then
+            if [[ $c == [\'\"\`] ]]; then
                 stack+=( $state )
                 state=$c
             elif [[ $c == '\' ]]; then
@@ -180,7 +183,7 @@ function _picocom_split_line()
                 c=$c1
                 stack+=( $state )
                 state=$c
-            elif [[ $state$c == '{}' || $state$c == "()" || $state$c == '``' ]]; then
+            elif [[ $state$c == '{}' || $state$c == "()" ]]; then
                 state=${stack[-1]}
                 unset stack[-1]
             fi
@@ -258,7 +261,7 @@ _picocom_is_opt()
 _picocom()
 {
     local cur cur0 cur1 prev
-    local -a opts baudrates mappings mapfilt
+    local -a words opts baudrates mappings mapfilt
     local DEBUG=/dev/pts/8
     
     opts=( --baud --flow --databits --stopbits --parity \
