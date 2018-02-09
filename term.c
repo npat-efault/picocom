@@ -936,13 +936,14 @@ enum parity_e
 term_get_parity (int fd)
 {
     tcflag_t flg;
-    int i, parity;
+    int i;
+    enum parity_e parity;
 
     do { /* dummy */
 
         i = term_find(fd);
         if ( i < 0 ) {
-            parity = -1;
+            parity = P_ERROR;
             break;
         }
 
@@ -1148,14 +1149,15 @@ term_set_flowcntrl (int fd, enum flowcntrl_e flowcntl)
 enum flowcntrl_e
 term_get_flowcntrl (int fd)
 {
-    int i, flow;
+    int i;
+    enum flowcntrl_e flow;
     int rtscts, xoff, xon;
 
     do { /* dummy */
 
         i = term_find(fd);
         if ( i < 0 ) {
-            flow = -1;
+            flow = FC_ERROR;
             break;
         }
 
