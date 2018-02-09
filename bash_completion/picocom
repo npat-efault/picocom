@@ -298,21 +298,19 @@ _picocom()
     echo "------------" > $DEBUG
     echo COMP_LINE "$COMP_LINE" > $DEBUG
     echo COMP_POINT $COMP_POINT > $DEBUG
-    echo COMP_CWORD $COMP_CWORD > $DEBUG
     local wrd
-    for wrd in "${COMP_WORDS[@]}"; do
+    for wrd in "${words[@]}"; do
         echo -n "$wrd | " > $DEBUG
     done
     echo > $DEBUG
     echo "$prev | $cur | " > $DEBUG
 
-    # Try to handle option values given with "="
-    if [[ $cur == "=" ]]; then
+    # Handle option values given with "=" or "=="
+    if [[ $cur =~ "="+ ]]; then
         _picocom_is_opt "$prev" && cur=
     fi
-    if [[ $prev == "=" && $COMP_CWORD -gt 1 ]]; then
-        prev1="${COMP_WORDS[COMP_CWORD-2]}"
-        _picocom_is_opt "$prev1" && prev="$prev1"
+    if [[ $prev =~ "="+ ]]; then
+        _picocom_is_opt "${words[-3]}" && prev="${words[-3]}"
     fi
 
     case "$prev" in
@@ -380,7 +378,7 @@ _picocom()
             ;;
     esac
     
-    if [[ ${cur} = -* ]] ; then
+    if [[ ${cur} == -* ]] ; then
         COMPREPLY=( $(compgen -W "${opts[*]}" -- "$cur") )
         # This only works for bash 4.4 and newer
         compopt -o nosort > /dev/null 2>&1
