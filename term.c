@@ -82,12 +82,96 @@
 
 static int term_initted;
 
+struct term_ops;
+
 static struct term_s {
     int fd;
+    const struct term_ops *ops;
     struct termios origtermios;
     struct termios currtermios;
     struct termios nexttermios;
 } term[MAX_TERMS];
+
+/* Operations on a term */
+struct term_ops {
+    int (*tcgetattr)(struct term_s *t, struct termios *termios_out);
+    int (*tcsetattr)(struct term_s *t, int when, const struct termios *termios);
+    int (*modem_get)(struct term_s *t, int *modem_out);
+    int (*modem_bis)(struct term_s *t, const int *modem);
+    int (*modem_bic)(struct term_s *t, const int *modem);
+    int (*send_break)(struct term_s *t);
+    int (*flush)(struct term_s *t, int selector);
+    int (*read)(struct term_s *t, void *buf, unsigned bufsz);
+    int (*write)(struct term_s *t, const void *buf, unsigned bufsz);
+};
+
+/***************************************************************************/
+
+static int
+local_tcgetattr(struct term_s *t, struct termios *termios_out)
+{
+    return tcgetattr(t->fd, termios_out);
+}
+
+static int
+local_tcsetattr(struct term_s *t, int when, const struct termios *termios)
+{
+    return tcsetattr(t->fd, when, termios);
+}
+
+static int
+local_modem_get(struct term_s *t, int *modem_out)
+{
+    return ioctl(t->fd, TIOCMGET, modem_out);
+}
+
+static int
+local_modem_bis(struct term_s *t, const int *modem)
+{
+    return ioctl(t->fd, TIOCMBIS, modem);
+}
+
+static int
+local_modem_bic(struct term_s *t, const int *modem)
+{
+    return ioctl(t->fd, TIOCMBIC, modem);
+}
+
+static int
+local_send_break(struct term_s *t)
+{
+    return tcsendbreak(t->fd, 0);
+}
+
+static int
+local_flush(struct term_s *t, int selector)
+{
+    return tcflush(t->fd, selector);
+}
+
+int
+local_read(struct term_s *t, void *buf, unsigned bufsz)
+{
+    return read(t->fd, buf, bufsz);
+}
+
+int
+local_write(struct term_s *t, const void *buf, unsigned bufsz)
+{
+    return write(t->fd, buf, bufsz);
+}
+
+static const struct term_ops local_term_ops = {
+    .tcgetattr = local_tcgetattr,
+    .tcsetattr = local_tcsetattr,
+    .modem_get = local_modem_get,
+    .modem_bis = local_modem_bis,
+    .modem_bic = local_modem_bic,
+    .send_break = local_send_break,
+    .flush = local_flush,
+    .read = local_read,
+    .write = local_write,
+};
 
 /***************************************************************************/
 
@@ -402,9 +486,9 @@ term_exitfunc (void)
             if (t->fd == -1)
                 continue;
             term_drain(t->fd);
-            tcflush(t->fd, TCIFLUSH);
+            t->ops->flush(t, TCIFLUSH);
             do {
-                r = tcsetattr(t->fd, TCSANOW, &t->origtermios);
+                r = t->ops->tcsetattr(t, TCSANOW, &t->origtermios);
             } while ( r < 0 && errno == EINTR );
             if ( r < 0 ) {
                 const char *tname;
@@ -447,9 +531,9 @@ term_lib_init (void)
                 struct term_s *t = &term[i];
                 if (t->fd == -1)
                     continue;
-                tcflush(t->fd, TCIOFLUSH);
+                t->ops->flush(t, TCIOFLUSH);
                 do {
-                    r = tcsetattr(t->fd, TCSANOW, &t->origtermios);
+                    r = t->ops->tcsetattr(t, TCSANOW, &t->origtermios);
                 } while ( r < 0 && errno == EINTR );
                 if ( r < 0 ) {
                     const char *tname;
@@ -508,16 +592,19 @@ term_add (int fd)
             break;
         }
 
-        r = tcgetattr(fd, &t->origtermios);
+        t->fd = fd;
+        t->ops = &local_term_ops;
+
+        r = t->ops->tcgetattr(t, &t->origtermios);
         if ( r < 0 ) {
             term_errno = TERM_EGETATTR;
             rval = -1;
+            t->fd = -1;
             break;
         }
 
         t->currtermios = t->origtermios;
         t->nexttermios = t->origtermios;
-        t->fd = fd;
     } while (0);
 
     return rval;
@@ -541,13 +628,13 @@ term_remove(int fd)
         }
 
         do { /* dummy */
-            r = tcflush(t->fd, TCIOFLUSH);
+            r = t->ops->flush(t, TCIOFLUSH);
             if ( r < 0 ) {
                 term_errno = TERM_EFLUSH;
                 rval = -1;
                 break;
             }
-            r = tcsetattr(t->fd, TCSANOW, &t->origtermios);
+            r = t->ops->tcsetattr(t, TCSANOW, &t->origtermios);
             if ( r < 0 ) {
                 term_errno = TERM_ESETATTR;
                 rval = -1;
@@ -605,14 +692,14 @@ term_replace (int oldfd, int newfd)
         /* assert(t->fd == oldfd); */
         t->fd = newfd;
 
-        r = tcsetattr(t->fd, TCSANOW, &t->currtermios);
+        r = t->ops->tcsetattr(t, TCSANOW, &t->currtermios);
         if ( r < 0 ) {
             term_errno = TERM_ESETATTR;
             rval = -1;
             t->fd = oldfd;
             break;
         }
-        r = tcgetattr(t->fd, &t->currtermios);
+        r = t->ops->tcgetattr(t, &t->currtermios);
         if ( r < 0 ) {
             term_errno = TERM_EGETATTR;
             rval = -1;
@@ -643,19 +730,19 @@ term_reset (int fd)
             break;
         }
 
-        r = tcflush(t->fd, TCIOFLUSH);
+        r = t->ops->flush(t, TCIOFLUSH);
         if ( r < 0 ) {
             term_errno = TERM_EFLUSH;
             rval = -1;
             break;
         }
-        r = tcsetattr(t->fd, TCSANOW, &t->origtermios);
+        r = t->ops->tcsetattr(t, TCSANOW, &t->origtermios);
         if ( r < 0 ) {
             term_errno = TERM_ESETATTR;
             rval = -1;
             break;
         }
-        r = tcgetattr(t->fd, &t->currtermios);
+        r = t->ops->tcgetattr(t, &t->currtermios);
         if ( r < 0 ) {
             term_errno = TERM_EGETATTR;
             rval = -1;
@@ -711,7 +798,7 @@ term_refresh (int fd)
             break;
         }
 
-        r = tcgetattr(t->fd, &t->currtermios);
+        r = t->ops->tcgetattr(t, &t->currtermios);
         if ( r < 0 ) {
             term_errno = TERM_EGETATTR;
             rval = -1;
@@ -743,13 +830,13 @@ term_apply (int fd, int now)
             break;
         }
 
-        r = tcsetattr(t->fd, when, &t->nexttermios);
+        r = t->ops->tcsetattr(t, when, &t->nexttermios);
         if ( r < 0 ) {
             term_errno = TERM_ESETATTR;
             rval = -1;
             break;
         }
-        r = tcgetattr(t->fd, &t->nexttermios);
+        r = t->ops->tcgetattr(t, &t->nexttermios);
         if ( r < 0 ) {
             term_errno = TERM_EGETATTR;
             rval = -1;
@@ -1366,7 +1453,7 @@ term_pulse_dtr (int fd)
         {
             int opins = TIOCM_DTR;
 
-            r = ioctl(t->fd, TIOCMBIC, &opins);
+            r = t->ops->modem_bic(t, &opins);
             if ( r < 0 ) {
                 term_errno = TERM_EDTRDOWN;
                 rval = -1;
@@ -1375,7 +1462,7 @@ term_pulse_dtr (int fd)
 
             sleep(1);
 
-            r = ioctl(t->fd, TIOCMBIS, &opins);
+            r = t->ops->modem_bis(t, &opins);
             if ( r < 0 ) {
                 term_errno = TERM_EDTRUP;
                 rval = -1;
@@ -1386,7 +1473,7 @@ term_pulse_dtr (int fd)
         {
             struct termios tio, tioold;
 
-            r = tcgetattr(t->fd, &tio);
+            r = t->ops->tcgetattr(t, &tio);
             if ( r < 0 ) {
                 term_errno = TERM_EGETATTR;
                 rval = -1;
@@ -1397,7 +1484,7 @@ term_pulse_dtr (int fd)
 
             /* ospeed = 0, means hangup (see POSIX) */
             cfsetospeed(&tio, B0);
-            r = tcsetattr(t->fd, TCSANOW, &tio);
+            r = t->ops->tcsetattr(t, TCSANOW, &tio);
             if ( r < 0 ) {
                 term_errno = TERM_ESETATTR;
                 rval = -1;
@@ -1406,7 +1493,7 @@ term_pulse_dtr (int fd)
 
             sleep(1);
 
-            r = tcsetattr(t->fd, TCSANOW, &tioold);
+            r = t->ops->tcsetattr(t, TCSANOW, &tioold);
             if ( r < 0 ) {
                 t->currtermios = tio;
                 term_errno = TERM_ESETATTR;
@@ -1443,7 +1530,7 @@ term_raise_dtr(int fd)
         {
             int r, opins = TIOCM_DTR;
 
-            r = ioctl(t->fd, TIOCMBIS, &opins);
+            r = t->ops->modem_bis(t, &opins);
             if ( r < 0 ) {
                 term_errno = TERM_EDTRUP;
                 rval = -1;
@@ -1482,7 +1569,7 @@ term_lower_dtr(int fd)
         {
             int r, opins = TIOCM_DTR;
 
-            r = ioctl(t->fd, TIOCMBIC, &opins);
+            r = t->ops->modem_bic(t, &opins);
             if ( r < 0 ) {
                 term_errno = TERM_EDTRDOWN;
                 rval = -1;
@@ -1521,7 +1608,7 @@ term_raise_rts(int fd)
             int r;
             int opins = TIOCM_RTS;
 
-            r = ioctl(t->fd, TIOCMBIS, &opins);
+            r = t->ops->modem_bis(t, &opins);
             if ( r < 0 ) {
                 term_errno = TERM_ERTSUP;
                 rval = -1;
@@ -1560,7 +1647,7 @@ term_lower_rts(int fd)
             int r;
             int opins = TIOCM_RTS;
 
-            r = ioctl(t->fd, TIOCMBIC, &opins);
+            r = t->ops->modem_bic(t, &opins);
             if ( r < 0 ) {
                 term_errno = TERM_ERTSDOWN;
                 rval = -1;
@@ -1597,7 +1684,7 @@ term_get_mctl (int fd)
         {
             int r, pmctl;
 
-            r = ioctl(t->fd, TIOCMGET, &pmctl);
+            r = t->ops->modem_get(t, &pmctl);
             if (r < 0) {
                 mctl = -1;
                 break;
@@ -1679,7 +1766,7 @@ term_fake_flush(int fd)
         }
 
         /* Get current termios */
-        r = tcgetattr(t->fd, &tio);
+        r = t->ops->tcgetattr(t, &tio);
         if ( r < 0 ) {
             term_errno = TERM_EGETATTR;
             rval = -1;
@@ -1690,7 +1777,7 @@ term_fake_flush(int fd)
         tio.c_cflag &= ~(CRTSCTS);
         tio.c_iflag &= ~(IXON | IXOFF | IXANY);
         /* Apply termios */
-        r = tcsetattr(t->fd, TCSANOW, &tio);
+        r = t->ops->tcsetattr(t, TCSANOW, &tio);
         if ( r < 0 ) {
             term_errno = TERM_ESETATTR;
             rval = -1;
@@ -1707,7 +1794,7 @@ term_fake_flush(int fd)
         /* see comment in term_drain */
         if ( DRAIN_DELAY ) usleep(DRAIN_DELAY);
         /* Reset flow-control to original setting. */
-        r = tcsetattr(t->fd, TCSANOW, &t->currtermios);
+        r = t->ops->tcsetattr(t, TCSANOW, &t->currtermios);
         if ( r < 0 ) {
             term_errno = TERM_ESETATTR;
             rval = -1;
@@ -1735,7 +1822,7 @@ term_flush(int fd)
             break;
         }
 
-        r = tcflush(t->fd, TCIOFLUSH);
+        r = t->ops->flush(t, TCIOFLUSH);
         if ( r < 0 ) {
             term_errno = TERM_EFLUSH;
             rval = -1;
@@ -1765,7 +1852,7 @@ term_break(int fd)
             break;
         }
 
-        r = tcsendbreak(t->fd, 0);
+        r = t->ops->send_break(t);
         if ( r < 0 ) {
             term_errno = TERM_EBREAK;
             rval = -1;
@@ -1791,7 +1878,7 @@ term_read (int fd, void *buf, unsigned int bufsz)
             rval = -1;
             break;
         }
-        rval = read(t->fd, buf, bufsz);
+        rval = t->ops->read(t, buf, bufsz);
     } while (0);
 
     return rval;
@@ -1809,7 +1896,7 @@ term_write (int fd, const void *buf, unsigned int bufsz)
             rval = -1;
             break;
         }
-        rval = write(t->fd, buf, bufsz);
+        rval = t->ops->write(t, buf, bufsz);
     } while (0);
 
     return rval;
