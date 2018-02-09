@@ -111,8 +111,11 @@ function _picocom_split_line()
                         let i++
                         c=${line:i:1}
                     done
-                    words+=( "$word" )
-                    word=
+                    if [[ -n $c ]]; then
+                        # emit word (but not at eol)
+                        words+=( "$word" )
+                        word=
+                    fi
                     let i--
                 fi
                 continue
