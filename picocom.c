@@ -1558,6 +1558,8 @@ loop(void)
 void
 deadly_handler(int signum)
 {
+    (void)signum; /* silence unused warning */
+
     if ( ! sig_exit ) {
         sig_exit = 1;
         kill(0, SIGTERM);

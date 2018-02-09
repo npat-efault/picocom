@@ -167,7 +167,8 @@ enum parity_e {
     P_EVEN,
     P_ODD,
     P_MARK,
-    P_SPACE
+    P_SPACE,
+    P_ERROR = -1
 };
 
 /*
@@ -184,7 +185,8 @@ enum flowcntrl_e {
     FC_NONE = 0,
     FC_RTSCTS,
     FC_XONXOFF,
-    FC_OTHER
+    FC_OTHER,
+    FC_ERROR = -1
 };
 
 /*

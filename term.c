@@ -244,7 +244,7 @@ struct baud_codes {
 #endif /* of HIGH_BAUD */
 };
 
-#define BAUD_TABLE_SZ (sizeof(baud_table) / sizeof(baud_table[0]))
+#define BAUD_TABLE_SZ ((int)(sizeof(baud_table) / sizeof(baud_table[0])))
 
 int
 term_baud_up (int baud)
