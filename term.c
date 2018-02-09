@@ -602,20 +602,23 @@ term_replace (int oldfd, int newfd)
             break;
         }
 
-        r = tcsetattr(newfd, TCSANOW, &t->currtermios);
+        /* assert(t->fd == oldfd); */
+        t->fd = newfd;
+
+        r = tcsetattr(t->fd, TCSANOW, &t->currtermios);
         if ( r < 0 ) {
             term_errno = TERM_ESETATTR;
             rval = -1;
+            t->fd = oldfd;
             break;
         }
-        r = tcgetattr(newfd, &t->currtermios);
+        r = tcgetattr(t->fd, &t->currtermios);
         if ( r < 0 ) {
             term_errno = TERM_EGETATTR;
             rval = -1;
+            t->fd = oldfd;
             break;
         }
-
-        t->fd = newfd;
 
     } while (0);
 
