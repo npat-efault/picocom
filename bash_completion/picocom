@@ -288,11 +288,10 @@ _picocom()
     mappings=( crlf crcrlf igncr lfcr lfcrlf ignlf delbs bsdel \
               spchex tabhex crhex lfhex 8bithex nrmhex )
 
+    # We split the line ourselves. We don't use COMP_WORDS
     _picocom_split_line
     cur="${words[-1]}"
     prev="${words[-2]}"
-    #cur="${COMP_WORDS[COMP_CWORD]}"
-    #prev="${COMP_WORDS[COMP_CWORD-1]}"
 
     echo > $DEBUG
     echo "------------" > $DEBUG
