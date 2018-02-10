@@ -615,37 +615,8 @@ term_add (int fd)
 int
 term_remove(int fd)
 {
-    int rval, r;
-    struct term_s *t;
-
-    rval = 0;
-
-    do { /* dummy */
-        t = term_find(fd);
-        if ( ! t ) {
-            rval = -1;
-            break;
-        }
-
-        do { /* dummy */
-            r = t->ops->flush(t, TCIOFLUSH);
-            if ( r < 0 ) {
-                term_errno = TERM_EFLUSH;
-                rval = -1;
-                break;
-            }
-            r = t->ops->tcsetattr(t, TCSANOW, &t->origtermios);
-            if ( r < 0 ) {
-                term_errno = TERM_ESETATTR;
-                rval = -1;
-                break;
-            }
-        } while (0);
-
-        t->fd = -1;
-    } while (0);
-
-    return rval;
+    term_reset(fd);
+    return term_erase(fd);
 }
 
 /***************************************************************************/
