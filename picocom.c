@@ -2078,9 +2078,8 @@ main (int argc, char *argv[])
     }
 #endif
 
-    if ( opts.noinit ) {
-        r = term_add(tty_fd);
-    } else {
+    r = term_add(tty_fd);
+    if ( r >= 0 && ! opts.noinit ) {
         r = term_set(tty_fd,
                      1,              /* raw mode. */
                      opts.baud,      /* baud rate. */
@@ -2090,6 +2089,8 @@ main (int argc, char *argv[])
                      opts.flow,      /* flow control. */
                      1,              /* local or modem */
                      !opts.noreset); /* hup-on-close. */
+        if ( r < 0 )
+            term_erase(tty_fd);
     }
     if ( r < 0 )
         fatal("failed to add port: %s", term_strerror(term_errno, errno));

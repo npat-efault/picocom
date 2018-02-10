@@ -518,16 +518,10 @@ int term_set_local (int fd, int local);
  *   Enables HUP-on-close if "hupcl" is nonzero, dis. otherwise
  *
  * The effective settings of the device are not affected by this
- * function. Additionally if the filedes "fd" is not managed, it is
- * added to the framework.
+ * function.
  *
  * Returns negative on failure, non negative on success. On failure
- * none of the settings of "nexttermios" is affected. *If* the filedes
- * "fd" is already in the framework, then the function returns failure
- * only to indicate invalid arguments, so, in this case, the return
- * value can be safely ignored. If the function successfully adds the
- * filedes to the framework, and following this it fails, then it will
- * remove the filedes before returning.
+ * none of the settings of "nexttermios" is affected.
  */
 int term_set (int fd,
               int raw,
