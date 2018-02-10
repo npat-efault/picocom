@@ -853,7 +853,7 @@ baud_down (int baud)
 }
 
 enum flowcntrl_e
-flow_next (int flow)
+flow_next (enum flowcntrl_e flow)
 {
     switch(flow) {
     case FC_NONE:
@@ -874,7 +874,7 @@ flow_next (int flow)
 }
 
 enum parity_e
-parity_next (int parity)
+parity_next (enum parity_e parity)
 {
     switch(parity) {
     case P_NONE:
