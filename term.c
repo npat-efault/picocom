@@ -90,6 +90,18 @@ static struct term_s term[MAX_TERMS];
 /***************************************************************************/
 
 static int
+local_init(struct term_s *t)
+{
+    int rval = 0;
+
+    if ( ! isatty(t->fd) ) {
+        term_errno = TERM_EISATTY;
+        rval = -1;
+    }
+    return rval;
+}
+
+static int
 local_tcgetattr(struct term_s *t, struct termios *termios_out)
 {
     return tcgetattr(t->fd, termios_out);
@@ -144,6 +156,7 @@ local_write(struct term_s *t, const void *buf, unsigned bufsz)
 }
 
 static const struct term_ops local_term_ops = {
+    .init = local_init,
     .tcgetattr = local_tcgetattr,
     .tcsetattr = local_tcsetattr,
     .modem_get = local_modem_get,
@@ -587,12 +600,6 @@ term_add (int fd)
         t = term_find(fd);
         if ( t ) {
             term_errno = TERM_EEXISTS;
-            rval = -1;
-            break;
-        }
-
-        if ( ! isatty(fd) ) {
-            term_errno = TERM_EISATTY;
             rval = -1;
             break;
         }
