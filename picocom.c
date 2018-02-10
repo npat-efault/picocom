@@ -2078,7 +2078,7 @@ main (int argc, char *argv[])
     }
 #endif
 
-    r = term_add(tty_fd);
+    r = term_add(tty_fd, NULL);
     if ( r >= 0 && ! opts.noinit ) {
         r = term_set(tty_fd,
                      1,              /* raw mode. */
@@ -2119,7 +2119,7 @@ main (int argc, char *argv[])
 
     if ( ! opts.exit ) {
         if ( isatty(STI) ) {
-            r = term_add(STI);
+            r = term_add(STI, NULL);
             if ( r < 0 )
                 fatal("failed to add I/O device: %s",
                       term_strerror(term_errno, errno));

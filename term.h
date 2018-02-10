@@ -193,6 +193,8 @@ enum flowcntrl_e {
     FC_ERROR
 };
 
+struct term_ops;
+
 /*
  * C MCTL_xxx
  *
@@ -269,14 +271,18 @@ int term_lib_init (void);
 
 /* F term_add
  *
- * Add the filedes "fd" to the framework. The filedes must be opened
- * on a terminal device or else the addition will fail. The settings
- * of the terminal device associated with the filedes are read and
- * stored in the origtermios structure.
+ * Add the filedes "fd" to the framework.
+ *
+ * The "ops" table may be NULL and defaults to native TTY operations.
+ * In this case, the filedes must be opened on a terminal device or
+ * else the addition will fail.
+ *
+ * The settings of the terminal device associated with the filedes
+ * are read and stored in the origtermios structure.
  *
  * Returns negative on failure, non-negative on success.
  */
-int term_add (int fd);
+int term_add (int fd, const struct term_ops *ops);
 
 /* F term_remove
  *
