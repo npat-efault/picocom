@@ -589,7 +589,7 @@ term_lib_init (void)
 /***************************************************************************/
 
 int
-term_add (int fd)
+term_add (int fd, const struct term_ops *ops)
 {
     int rval, r;
     struct term_s *t;
@@ -604,7 +604,10 @@ term_add (int fd)
             break;
         }
 
-        t = term_new(fd, &local_term_ops);
+        if ( ! ops )
+            ops = &local_term_ops;
+
+        t = term_new(fd, ops);
         if ( ! t ) {
             rval = -1;
             break;
