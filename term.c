@@ -420,6 +420,17 @@ term_new (int fd, const struct term_ops *ops)
         memset(rval, 0, sizeof *rval);
         rval->fd = fd;
         rval->ops = ops;
+
+        if (ops->init) {
+            int r = ops->init(rval);
+            if ( r < 0 ) {
+                /* Failed to init, abandon allocation */
+                rval->fd = -1;
+                rval = NULL;
+                break;
+            }
+        }
+
     } while (0);
 
     return rval;
@@ -432,6 +443,8 @@ term_free (int fd)
 
     for (i = 0; i < MAX_TERMS; i++) {
         if ( term[i].fd == fd ) {
+            if (term[i].ops->fini)
+                term[i].ops->fini(&term[i]);
             term[i].fd = -1;
             break;
         }

@@ -15,6 +15,8 @@ struct term_s {
 
 /* Operations on a term */
 struct term_ops {
+    int (*init)(struct term_s *t);
+    void (*fini)(struct term_s *t);
     int (*tcgetattr)(struct term_s *t, struct termios *termios_out);
     int (*tcsetattr)(struct term_s *t, int when, const struct termios *termios);
     int (*modem_get)(struct term_s *t, int *modem_out);
