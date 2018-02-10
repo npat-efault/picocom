@@ -54,7 +54,7 @@ picocom : $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
 
 picocom.o : picocom.c term.h fdio.h split.h custbaud.h
-term.o : term.c term.h termios2.h custbaud_bsd.h custbaud.h
+term.o : term.c term.h termint.h termios2.h custbaud_bsd.h custbaud.h
 split.o : split.c split.h
 fdio.o : fdio.c fdio.h
 termios2.o : termios2.c termios2.h termbits2.h custbaud.h
