@@ -395,7 +395,7 @@ term_baud_std(int baud)
 /**************************************************************************/
 
 static struct term_s *
-term_find_next_free (void)
+term_new (int fd, const struct term_ops *ops)
 {
     int i;
     struct term_s *rval;
@@ -417,9 +417,25 @@ term_find_next_free (void)
         }
 
         rval = &term[i];
+        memset(rval, 0, sizeof *rval);
+        rval->fd = fd;
+        rval->ops = ops;
     } while (0);
 
     return rval;
+}
+
+static void
+term_free (int fd)
+{
+    int i;
+
+    for (i = 0; i < MAX_TERMS; i++) {
+        if ( term[i].fd == fd ) {
+            term[i].fd = -1;
+            break;
+        }
+    }
 }
 
 /***************************************************************************/
@@ -492,7 +508,7 @@ term_exitfunc (void)
             flock(t->fd, LOCK_UN);
 #endif
             close(t->fd);
-            t->fd = -1;
+            term_free(t->fd);
         }
     } while (0);
 }
@@ -525,7 +541,7 @@ term_lib_init (void)
                     fprintf(stderr, "%s: reset failed for dev %s: %s\n",
                             __FUNCTION__, tname, strerror(errno));
                 }
-                t->fd = -1;
+                term_free(t->fd);
             }
         } else {
             /* initialize term structure. */
@@ -568,20 +584,17 @@ term_add (int fd)
             break;
         }
 
-        t = term_find_next_free();
+        t = term_new(fd, &local_term_ops);
         if ( ! t ) {
             rval = -1;
             break;
         }
 
-        t->fd = fd;
-        t->ops = &local_term_ops;
-
         r = t->ops->tcgetattr(t, &t->origtermios);
         if ( r < 0 ) {
             term_errno = TERM_EGETATTR;
             rval = -1;
-            t->fd = -1;
+            term_free(t->fd);
             break;
         }
 
@@ -618,7 +631,7 @@ term_erase(int fd)
             break;
         }
 
-        t->fd = -1;
+        term_free(fd);
     } while (0);
 
     return rval;
