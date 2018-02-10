@@ -4,8 +4,10 @@
 #include <termios.h>
 
 struct term_s {
+    /* Read-only fields */
     int fd;
     const struct term_ops *ops;
+
     struct termios origtermios;
     struct termios currtermios;
     struct termios nexttermios;
