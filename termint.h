@@ -11,6 +11,7 @@ struct term_s {
     struct termios origtermios;
     struct termios currtermios;
     struct termios nexttermios;
+    void *priv;
 };
 
 /* Operations on a term */
