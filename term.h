@@ -161,6 +161,7 @@ enum term_errno_e {
  * P_ODD   - odd parity
  * P_MARK  - mark parity (parity bit always 1)
  * P_SPACE - space parity (parity bit always 0)
+ * P_ERROR - marker to indicate error for functions returning parity_e
  */
 enum parity_e {
     P_NONE = 0,
@@ -168,7 +169,7 @@ enum parity_e {
     P_ODD,
     P_MARK,
     P_SPACE,
-    P_ERROR = -1
+    P_ERROR
 };
 
 /*
@@ -180,13 +181,14 @@ enum parity_e {
  * FC_RTSCTS - RTS/CTS handshaking, also known as hardware
  *     flow-control.
  * FC_XONXOFF  - xon/xoff flow control.
+ * FC_ERROR - marker to indicate error for functions returning flowcntrl_e
  */
 enum flowcntrl_e {
     FC_NONE = 0,
     FC_RTSCTS,
     FC_XONXOFF,
     FC_OTHER,
-    FC_ERROR = -1
+    FC_ERROR
 };
 
 /*
@@ -551,8 +553,8 @@ int term_get_baudrate (int fd, int *ispeed);
  * Reads and decodes the current parity settings in the
  * "currtermios" structure of the managed filedes "fd".
  *
- * Returns one of the "enum parity_e" members, or -1 if "fd" does not
- * correspond to a managed filedes.
+ * Returns one of the "enum parity_e" members. Returns P_ERROR if "fd"
+ * does not correspond to a managed filedes.
  */
 enum parity_e term_get_parity (int fd);
 
@@ -581,8 +583,8 @@ int term_get_stopbits (int fd);
  * Reads and decodes the current flow-control settings in the
  * "currtermios" structure of the managed filedes "fd".
  *
- * Returns one of the "enum flowcntrl_e" members, or -1 if "fd" does
- * not correspond to a managed filedes.
+ * Returns one of the "enum flowcntrl_e" members. Returns FC_ERROR if
+ * "fd" does not correspond to a managed filedes.
  */
 enum flowcntrl_e term_get_flowcntrl (int fd);
 

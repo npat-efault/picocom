@@ -66,6 +66,7 @@ const char *parity_str[] = {
     [P_ODD] = "odd",
     [P_MARK] = "mark",
     [P_SPACE] = "space",
+    [P_ERROR] = "invalid parity mode",
 };
 
 /* flow control modes names */
@@ -74,6 +75,7 @@ const char *flow_str[] = {
     [FC_RTSCTS] = "RTS/CTS",
     [FC_XONXOFF] = "xon/xoff",
     [FC_OTHER] = "other",
+    [FC_ERROR] = "invalid flow control mode",
 };
 
 /**********************************************************************/
@@ -850,7 +852,7 @@ baud_down (int baud)
     return nb;
 }
 
-int
+enum flowcntrl_e
 flow_next (int flow)
 {
     switch(flow) {
@@ -871,7 +873,7 @@ flow_next (int flow)
     return flow;
 }
 
-int
+enum parity_e
 parity_next (int parity)
 {
     switch(parity) {
@@ -1212,7 +1214,9 @@ int tty_q_push(const char *s, int len) {
 int
 do_command (unsigned char c)
 {
-    int newbaud, newflow, newparity, newbits, newstopbits;
+    int newbaud, newbits, newstopbits;
+    enum flowcntrl_e newflow;
+    enum parity_e newparity;
     const char *xfr_cmd;
     char *fname;
     unsigned char hexbuf[HEXBUF_SZ];

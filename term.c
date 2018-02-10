@@ -942,7 +942,7 @@ term_get_parity (int fd)
 
         i = term_find(fd);
         if ( i < 0 ) {
-            parity = -1;
+            parity = P_ERROR;
             break;
         }
 
@@ -1155,7 +1155,7 @@ term_get_flowcntrl (int fd)
 
         i = term_find(fd);
         if ( i < 0 ) {
-            flow = -1;
+            flow = FC_ERROR;
             break;
         }
 
