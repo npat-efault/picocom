@@ -1338,7 +1338,6 @@ term_set(int fd,
 {
     int rval, r;
     struct term_s *t;
-    struct term_s *nt;
     struct termios tio;
 
     rval = 0;
@@ -1347,16 +1346,11 @@ term_set(int fd,
 
         t = term_find(fd);
         if ( ! t ) {
-            if ( term_add(fd) < 0 ) {
-                rval = -1;
-                break;
-            }
-            nt = term_find(fd);
-        } else {
-            nt = t;
+            rval = -1;
+            break;
         }
 
-        tio = nt->nexttermios;
+        tio = t->nexttermios;
 
         do { /* dummy */
 
@@ -1389,12 +1383,8 @@ term_set(int fd,
         } while (0);
 
         if ( rval < 0 ) {
-            if ( ! t )
-                /* new addition. must be removed */
-                nt->fd = -1;
-            else
-                /* just revert to previous settings */
-                nt->nexttermios = tio;
+            /* revert to previous settings */
+            t->nexttermios = tio;
         }
 
     } while (0);
