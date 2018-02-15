@@ -5,24 +5,12 @@
 # Or arrange for it to be sourced by your ".bashrc",
 # Or copy it in /etc/bash_completion.d (it will be sourced automatically)
 #
-# The idea is to provide simple custom completions for option names
-# and option values, while keeping the standard ones (variable,
-# pathname, etc) if the custom ones don't produce matches. This script
-# does not depend on the "bash-completion" package (just plain bash)
-# and it does not use any of its helper functions.
-#
-# The code is not bullet-proof; you *can* confuse it with strange
-# input if you try.
-#
-# See also:
-#   Bash mapage (man bash)
-#   Bash reference manual, sections 8.6, 8.7, 8.8
-#   The bash-completion project / package
-#     https://github.com/scop/bash-completion
-#   https://debian-administration.org/article/
-#     316/An_introduction_to_bash_completion_part_1
-#   https://debian-administration.org/article/
-#     316/An_introduction_to_bash_completion_part_2
+# Provides simple custom completions for option names and option
+# values, while keeping the standard ones (variable, pathname, etc) if
+# the custom ones don't produce matches. This script does *not* depend
+# on the "bash-completion" package (just plain Bash) and it does not
+# use any of its helper functions. The code is not bullet-proof; you
+# *can* confuse it with strange input if you try.
 #
 # Tested with:
 #   GNU bash, version 4.3.48(1)-release (x86_64-pc-linux-gnu)
@@ -54,17 +42,17 @@
 # COMP_WORDBREAKS (which may affect other completion functions and
 # scripts). In addtion, this function takes into account COMP_POINT
 # and splits up to it, which may help when completing to the middle of
-# an argument.
+# an argument. The line is split taking into account quoting
+# (backslash, single and double), as well as ${...}, $(...), and
+# backquoting.  Words are broken-up either by unquoted delimiter
+# characters (which do not end-up in the resulting word-stream) or by
+# unquoted separator characters, which do. Consequitive separator
+# characters are treated as single word.
 #
-# Line is split taking into account quoting (backslash, single and
-# double), as well as ${...}, $(...), and backquoting. Double-quotes,
-# ${..} and $(..} can nest inside each other at any depth (because
-# that's how readline treats them when splitting).
-#
-# Words are broken-up either by delimiter characters (which do not
-# appear in the resulting word-stream) or by separator characters,
-# which do. Consequitive separator characters are treated as single
-# word.
+# The line to be split is read from ${COMP_LINE:0:$COMP_POINT}.
+# Delimiters are specified by the "-d" option, and separators by
+# "-s". If missing, default delimiters and separators are
+# used. Results are left in the "words" array.
 #
 function _picocom_split_line()
 {
@@ -96,7 +84,7 @@ function _picocom_split_line()
     for (( i=0; i<${#line}; i++)); do
         c=${line:i:1}
         c1=${line:i+1:1}
-        #echo "  [$i\t$c\t$c1\t$state\t$word\t\t${stack[*]} ]" > $DEBUG
+        #echo "  [$i\t$c\t$c1\t$state\t$word\t\t${stack[*]} ]" >> $DEBUG
         if [[ $state == D || $state == W ]]; then
             if [[ $c == [$wbreaks] ]]; then
                 if [[ $state == W ]]; then
@@ -196,7 +184,19 @@ function _picocom_split_line()
     words+=( "$word" )
 }
 
-# Remove quotes from $1.
+_picocom_split_line_debug()
+{
+    echo "------------" >> $DEBUG
+    echo "[ $COMP_POINT ] $COMP_LINE" >> $DEBUG
+    local wrd
+    for wrd in "${words[@]}"; do
+        echo -n "$wrd | " >> $DEBUG
+    done
+    echo >> $DEBUG
+}
+
+# Remove quoting from $1. Fails if $1 includes (unescaped) characters
+# that can cause expansions.
 _picocom_dequote()
 {
     local quoted="$1"
@@ -205,14 +205,20 @@ _picocom_dequote()
     for (( i=0; i<${#quoted}; i++ )); do
         c=${quoted:i:1}
         c1=${quoted:i+1:1}
-        #echo "  [$c] [$c1] [$inside]" > $DEBUG
+        #echo "  [$c] [$c1] [$inside]" >> $DEBUG
         if [[ -z $inside ]]; then
             if [[ $c == '\' ]]; then
                 let i++
                 c=$c1
+                if [[ $c = $'\n' ]]; then
+                    let i++
+                    c=${quoted:i:1}
+                fi
             elif [[ $c == [\'\"] ]]; then
                 inside=$c
                 continue
+            elif [[ $c == [\$\`\[\!*] ]]; then
+                return 1
             fi
         elif [[ $inside == "'" ]]; then
             if [[ $c == "'" ]]; then
@@ -220,26 +226,31 @@ _picocom_dequote()
                 continue
             fi
         elif [[ $inside == '"' ]]; then
-            if [[ $c == '\' && $c1 = [\\\"\$\`] ]]; then
+            if [[ $c == '\' && $c1 == [\\\"\$\`\!$'\n'] ]]; then
+                [[ $c1 == '!' ]] && word+=$c
                 let i++
                 c=$c1
             elif [[ $c == '"' ]]; then
                 inside=
                 continue
+            elif [[ $c == [\$\`\!] ]]; then
+                return 1
             fi
         fi
         word+=$c
     done
     echo "$word"
+    return 0
 }
 
-# Remove character mappings that already appear in $cur
+# Remove character mappings that already appear in $cur. Results are
+# left in array "mapfilt"
 _picocom_filter_mappings()
 {
     local IFS cur1 m c found
     local -a cura
 
-    cur1=$(_picocom_dequote "$cur")    
+    cur1=$(_picocom_dequote "$cur") || return 1
     IFS=$', \t'
     cura=( $cur1 )
     IFS=$' \t\n'
@@ -250,6 +261,7 @@ _picocom_filter_mappings()
         done
         [[ -z $found ]] && mapfilt+=( "$m" )
     done
+    return 0
 }
 
 # Check if $1 is valid picocom option name
@@ -279,8 +291,7 @@ _picocom()
            --logfile \
            --exit-after --exit \
            --nolock \
-           --quiet --help \
-    )
+           --quiet --help )
 
     baudrates=( 50 75 110 134 150 200 300 600 1200 1800 2400 4800 9600 \
                19200 38400 57600 115200 \
@@ -295,17 +306,6 @@ _picocom()
     cur="${words[-1]}"
     prev="${words[-2]}"
 
-    echo > $DEBUG
-    echo "------------" > $DEBUG
-    echo COMP_LINE "$COMP_LINE" > $DEBUG
-    echo COMP_POINT $COMP_POINT > $DEBUG
-    local wrd
-    for wrd in "${words[@]}"; do
-        echo -n "$wrd | " > $DEBUG
-    done
-    echo > $DEBUG
-    echo "$prev | $cur | " > $DEBUG
-
     # Handle option values given with "="
     if [[ $cur =~ "="+ ]]; then
         _picocom_is_opt "$prev" && cur=
@@ -314,35 +314,8 @@ _picocom()
         _picocom_is_opt "${words[-3]}" && prev="${words[-3]}"
     fi
 
+    # Complete option values
     case "$prev" in
-        -v | --receive-cmd | -s | --send-cmd)
-            # nothing special, do default completion
-            return 0
-            ;;
-        -I | --imap | -O | --omap | -E | --emap )
-            [[ "$cur" =~ ^[\'\"]?[A-Za-z0-9,\ \\]*[\'\"]?$ ]] || return 0
-            _picocom_filter_mappings
-            cur1=${cur##*[, ]}
-            cur0=${cur%"$cur1"}
-            #echo "$cur0 | $cur1 |" > $DEBUG
-            local IFS=$'\n'
-            COMPREPLY=( $(compgen -P "$cur0" -S ","  -W "${mapfilt[*]}" -- "$cur1") )
-            #echo "${COMPREPLY[*]}" > $DEBUG
-            if [[ ${#COMPREPLY[@]} -ne 0 ]]; then
-               compopt -o nospace
-               # This only works for bash-4.4 and newer
-               compopt -o nosort > /dev/null 2>&1
-            fi
-            return 0
-            ;;
-        -e | --escape)
-            # nothing special, do default completion
-            return 0
-            ;;
-        -f | --flow)
-            COMPREPLY=( $(compgen -W "hard soft none" -- "$cur") )
-            return 0
-            ;;
         -b | --baud)
             COMPREPLY=( $(compgen -W "${baudrates[*]}" -- "$cur") )
             if [[ ${#COMPREPLY[@]} -ne 0 ]]; then
@@ -351,10 +324,10 @@ _picocom()
             fi
             return 0
             ;;
-        -y | --parity)
-            COMPREPLY=( $(compgen -W "even odd none" -- "$cur") )
+        -f | --flow)
+            COMPREPLY=( $(compgen -W "hard soft none" -- "$cur") )
             return 0
-            ;;        
+            ;;
         -d | --databits)
             COMPREPLY=( $(compgen -W "5 6 7 8" -- "$cur") )
             return 0
@@ -363,22 +336,50 @@ _picocom()
             COMPREPLY=( $(compgen -W "1 2" -- "$cur") )
             return 0
             ;;
+        -y | --parity)
+            COMPREPLY=( $(compgen -W "even odd none" -- "$cur") )
+            return 0
+            ;;        
+        -I | --imap | -O | --omap | -E | --emap )
+            _picocom_filter_mappings || return 0
+            cur1=${cur##*[, $'\t']}
+            cur0=${cur%"$cur1"}
+            #echo "$cur0 | $cur1 |" >> $DEBUG
+            local IFS=$'\n'
+            COMPREPLY=( $(compgen -P "$cur0" -S ","  -W "${mapfilt[*]}" -- "$cur1") )
+            #echo "${COMPREPLY[*]}" >> $DEBUG
+            if [[ ${#COMPREPLY[@]} -ne 0 ]]; then
+               compopt -o nospace
+               # This only works for bash-4.4 and newer
+               compopt -o nosort > /dev/null 2>&1
+            fi
+            return 0
+            ;;
+        -v | --receive-cmd | -s | --send-cmd)
+            # Do default completion
+            return 0
+            ;;
+        -e | --escape)
+            # Do default completion
+            return 0
+            ;;
         -g | --logfile)
-            # nothing special, do default completion
+            # Do default completion
             return 0
             ;;
         -t | --initstring)
-            # nothing special, do default completion
+            # Do default completion
             return 0
             ;;
         -x | --exit-after)
-            # nothing special, do default completion
+            # Do default completion
             return 0
             ;;
         *)
             ;;
     esac
-    
+
+    # Complete option names
     if [[ $cur == -* ]] ; then
         COMPREPLY=( $(compgen -W "${opts[*]}" -- "$cur") )
         # This only works for bash 4.4 and newer
@@ -390,6 +391,7 @@ _picocom()
         COMPREPLY=( $(compgen -G "/dev/tty*") )
         return 0
     fi
+    return 0
 }
 
 # Bind custom completion function to command

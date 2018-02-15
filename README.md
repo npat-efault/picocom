@@ -189,16 +189,16 @@ or (assuming you have installed the manual page to a suitable place):
 
 Thanks for using picocom
 
-## Custom bash completion
+## Custom Bash completion
 
 Starting with release 3.2, picocom includes support for custom
-bash-shell completion. With this you can press the [TAB] key and the
+Bash-shell completion. With this you can press the [TAB] key, and the
 bash shell will complete command-line option names and values and
 propose valid selections for both. This makes the experience of using
 picocom more pleasant.
 
-Custom bash-shell completion works only with recent versions of the
-bash shell (>= 4.3). Here's how you can enable it.
+Custom completion works only with recent versions of the Bash shell
+(>= 4.3). Here's how you can enable it.
 
 To manually enable custom completion support you need to source the
 file (custom completion script):
@@ -211,9 +211,9 @@ like this:
     . ./bash_completion/picocom
 
 This will enable custom completion support for the current shell
-session only. Give it a ride and see if you like it.
+session only. Use it for a while and see if you like it.
 
-To enable support automatically for all bash-shell sessions, you have
+To enable support automatically for all Bash-shell sessions, you have
 the following options:
 
 1. If you are running a relatively modern Debian or Ubuntu or other
@@ -229,7 +229,13 @@ the following options:
       sudo cp ./bash_completion/picocom /etc/bash_completion.d/
 
    This will enable custom completion support for picocom, globaly
-   (for all bash-shell users).
+   (for all Bash-shell users).
+
+   *NOTICE:* If you have another version of picocom already installed,
+   there may already be a `picocom` completion script in
+   `/etc/bash_completion.d`. The command above will obviously
+   overwrite it with the new one. So be careful if this is not what
+   you want.
 
    For other distributions and operating systems you have to check
    their documentation to see if they provide a similar mechanism for
