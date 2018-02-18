@@ -32,22 +32,25 @@ system console, etc).
 
 When picocom starts it opens the tty (serial port) given as its
 non-option argument (or the *last* non-option argument, if multiple
-are given). Unless the **--noinit** option is given, it configures the
-port to the settings specified by the option-arguments (or to some
-default settings), and sets it to "raw" mode. If **--noinit** is
-given, the initialization and configuration is skipped; the port is
-just opened. Following this, if standard input is a tty, picocom sets
-the tty to raw mode. Then it goes in a loop where it listens for input
-from stdin, or from the serial port. Input from the serial port is
-copied to the standard output while input from the standard input is
-copied to the serial port. Picocom also scans its input stream for a
-user-specified control character, called the _escape character_ (being
-by default **C-a**). If the escape character is seen, then instead of
-sending it to the serial-device, the program enters "command mode" and
-waits for the next character (which is called the "function
-character"). Depending on the value of the function character, picocom
-performs one of the operations described in the **[COMMANDS]** section
-below.
+are given). The serial port is usually given as a device-node path
+(e.g. */dev/ttyXX*). If RFC2217 support is compiled in, the port may
+instead be specified as an RFC2217 service name, if the **--telnet**
+option is also given. Unless the **--noinit** option is given, picocom
+configures the port to the settings specified by the option-arguments
+(or to some default settings), and sets it to "raw" mode. If
+**--noinit** is given, the initialization and configuration is
+skipped; the port is just opened. Following this, if standard input is
+a tty, picocom sets the tty to raw mode. Then it goes in a loop where
+it listens for input from stdin, or from the serial port. Input from
+the serial port is copied to the standard output while input from the
+standard input is copied to the serial port. Picocom also scans its
+input stream for a user-specified control character, called the
+_escape character_ (being by default **C-a**). If the escape character
+is seen, then instead of sending it to the serial-device, the program
+enters "command mode" and waits for the next character (which is
+called the "function character"). Depending on the value of the
+function character, picocom performs one of the operations described
+in the **[COMMANDS]** section below.
 
 
 # COMMANDS
@@ -459,8 +462,9 @@ Picocom accepts the following command-line options.
 
 **--telnet** | **-T**
 
-:   Interpret the _device_ as the name of an RFC 2217 service,
-    with an optional port: _hostname_[,_port_]
+:   Interpret the _device_ non-option argument as the name of an RFC
+    2217 service, with an optional port: _hostname_[,_port_]. This
+    option may not be supported on all picocom builds.
 
 
 # DISPLAY OF OPTIONS AND PORT SETTINGS
