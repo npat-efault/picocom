@@ -193,6 +193,12 @@ enum flowcntrl_e {
     FC_ERROR
 };
 
+/*
+ * S term_ops
+ *
+ * Table of internal port operations. Passed along with the filedes,
+ * when a port is added to the framework. See also term_add().
+ */
 struct term_ops;
 
 /*
@@ -275,7 +281,11 @@ int term_lib_init (void);
  *
  * The "ops" table may be NULL and defaults to native TTY operations.
  * In this case, the filedes must be opened on a terminal device or
- * else the addition will fail.
+ * else the addition will fail. For other types of file descriptors,
+ * custom "ops" tables may be provided in order for them to interface
+ * with the framework. For example, "tn2217.h" defines an "ops" table
+ * that allows an RFC2217 connection filedes to be added to the
+ * framework.
  *
  * The settings of the terminal device associated with the filedes
  * are read and stored in the origtermios structure.
@@ -693,14 +703,20 @@ int term_break(int fd);
 
 /* F term_read
  *
- * Reads in data from the device.
+ * Reads in data from the device. Use this instead of read(2), as the
+ * term library may need to transparently translate / filter the data
+ * actually read from the fd.
+ *
  * Returns negative on failure, or number of bytes read.
  */
 int term_read (int fd, void *buf, unsigned int bufsz);
 
 /* F term_write
  *
- * Writes data out to the device.
+ * Writes data out to the device. Use this instead of write(2), as the
+ * term library may need to transparently translate / filter the data
+ * actually written to the fd.
+ *
  * Returns negative on failure, or number of bytes written.
  */
 int term_write (int fd, const void *buf, unsigned int bufsz);
@@ -713,7 +729,6 @@ int term_write (int fd, const void *buf, unsigned int bufsz);
  * no higher valid baudrate.
  */
 int term_baud_up (int baud);
-
 
 /* F term_baud_down
  *
