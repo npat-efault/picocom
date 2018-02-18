@@ -2070,9 +2070,11 @@ main (int argc, char *argv[])
         fatal("term_lib_init failed: %s", term_strerror(term_errno, errno));
 
 #ifdef UUCP_LOCK_DIR
-    if ( ! opts.nolock ) uucp_lockname(UUCP_LOCK_DIR, opts.port);
-    if ( uucp_lock() < 0 )
-        fatal("cannot lock %s: %s", opts.port, strerror(errno));
+    if ( ! opts.nolock && ! opts.telnet ) {
+        uucp_lockname(UUCP_LOCK_DIR, opts.port);
+        if ( uucp_lock() < 0 )
+            fatal("cannot lock %s: %s", opts.port, strerror(errno));
+    }
 #endif
 
     if (opts.log_filename) {
