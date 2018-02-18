@@ -83,8 +83,6 @@
 
 static int term_initted;
 
-struct term_ops;
-
 static struct term_s term[MAX_TERMS];
 
 /***************************************************************************/
