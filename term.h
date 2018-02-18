@@ -285,14 +285,18 @@ int term_lib_init (void);
  * custom "ops" tables may be provided in order for them to interface
  * with the framework. For example, "tn2217.h" defines an "ops" table
  * that allows an RFC2217 connection filedes to be added to the
- * framework.
+ * framework. The "name" string is a mnemonic name for the port
+ * corresponding to the filedes. For native ports (ops == NULL) if
+ * "name" is NULL, the ttyname(2) of the port will be used. The "name"
+ * pointer must be valid (or NULL) for the duration of the call to the
+ * function.
  *
  * The settings of the terminal device associated with the filedes
  * are read and stored in the origtermios structure.
  *
  * Returns negative on failure, non-negative on success.
  */
-int term_add (int fd, const struct term_ops *ops);
+int term_add (int fd, const char *name, const struct term_ops *ops);
 
 /* F term_remove
  *

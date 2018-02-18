@@ -2105,9 +2105,11 @@ main (int argc, char *argv[])
 #endif
 
 #ifdef USE_RFC2217
-    r = term_add(tty_fd, opts.telnet ? &tn2217_ops : NULL);
+    r = term_add(tty_fd,
+                 opts.telnet ? opts.port : NULL,
+                 opts.telnet ? &tn2217_ops : NULL);
 #else
-    r = term_add(tty_fd, NULL);
+    r = term_add(tty_fd, NULL, NULL);
 #endif
     if ( r >= 0 && ! opts.noinit ) {
         r = term_set(tty_fd,
@@ -2149,7 +2151,7 @@ main (int argc, char *argv[])
 
     if ( ! opts.exit ) {
         if ( isatty(STI) ) {
-            r = term_add(STI, NULL);
+            r = term_add(STI, NULL, NULL);
             if ( r < 0 )
                 fatal("failed to add I/O device: %s",
                       term_strerror(term_errno, errno));

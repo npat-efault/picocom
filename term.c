@@ -91,11 +91,20 @@ static int
 local_init(struct term_s *t)
 {
     int rval = 0;
+    const char *n;
 
-    if ( ! isatty(t->fd) ) {
-        term_errno = TERM_EISATTY;
-        rval = -1;
-    }
+    do { /* dummy */
+        if ( ! isatty(t->fd) ) {
+            term_errno = TERM_EISATTY;
+            rval = -1;
+            break;
+        }
+        if ( ! t->name ) {
+            n = ttyname(t->fd);
+            if ( n ) t->name = strdup(n);
+        }
+    } while (0);
+
     return rval;
 }
 
@@ -421,7 +430,7 @@ term_baud_std(int baud)
 /**************************************************************************/
 
 static struct term_s *
-term_new (int fd, const struct term_ops *ops)
+term_new (int fd, const char *name, const struct term_ops *ops)
 {
     int i;
     struct term_s *rval;
@@ -446,12 +455,17 @@ term_new (int fd, const struct term_ops *ops)
         memset(rval, 0, sizeof *rval);
         rval->fd = fd;
         rval->ops = ops;
+        if ( name ) rval->name = strdup(name);
 
         if (ops->init) {
             int r = ops->init(rval);
             if ( r < 0 ) {
                 /* Failed to init, abandon allocation */
                 rval->fd = -1;
+                if ( rval->name ) {
+                    free(rval->name);
+                    rval->name = NULL;
+                }
                 rval = NULL;
                 break;
             }
@@ -472,6 +486,10 @@ term_free (int fd)
             if (term[i].ops->fini)
                 term[i].ops->fini(&term[i]);
             term[i].fd = -1;
+            if ( term[i].name ) {
+                free(term[i].name);
+                term[i].name=NULL;
+            }
             break;
         }
     }
@@ -530,7 +548,7 @@ term_exitfunc (void)
             if ( r < 0 ) {
                 const char *tname;
 
-                tname = ttyname(t->fd);
+                tname = t->name;
                 if ( ! tname ) tname = "UNKNOWN";
                 fprintf(stderr, "%s: reset failed for dev %s: %s\r\n",
                         __FUNCTION__, tname, strerror(errno));
@@ -575,7 +593,7 @@ term_lib_init (void)
                 if ( r < 0 ) {
                     const char *tname;
 
-                    tname = ttyname(t->fd);
+                    tname = t->name;
                     if ( ! tname ) tname = "UNKNOWN";
                     fprintf(stderr, "%s: reset failed for dev %s: %s\n",
                             __FUNCTION__, tname, strerror(errno));
@@ -602,7 +620,7 @@ term_lib_init (void)
 /***************************************************************************/
 
 int
-term_add (int fd, const struct term_ops *ops)
+term_add (int fd, const char *name, const struct term_ops *ops)
 {
     int rval, r;
     struct term_s *t;
@@ -620,7 +638,7 @@ term_add (int fd, const struct term_ops *ops)
         if ( ! ops )
             ops = &local_term_ops;
 
-        t = term_new(fd, ops);
+        t = term_new(fd, name, ops);
         if ( ! t ) {
             rval = -1;
             break;
