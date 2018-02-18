@@ -56,6 +56,7 @@
 #endif
 
 #include "custbaud.h"
+#include "tn2217.h"
 
 /**********************************************************************/
 
@@ -219,6 +220,7 @@ struct {
     int raise_rts;
     int raise_dtr;
     int quiet;
+    int telnet;
 } opts = {
     .port = NULL,
     .baud = 9600,
@@ -1656,6 +1658,7 @@ show_usage(char *name)
     printf("  --lower-dtr\n");
     printf("  --raise-dtr\n");
     printf("  --<q>uiet\n");
+    printf("  --telnet | -T\n");
     printf("  --<h>elp\n");
     printf("<map> is a comma-separated list of one or more of:\n");
     printf("  crlf : map CR --> LF\n");
@@ -1715,6 +1718,7 @@ parse_args(int argc, char *argv[])
         {"raise-rts", no_argument, 0, 3},
         {"raise-dtr", no_argument, 0, 4},
         {"quiet", no_argument, 0, 'q'},
+        {"telnet", no_argument, 0, 'T'},
         {"help", no_argument, 0, 'h'},
         {0, 0, 0, 0}
     };
@@ -1729,7 +1733,7 @@ parse_args(int argc, char *argv[])
         /* no default error messages printed. */
         opterr = 0;
 
-        c = getopt_long(argc, argv, "hirulcqXnv:s:r:e:f:b:y:d:p:g:t:x:",
+        c = getopt_long(argc, argv, "hirulcqXnTv:s:r:e:f:b:y:d:p:g:t:x:",
                         longOptions, &optionIndex);
 
         if (c < 0)
@@ -1907,6 +1911,9 @@ parse_args(int argc, char *argv[])
         case 'q':
             opts.quiet = 1;
             break;
+        case 'T':
+            opts.telnet = 1;
+            break;
         case 'h':
             show_usage(argv[0]);
             exit(EXIT_SUCCESS);
@@ -2066,19 +2073,23 @@ main (int argc, char *argv[])
             fatal("cannot open %s: %s", opts.log_filename, strerror(errno));
     }
 
-    tty_fd = open(opts.port, O_RDWR | O_NONBLOCK | O_NOCTTY);
+    if (opts.telnet) {
+        tty_fd = tn2217_open(opts.port);
+    } else
+        tty_fd = open(opts.port, O_RDWR | O_NONBLOCK | O_NOCTTY);
+
     if (tty_fd < 0)
         fatal("cannot open %s: %s", opts.port, strerror(errno));
 
 #ifdef USE_FLOCK
-    if ( ! opts.nolock ) {
+    if ( ! opts.nolock && !opts.telnet ) {
         r = flock(tty_fd, LOCK_EX | LOCK_NB);
         if ( r < 0 )
             fatal("cannot lock %s: %s", opts.port, strerror(errno));
     }
 #endif
 
-    r = term_add(tty_fd, NULL);
+    r = term_add(tty_fd, opts.telnet ? &tn2217_ops : NULL);
     if ( r >= 0 && ! opts.noinit ) {
         r = term_set(tty_fd,
                      1,              /* raw mode. */

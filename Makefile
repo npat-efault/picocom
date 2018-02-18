@@ -50,15 +50,17 @@ linenoise-1.0/linenoise.o : linenoise-1.0/linenoise.c linenoise-1.0/linenoise.h
 
 
 OBJS += picocom.o term.o fdio.o split.o termios2.o custbaud_bsd.o
+OBJS += tn2217.o
 picocom : $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
 
-picocom.o : picocom.c term.h fdio.h split.h custbaud.h
+picocom.o : picocom.c term.h fdio.h split.h custbaud.h tn2217.h
 term.o : term.c term.h termint.h termios2.h custbaud_bsd.h custbaud.h
 split.o : split.c split.h
 fdio.o : fdio.c fdio.h
 termios2.o : termios2.c termios2.h termbits2.h custbaud.h
 custbaud_bsd.o : custbaud_bsd.c custbaud_bsd.h custbaud.h
+tn2217.o : tn2217.c tn2217.h tncomport.h
 
 .c.o :
 	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ -c $<

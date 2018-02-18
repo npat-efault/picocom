@@ -457,6 +457,11 @@ Picocom accepts the following command-line options.
     options. Picocom's version, compile-time options, and enabled
     features are also shown.
 
+**--telnet** | **-T**
+
+:   Interpret the _device_ as the name of an RFC 2217 service,
+    with an optional port: _hostname_[,_port_]
+
 
 # DISPLAY OF OPTIONS AND PORT SETTINGS
 
