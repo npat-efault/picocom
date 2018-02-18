@@ -593,16 +593,13 @@ tn2217_send_set_fc(struct term_s *t, enum flowcntrl_e flow)
     switch (flow) {
     case FC_RTSCTS:
         val = COMPORT_CONTROL_FC_HARDWARE;
-        fprintf(stderr,"--> FC_HARDWARE\r\n");
         break;
     case FC_XONXOFF:
         val = COMPORT_CONTROL_FC_XONOFF;
-        fprintf(stderr,"--> FC_XONXOFF\r\n");
         break;
     case FC_NONE:
     default:
         val = COMPORT_CONTROL_FC_NONE;
-        fprintf(stderr,"--> FC_NONE\r\n");
         break;
     }
     tn2217_send_comport_cmd1(t, COMPORT_SET_CONTROL, val);
@@ -794,17 +791,14 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
             switch (data[0]) {
             /* Flow control changes and COMPORT_CONTROL_FC_REQUEST reply */
             case COMPORT_CONTROL_FC_XONOFF:
-                fprintf(stderr, "[notified FC_XONXOFF]\r\n");
                 tios_set_flowcntrl(tio, FC_XONXOFF);
                 break;
             case COMPORT_CONTROL_FC_HARDWARE:
-                fprintf(stderr, "[notified FC_RTSCTS]\r\n");
                 tios_set_flowcntrl(tio, FC_RTSCTS);
                 break;
             case COMPORT_CONTROL_FC_NONE:
             case COMPORT_CONTROL_FC_DCD:
             case COMPORT_CONTROL_FC_DSR:
-                fprintf(stderr, "[notified FC_NONE]\r\n");
                 tios_set_flowcntrl(tio, FC_NONE);
                 break;
             /* DTR changes and COMPORT_CONTROL_DTR_REQUEST reply */
