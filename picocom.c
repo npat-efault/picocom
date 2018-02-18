@@ -2133,14 +2133,16 @@ main (int argc, char *argv[])
     /* Set DTR and RTS status, as quickly as possible after opening
        the serial port (i.e. before configuring it) */
     set_dtr_rts();
-    r = term_apply(tty_fd, 0);
-    if ( r < 0 )
-        fatal("failed to config port: %s",
-              term_strerror(term_errno, errno));
-    /* Set DTR and RTS status *again* after configuring the port. On
-       some systems term_apply() resets the status of DTR and / or
-       RTS */
-    set_dtr_rts();
+    if ( ! opts.noinit ) {
+        r = term_apply(tty_fd, 0);
+        if ( r < 0 )
+            fatal("failed to config port: %s",
+                  term_strerror(term_errno, errno));
+        /* Set DTR and RTS status *again* after configuring the port. On
+           some systems term_apply() resets the status of DTR and / or
+           RTS */
+        set_dtr_rts();
+    }
 
     set_tty_write_sz(term_get_baudrate(tty_fd, NULL));
 
