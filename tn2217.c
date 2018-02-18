@@ -969,6 +969,12 @@ tn2217_flush(struct term_s *t, int selector)
     return 0;
 }
 
+static int
+tn2217_drain(struct term_s *t)
+{
+    return 0;
+}
+
 /* Reads raw binary from the socket and immediately handles any
  * in-stream TELNET commands. */
 static int
@@ -1079,6 +1085,7 @@ const struct term_ops tn2217_ops = {
     .modem_bic = tn2217_modem_bic,
     .send_break = tn2217_send_break,
     .flush = tn2217_flush,
+    .drain = tn2217_drain,
     .read = tn2217_read,
     .write = tn2217_write,
 };

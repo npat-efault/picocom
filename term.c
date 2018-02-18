@@ -141,6 +141,20 @@ local_flush(struct term_s *t, int selector)
     return tcflush(t->fd, selector);
 }
 
+static int
+local_drain(struct term_s *t)
+{
+    int r;
+
+#ifdef __BIONIC__
+    /* See: http://dan.drown.org/android/src/gdb/no-tcdrain */
+    r = ioctl(t->fd, TCSBRK, 1);
+#else
+    r = tcdrain(t->fd);
+#endif
+    return r;
+}
+
 int
 local_read(struct term_s *t, void *buf, unsigned bufsz)
 {
@@ -162,6 +176,7 @@ static const struct term_ops local_term_ops = {
     .modem_bic = local_modem_bic,
     .send_break = local_send_break,
     .flush = local_flush,
+    .drain = local_drain,
     .read = local_read,
     .write = local_write,
 };
@@ -1699,12 +1714,7 @@ term_drain(int fd)
         }
 
         do {
-#ifdef __BIONIC__
-            /* See: http://dan.drown.org/android/src/gdb/no-tcdrain */
-            r = ioctl(t->fd, TCSBRK, 1);
-#else
-            r = tcdrain(t->fd);
-#endif
+            r = t->ops->drain(t);
         } while ( r < 0 && errno == EINTR);
         if ( r < 0 ) {
             term_errno = TERM_EDRAIN;
@@ -1762,7 +1772,7 @@ term_fake_flush(int fd)
         }
         /* Wait for output to drain. Without flow-control this should
            complete in finite time. */
-        r = tcdrain(t->fd);
+        r = t->ops->drain(t);
         if ( r < 0 ) {
             term_errno = TERM_EDRAIN;
             rval = -1;
