@@ -1356,6 +1356,10 @@ do_command (unsigned char c)
         break;
     case KEY_SEND:
     case KEY_RECEIVE:
+        if ( opts.telnet ) {
+            fd_printf(STO, "\r\n*** not supported for RFC2217 ports ***\r\n");
+            break;
+        }
         xfr_cmd = (c == KEY_SEND) ? opts.send_cmd : opts.receive_cmd;
         if ( xfr_cmd[0] == '\0' ) {
             fd_printf(STO, "\r\n*** command disabled ***\r\n");
