@@ -48,7 +48,7 @@ linenoise-1.0/linenoise.o : linenoise-1.0/linenoise.c linenoise-1.0/linenoise.h
 ## Comment these in to enable RFC2217 support
 #CPPFLAGS += -DUSE_RFC2217
 #OBJS += tn2217.o
-#tn2217.o : tn2217.c tn2217.h tncomport.h
+#tn2217.o : tn2217.c tn2217.h tncomport.h fdio.h termint.h
 
 ## Comment this IN to remove help strings (saves ~ 4-6 Kb).
 #CPPFLAGS += -DNO_HELP
@@ -96,6 +96,7 @@ clean:
 	rm -f picocom.o term.o fdio.o split.o
 	rm -f linenoise-1.0/linenoise.o
 	rm -f termios2.o custbaud_bsd.o
+	rm -f tn2217.o
 	rm -f *~
 	rm -f \#*\#
 
