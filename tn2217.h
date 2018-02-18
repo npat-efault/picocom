@@ -1,3 +1,27 @@
+/* vi: set sw=4 ts=4:
+ *
+ * tn2217.h
+ *
+ * TELNET and COM-PORT (RFC2217) remote terminal protocol.
+ *
+ * by David Leonard (https://github.com/dleonard0)
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+ * USA
+ */
+
 #ifndef TN2217_H
 #define TN2217_H
 
@@ -12,3 +36,13 @@ struct term_ops;
 extern const struct term_ops tn2217_ops;
 
 #endif /* of TN2217_H */
+
+/***************************************************************************/
+
+/*
+ * Local Variables:
+ * mode:c
+ * tab-width: 4
+ * c-basic-offset: 4
+ * End:
+ */
