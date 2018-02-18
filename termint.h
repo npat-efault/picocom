@@ -26,6 +26,7 @@
 #define TERMINT_H
 
 #include <termios.h>
+#include "term.h"
 
 struct term_s {
     /* Read-only fields */
@@ -54,6 +55,9 @@ struct term_ops {
     int (*read)(struct term_s *t, void *buf, unsigned bufsz);
     int (*write)(struct term_s *t, const void *buf, unsigned bufsz);
 };
+
+enum flowcntrl_e tios_get_flowcntrl(const struct termios *tios);
+int tios_set_flowcntrl(struct termios *tios, enum flowcntrl_e flowcntl);
 
 #endif /* of TERMINT_H */
 

@@ -586,14 +586,25 @@ tn2217_send_set_stopsize(struct term_s *t, int c_flag)
 
 /* Sends a SET-CONTROL message to control hardware flow control */
 static void
-tn2217_send_set_fc(struct term_s *t, int c_flag)
+tn2217_send_set_fc(struct term_s *t, enum flowcntrl_e flow)
 {
     unsigned char val;
 
-    if (c_flag & CRTSCTS)
+    switch (flow) {
+    case FC_RTSCTS:
         val = COMPORT_CONTROL_FC_HARDWARE;
-    else
+        fprintf(stderr,"--> FC_HARDWARE\r\n");
+        break;
+    case FC_XONXOFF:
+        val = COMPORT_CONTROL_FC_XONOFF;
+        fprintf(stderr,"--> FC_XONXOFF\r\n");
+        break;
+    case FC_NONE:
+    default:
         val = COMPORT_CONTROL_FC_NONE;
+        fprintf(stderr,"--> FC_NONE\r\n");
+        break;
+    }
     tn2217_send_comport_cmd1(t, COMPORT_SET_CONTROL, val);
 }
 
@@ -644,7 +655,7 @@ tn2217_comport_start(struct term_s *t)
         tn2217_send_set_datasize(t, s->termios.c_cflag);
         tn2217_send_set_parity(t, s->termios.c_cflag);
         tn2217_send_set_stopsize(t, s->termios.c_cflag);
-        tn2217_send_set_fc(t, s->termios.c_cflag);
+        tn2217_send_set_fc(t, tios_get_flowcntrl(&s->termios));
     } else {
         /* If we're not going to specify it, ask for
          * the current com port geometry. */
@@ -782,14 +793,19 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
         if (datalen >= 1) {
             switch (data[0]) {
             /* Flow control changes and COMPORT_CONTROL_FC_REQUEST reply */
-            case COMPORT_CONTROL_FC_NONE:
             case COMPORT_CONTROL_FC_XONOFF:
+                fprintf(stderr, "[notified FC_XONXOFF]\r\n");
+                tios_set_flowcntrl(tio, FC_XONXOFF);
+                break;
+            case COMPORT_CONTROL_FC_HARDWARE:
+                fprintf(stderr, "[notified FC_RTSCTS]\r\n");
+                tios_set_flowcntrl(tio, FC_RTSCTS);
+                break;
+            case COMPORT_CONTROL_FC_NONE:
             case COMPORT_CONTROL_FC_DCD:
             case COMPORT_CONTROL_FC_DSR:
-            case COMPORT_CONTROL_FC_HARDWARE:
-                val = (data[0] == COMPORT_CONTROL_FC_HARDWARE ) ? CRTSCTS : 0;
-                tio->c_cflag &= ~CRTSCTS;
-                tio->c_cflag |= val;
+                fprintf(stderr, "[notified FC_NONE]\r\n");
+                tios_set_flowcntrl(tio, FC_NONE);
                 break;
             /* DTR changes and COMPORT_CONTROL_DTR_REQUEST reply */
             case COMPORT_CONTROL_DTR_ON:
@@ -889,7 +905,7 @@ tn2217_tcsetattr(struct term_s *t, int when, const struct termios *tio)
         tn2217_send_set_datasize(t, tio->c_cflag);
         tn2217_send_set_parity(t, tio->c_cflag);
         tn2217_send_set_stopsize(t, tio->c_cflag);
-        tn2217_send_set_fc(t, tio->c_cflag);
+        tn2217_send_set_fc(t, tios_get_flowcntrl(tio));
     } else
         s->set_termios = 1;
     return 0;

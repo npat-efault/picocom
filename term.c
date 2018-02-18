@@ -1235,81 +1235,74 @@ term_get_stopbits (int fd)
 /***************************************************************************/
 
 int
+tios_set_flowcntrl(struct termios *tios, enum flowcntrl_e flowcntl)
+{
+    int rval = 0;
+
+    switch (flowcntl) {
+    case FC_RTSCTS:
+            tios->c_cflag |= CRTSCTS;
+            tios->c_iflag &= ~(IXON | IXOFF | IXANY);
+            break;
+    case FC_XONXOFF:
+        tios->c_cflag &= ~(CRTSCTS);
+        tios->c_iflag |= IXON | IXOFF;
+        break;
+    case FC_NONE:
+        tios->c_cflag &= ~(CRTSCTS);
+        tios->c_iflag &= ~(IXON | IXOFF | IXANY);
+        break;
+    default:
+        term_errno = TERM_EFLOW;
+        rval = -1;
+        break;
+    }
+    return rval;
+}
+
+int
 term_set_flowcntrl (int fd, enum flowcntrl_e flowcntl)
 {
-    int rval;
     struct term_s *t;
-    struct termios *tiop;
 
-    rval = 0;
+    t = term_find(fd);
+    if ( ! t ) return -1;
 
-    do { /* dummy */
+    return tios_set_flowcntrl(&t->nexttermios, flowcntl);
+}
 
-        t = term_find(fd);
-        if ( ! t ) {
-            rval = -1;
-            break;
-        }
+enum flowcntrl_e
+tios_get_flowcntrl(const struct termios *tios)
+{
+    enum flowcntrl_e flow;
+    int rtscts, xoff, xon;
 
-        tiop = &t->nexttermios;
+    rtscts = (tios->c_cflag & CRTSCTS) ? 1 : 0;
+    xoff = (tios->c_iflag & IXOFF) ? 1 : 0;
+    xon = (tios->c_iflag & (IXON | IXANY)) ? 1 : 0;
 
-        switch (flowcntl) {
-        case FC_RTSCTS:
-            tiop->c_cflag |= CRTSCTS;
-            tiop->c_iflag &= ~(IXON | IXOFF | IXANY);
-            break;
-        case FC_XONXOFF:
-            tiop->c_cflag &= ~(CRTSCTS);
-            tiop->c_iflag |= IXON | IXOFF;
-            break;
-        case FC_NONE:
-            tiop->c_cflag &= ~(CRTSCTS);
-            tiop->c_iflag &= ~(IXON | IXOFF | IXANY);
-            break;
-        default:
-            term_errno = TERM_EFLOW;
-            rval = -1;
-            break;
-        }
-        if ( rval < 0 ) break;
+    if ( rtscts && ! xoff && ! xon ) {
+        flow = FC_RTSCTS;
+    } else if ( ! rtscts && xoff && xon ) {
+        flow = FC_XONXOFF;
+    } else if ( ! rtscts && ! xoff && ! xon ) {
+        flow = FC_NONE;
+    } else {
+        flow = FC_OTHER;
+    }
 
-    } while (0);
-
-    return rval;
+    return flow;
 }
 
 enum flowcntrl_e
 term_get_flowcntrl (int fd)
 {
     struct term_s *t;
-    enum flowcntrl_e flow;
-    int rtscts, xoff, xon;
 
-    do { /* dummy */
+    t = term_find(fd);
+    if ( ! t ) return FC_ERROR;
 
-        t = term_find(fd);
-        if ( ! t ) {
-            flow = FC_ERROR;
-            break;
-        }
-
-        rtscts = (t->currtermios.c_cflag & CRTSCTS) ? 1 : 0;
-        xoff = (t->currtermios.c_iflag & IXOFF) ? 1 : 0;
-        xon = (t->currtermios.c_iflag & (IXON | IXANY)) ? 1 : 0;
-
-        if ( rtscts && ! xoff && ! xon ) {
-            flow = FC_RTSCTS;
-        } else if ( ! rtscts && xoff && xon ) {
-            flow = FC_XONXOFF;
-        } else if ( ! rtscts && ! xoff && ! xon ) {
-            flow = FC_NONE;
-        } else {
-            flow = FC_OTHER;
-        }
-
-    } while (0);
-
-    return flow;
+    return tios_get_flowcntrl(&t->currtermios);
 }
 
 /***************************************************************************/
