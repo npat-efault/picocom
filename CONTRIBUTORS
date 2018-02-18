@@ -70,3 +70,6 @@ comments:
 
 - Ben (https://github.com/the-dem) contributed backward compatibility
   fixes.
+
+- David Leonard (https://github.com/dleonard0) contributed the support
+  for remote RFC2217-protocol ports
