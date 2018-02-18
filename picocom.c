@@ -56,7 +56,9 @@
 #endif
 
 #include "custbaud.h"
+#ifdef USE_RFC2217
 #include "tn2217.h"
+#endif
 
 /**********************************************************************/
 
@@ -250,7 +252,8 @@ struct {
     .lower_dtr = 0,
     .raise_rts = 0,
     .raise_dtr = 0,
-    .quiet = 0
+    .quiet = 0,
+    .telnet = 0,
 };
 
 int sig_exit = 0;
@@ -1629,6 +1632,9 @@ show_usage(char *name)
 #ifdef USE_CUSTOM_BAUD
     printf("  USE_CUSTOM_BAUD is enabled\n");
 #endif
+#ifdef USE_RFC2217
+    printf("  USE_RFC2217 is enabled\n");
+#endif
 
     printf("\nUsage is: %s [options] <tty port device>\n", s);
     printf("Options are:\n");
@@ -1658,7 +1664,9 @@ show_usage(char *name)
     printf("  --lower-dtr\n");
     printf("  --raise-dtr\n");
     printf("  --<q>uiet\n");
+#ifdef USE_RFC2217
     printf("  --telnet | -T\n");
+#endif
     printf("  --<h>elp\n");
     printf("<map> is a comma-separated list of one or more of:\n");
     printf("  crlf : map CR --> LF\n");
@@ -1911,9 +1919,11 @@ parse_args(int argc, char *argv[])
         case 'q':
             opts.quiet = 1;
             break;
+#ifdef USE_RFC2217
         case 'T':
             opts.telnet = 1;
             break;
+#endif
         case 'h':
             show_usage(argv[0]);
             exit(EXIT_SUCCESS);
@@ -2073,11 +2083,14 @@ main (int argc, char *argv[])
             fatal("cannot open %s: %s", opts.log_filename, strerror(errno));
     }
 
+#ifdef USE_RFC2217
     if (opts.telnet) {
         tty_fd = tn2217_open(opts.port);
     } else
         tty_fd = open(opts.port, O_RDWR | O_NONBLOCK | O_NOCTTY);
-
+#else
+    tty_fd = open(opts.port, O_RDWR | O_NONBLOCK | O_NOCTTY);
+#endif
     if (tty_fd < 0)
         fatal("cannot open %s: %s", opts.port, strerror(errno));
 
@@ -2089,7 +2102,11 @@ main (int argc, char *argv[])
     }
 #endif
 
+#ifdef USE_RFC2217
     r = term_add(tty_fd, opts.telnet ? &tn2217_ops : NULL);
+#else
+    r = term_add(tty_fd, NULL);
+#endif
     if ( r >= 0 && ! opts.noinit ) {
         r = term_set(tty_fd,
                      1,              /* raw mode. */
