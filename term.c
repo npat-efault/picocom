@@ -312,11 +312,10 @@ Bspeed(speed_t code)
 int
 term_baud_ok(int baud)
 {
-#ifndef USE_CUSTOM_BAUD
-    return (Bcode(baud) != BNONE) ? 1 : 0;
-#else
-    return (baud >= 0);
-#endif
+    if ( use_custom_baud() )
+        return (baud >= 0);
+    else
+        return (Bcode(baud) != BNONE) ? 1 : 0;
 }
 
 int
@@ -817,7 +816,11 @@ term_set_baudrate (int fd, int baudrate)
             /* ispeed = 0, means same as ospeed (see POSIX) */
             cfsetispeed(&tio, B0);
         } else {
-#ifdef USE_CUSTOM_BAUD
+            if ( ! use_custom_baud() ) {
+                term_errno = TERM_EBAUD;
+                rval = -1;
+                break;
+            }
             r = cfsetospeed_custom(&tio, baudrate);
             if ( r < 0 ) {
                 term_errno = TERM_ESETOSPEED;
@@ -826,11 +829,6 @@ term_set_baudrate (int fd, int baudrate)
             }
             /* ispeed = 0, means same as ospeed (see POSIX) */
             cfsetispeed(&tio, B0);
-#else /* ! defined USE_CUSTOM_BAUD */
-            term_errno = TERM_EBAUD;
-            rval = -1;
-            break;
-#endif /* of USE_CUSTOM_BAUD */
         }
 
         term.nexttermios[i] = tio;
@@ -857,23 +855,23 @@ term_get_baudrate (int fd, int *ispeed)
         if ( ispeed ) {
             code = cfgetispeed(&term.currtermios[i]);
             *ispeed = Bspeed(code);
-#ifdef USE_CUSTOM_BAUD
-            if ( *ispeed < 0 ) {
-                *ispeed = cfgetispeed_custom(&term.currtermios[i]);
+            if ( use_custom_baud() ) {
+                if ( *ispeed < 0 ) {
+                    *ispeed = cfgetispeed_custom(&term.currtermios[i]);
+                }
             }
-#endif
         }
         code = cfgetospeed(&term.currtermios[i]);
         ospeed = Bspeed(code);
         if ( ospeed < 0 ) {
-#ifdef USE_CUSTOM_BAUD
+            if ( ! use_custom_baud() ) {
+                term_errno = TERM_EGETSPEED;
+                break;
+            }
             ospeed = cfgetospeed_custom(&term.currtermios[i]);
             if ( ospeed < 0 ) {
                 term_errno = TERM_EGETSPEED;
             }
-#else
-            term_errno = TERM_EGETSPEED;
-#endif
         }
 
     } while (0);

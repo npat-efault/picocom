@@ -1626,6 +1626,8 @@ show_usage(char *name)
 #endif
 #ifdef USE_CUSTOM_BAUD
     printf("  USE_CUSTOM_BAUD is enabled\n");
+    if ( ! use_custom_baud() )
+        printf("  NO_CUSTOM_BAUD is set\n");
 #endif
 
     printf("\nUsage is: %s [options] <tty port device>\n", s);

@@ -49,7 +49,7 @@ linenoise-1.0/linenoise.o : linenoise-1.0/linenoise.c linenoise-1.0/linenoise.h
 #CPPFLAGS += -DNO_HELP
 
 
-OBJS += picocom.o term.o fdio.o split.o termios2.o custbaud_bsd.o
+OBJS += picocom.o term.o fdio.o split.o custbaud.o termios2.o custbaud_bsd.o
 picocom : $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
 
@@ -59,6 +59,7 @@ split.o : split.c split.h
 fdio.o : fdio.c fdio.h
 termios2.o : termios2.c termios2.h termbits2.h custbaud.h
 custbaud_bsd.o : custbaud_bsd.c custbaud_bsd.h custbaud.h
+custbaud.o : custbaud.c custbaud.h
 
 .c.o :
 	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ -c $<
@@ -90,7 +91,7 @@ picocom.1.pdf : picocom.1
 clean:
 	rm -f picocom.o term.o fdio.o split.o
 	rm -f linenoise-1.0/linenoise.o
-	rm -f termios2.o custbaud_bsd.o
+	rm -f custbaud.o termios2.o custbaud_bsd.o
 	rm -f *~
 	rm -f \#*\#
 

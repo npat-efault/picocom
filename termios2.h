@@ -55,12 +55,12 @@ int tc2getattr(int fd, struct termios *tios);
  * old one, supports different input and output speeds for a
  * device. The "speed" argument must be (and the return value will be)
  * one of the standard "Bxxxx" macros. If cf2getispeed() or
- * cfgetospeed(3) return CBAUDEX, then the respective baudrate is a
+ * cfgetospeed(3) return BOTHER, then the respective baudrate is a
  * custom one. Read the "termios.c_ispeed" / "termios.c_ospeed" fields
  * to get the custom value (as a numeric speed). */
 
 int cf2setispeed(struct termios *tios, speed_t speed);
-speed_t cf2getispeed(struct termios *tios);
+speed_t cf2getispeed(const struct termios *tios);
 
 /* Use these to set *custom* input and output baudrates for a
  * device. The "speed" argument must be a numeric baudrate value

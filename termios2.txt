@@ -72,7 +72,8 @@ called: "the CIBAUD field"), together with field "c_ispeed" control
 the input baudrate.
 
 BTW: Usually CBAUD & CBAUDEX == CBAUD. That is, CBAUDEX *is*
-one of the CBAUD bits.
+one of the CBAUD bits. See end of this file for more on the usual
+relationship of CBAUD, CBAUDEX, BOTHER
 
 When issuing one of the TCSETS*2 ioctls, everything contained in the
 "termios2" structure is copied to a kernel-resident structure and the
@@ -147,3 +148,27 @@ baudrate values supplied by the serial drivers can be seen in file
 "tty_termios_encode_baud_rate()" which is what the serial drivers call
 to notify the kernel about the effective baudrate.
 
+
+Baud-codes, CBAUD, CBAUDEX, and BOTHER
+--------------------------------------
+
+CBAUD   = 0010017 ---> 0001 0000 0000 1111  mask 
+CBUADEX = 0010000 ---> 0001 0000 0000 0000  extender bit
+BOTHER  = 0010000 ---> 0001 0000 0000 0000  a reserved code
+
+Usually CBAUD includes CBAUDEX. In any case the mask is always CBAUD &
+CBAUDEX (which is usually == CBAUD)
+
+       Basic codes (Bxxx & CBAUDEX == 0)
+       
+                  B0 > ---0 ---- ---- 0000
+                 B50 > ---0 ---- ---- 0001
+                    ... 16 in total ...
+              B38400 > ---0 ---- ---- 1111
+
+       Extended codes (Bxxx & CBAUDEX == 1)
+                 
+    CBAUDEX / BOTHER > ---1 ---- ---- 0000
+              B57600 > ---1 ---- ---- 0001
+                    ... 16 in total ...
+            B4000000 > ---1 ---- ---- 1111                 

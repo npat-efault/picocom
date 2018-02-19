@@ -87,8 +87,8 @@
 
 int cfsetospeed_custom(struct termios *tiop, int speed);
 int cfsetispeed_custom(struct termios *tiop, int speed);
-int cfgetospeed_custom(struct termios *tiop);
-int cfgetispeed_custom(struct termios *tiop);
+int cfgetospeed_custom(const struct termios *tiop);
+int cfgetispeed_custom(const struct termios *tiop);
 
 /***************************************************************************/
 

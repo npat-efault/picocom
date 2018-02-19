@@ -59,6 +59,8 @@ tc2setattr(int fd, int optional_actions, const struct termios *tios)
     struct termios2 t2;
     int cmd;
 
+    if ( ! use_custom_baud() ) return tcsetattr(fd, optional_actions, tios);
+
     switch (optional_actions) {
     case TCSANOW:
         cmd = IOCTL_SETS;
@@ -93,6 +95,8 @@ tc2getattr(int fd, struct termios *tios)
     size_t i;
     int r;
 
+    if ( ! use_custom_baud() ) return tcgetattr(fd, tios);
+
     r = ioctl(fd, IOCTL_GETS, &t2);
     if (r < 0) return r;
 
@@ -126,6 +130,8 @@ tc2getattr(int fd, struct termios *tios)
 int
 cf2setispeed(struct termios *tios, speed_t speed)
 {
+    if ( ! use_custom_baud() ) return cfsetispeed(tios, speed);
+
     if ( (speed & ~CBAUD) != 0
          && (speed < B57600 || speed > __MAX_BAUD) ) {
         errno = EINVAL;
@@ -139,8 +145,10 @@ cf2setispeed(struct termios *tios, speed_t speed)
 }
 
 speed_t
-cf2getispeed(struct termios *tios)
+cf2getispeed(const struct termios *tios)
 {
+    if ( ! use_custom_baud() ) return cfgetispeed(tios);
+
     return (tios->c_cflag >> IBSHIFT) & (CBAUD | CBAUDEX);
 }
 
@@ -150,6 +158,8 @@ cf2getispeed(struct termios *tios)
 int
 cf2setospeed_custom(struct termios *tios, int speed)
 {
+    if ( ! use_custom_baud() ) { errno = EINVAL; return -1; }
+
     if ( speed <= 0 ) {
         errno = EINVAL;
         return -1;
@@ -164,6 +174,8 @@ cf2setospeed_custom(struct termios *tios, int speed)
 int
 cf2setispeed_custom(struct termios *tios, int speed)
 {
+    if ( ! use_custom_baud() ) { errno = EINVAL; return -1; }
+
     if ( speed < 0 ) {
         errno = EINVAL;
         return -1;

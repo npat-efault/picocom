@@ -71,11 +71,11 @@ int cfsetispeed_custom(struct termios *tiop, int speed) {
     return cfsetispeed(tiop, speed);
 }
 
-int cfgetospeed_custom(struct termios *tiop) {
+int cfgetospeed_custom(const struct termios *tiop) {
     return cfgetospeed(tiop);
 }
 
-int cfgetispeed_custom(struct termios *tiop) {
+int cfgetispeed_custom(const struct termios *tiop) {
     return cfgetispeed(tiop);
 }
 
