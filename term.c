@@ -120,6 +120,8 @@ local_tcsetattr(struct term_s *t, int when, const struct termios *termios)
     return tcsetattr(t->fd, when, termios);
 }
 
+#ifdef USE_IOCTL
+
 static int
 local_modem_get(struct term_s *t, int *modem_out)
 {
@@ -137,6 +139,8 @@ local_modem_bic(struct term_s *t, const int *modem)
 {
     return ioctl(t->fd, TIOCMBIC, modem);
 }
+
+#endif /* of USE_IOCTL */
 
 static int
 local_send_break(struct term_s *t)
@@ -180,9 +184,15 @@ static const struct term_ops local_term_ops = {
     .init = local_init,
     .tcgetattr = local_tcgetattr,
     .tcsetattr = local_tcsetattr,
+#ifdef USE_IOCTL
     .modem_get = local_modem_get,
     .modem_bis = local_modem_bis,
     .modem_bic = local_modem_bic,
+#else
+    .modem_get = NULL,
+    .modem_bis = NULL,
+    .modem_bic = NULL,
+#endif
     .send_break = local_send_break,
     .flush = local_flush,
     .drain = local_drain,
@@ -1452,8 +1462,7 @@ term_pulse_dtr (int fd)
             break;
         }
 
-#ifdef USE_IOCTL
-        {
+        if ( t->ops->modem_bic && t->ops->modem_bis )  {
             int opins = TIOCM_DTR;
 
             r = t->ops->modem_bic(t, &opins);
@@ -1471,9 +1480,7 @@ term_pulse_dtr (int fd)
                 rval = -1;
                 break;
             }
-        }
-#else
-        {
+        } else {
             struct termios tio, tioold;
 
             r = t->ops->tcgetattr(t, &tio);
@@ -1504,8 +1511,6 @@ term_pulse_dtr (int fd)
                 break;
             }
         }
-#endif /* of USE_IOCTL */
-
     } while (0);
 
     return rval;
@@ -1529,8 +1534,7 @@ term_raise_dtr(int fd)
             break;
         }
 
-#ifdef USE_IOCTL
-        {
+        if ( t->ops->modem_bis ) {
             int r, opins = TIOCM_DTR;
 
             r = t->ops->modem_bis(t, &opins);
@@ -1539,11 +1543,10 @@ term_raise_dtr(int fd)
                 rval = -1;
                 break;
             }
+        } else {
+            term_errno = TERM_EDTRUP;
+            rval = -1;
         }
-#else
-        term_errno = TERM_EDTRUP;
-        rval = -1;
-#endif /* of USE_IOCTL */
     } while (0);
 
     return rval;
@@ -1568,8 +1571,7 @@ term_lower_dtr(int fd)
             break;
         }
 
-#ifdef USE_IOCTL
-        {
+        if ( t->ops->modem_bic ) {
             int r, opins = TIOCM_DTR;
 
             r = t->ops->modem_bic(t, &opins);
@@ -1578,11 +1580,10 @@ term_lower_dtr(int fd)
                 rval = -1;
                 break;
             }
+        } else {
+            term_errno = TERM_EDTRDOWN;
+            rval = -1;
         }
-#else
-        term_errno = TERM_EDTRDOWN;
-        rval = -1;
-#endif /* of USE_IOCTL */
     } while (0);
 
     return rval;
@@ -1606,8 +1607,7 @@ term_raise_rts(int fd)
             break;
         }
 
-#ifdef USE_IOCTL
-        {
+        if ( t->ops->modem_bis ) {
             int r;
             int opins = TIOCM_RTS;
 
@@ -1617,11 +1617,10 @@ term_raise_rts(int fd)
                 rval = -1;
                 break;
             }
+        } else {
+            term_errno = TERM_ERTSUP;
+            rval = -1;
         }
-#else
-        term_errno = TERM_ERTSUP;
-        rval = -1;
-#endif /* of USE_IOCTL */
     } while (0);
 
     return rval;
@@ -1645,8 +1644,7 @@ term_lower_rts(int fd)
             break;
         }
 
-#ifdef USE_IOCTL
-        {
+        if ( t->ops->modem_bic ) {
             int r;
             int opins = TIOCM_RTS;
 
@@ -1656,16 +1654,14 @@ term_lower_rts(int fd)
                 rval = -1;
                 break;
             }
+        } else {
+            term_errno = TERM_ERTSDOWN;
+            rval = -1;
         }
-#else
-        term_errno = TERM_ERTSDOWN;
-        rval = -1;
-#endif /* of USE_IOCTL */
     } while (0);
 
     return rval;
 }
-
 
 /***************************************************************************/
 
@@ -1683,8 +1679,7 @@ term_get_mctl (int fd)
             break;
         }
 
-#ifdef USE_IOCTL
-        {
+        if ( t->ops->modem_get ) {
             int r, pmctl;
 
             r = t->ops->modem_get(t, &pmctl);
@@ -1699,10 +1694,9 @@ term_get_mctl (int fd)
             if (pmctl & TIOCM_RTS) mctl |= MCTL_RTS;
             if (pmctl & TIOCM_CTS) mctl |= MCTL_CTS;
             if (pmctl & TIOCM_RI) mctl |= MCTL_RI;
+        } else {
+            mctl = MCTL_UNAVAIL;
         }
-#else
-        mctl = MCTL_UNAVAIL;
-#endif /* of USE_IOCTL */
     } while(0);
 
     return mctl;
