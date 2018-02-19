@@ -1973,6 +1973,7 @@ parse_args(int argc, char *argv[])
     printf("picocom v%s\n", VERSION_STR);
     printf("\n");
     printf("port is        : %s\n", opts.port);
+    printf("telnet is      : %s\n", opts.telnet ? "yes" : "no");
     printf("flowcontrol    : %s\n", flow_str[opts.flow]);
     printf("baudrate is    : %d\n", opts.baud);
     printf("parity is      : %s\n", parity_str[opts.parity]);
