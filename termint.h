@@ -58,6 +58,9 @@ struct term_ops {
 
 enum flowcntrl_e tios_get_flowcntrl(const struct termios *tios);
 int tios_set_flowcntrl(struct termios *tios, enum flowcntrl_e flowcntl);
+int tios_get_baudrate(const struct termios *tios, int *ispeed);
+int tios_set_baudrate (struct termios *tios, int baudrate);
+void tios_set_baudrate_always(struct termios *tios, int baudrate);
 
 #endif /* of TERMINT_H */
 

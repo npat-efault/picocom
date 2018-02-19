@@ -60,7 +60,7 @@ int tc2getattr(int fd, struct termios *tios);
  * to get the custom value (as a numeric speed). */
 
 int cf2setispeed(struct termios *tios, speed_t speed);
-speed_t cf2getispeed(struct termios *tios);
+speed_t cf2getispeed(const struct termios *tios);
 
 /* Use these to set *custom* input and output baudrates for a
  * device. The "speed" argument must be a numeric baudrate value

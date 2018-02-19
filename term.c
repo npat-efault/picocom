@@ -407,6 +407,27 @@ Bcode(int speed)
     return code;
 }
 
+int
+Bspeed_nearest(int speed)
+{
+    int i, mid;
+
+    if ( speed <= baud_table[1].speed )
+        return baud_table[1].speed;
+
+    for (i = 2; i < BAUD_TABLE_SZ; i++) {
+        if ( speed <= baud_table[i].speed ) {
+            mid = ( baud_table[i].speed + baud_table[i-1].speed ) / 2;
+            if ( speed >= mid )
+                return baud_table[i].speed;
+            else
+                return baud_table[i-1].speed;
+        }
+    }
+
+    return baud_table[BAUD_TABLE_SZ -1].speed;
+}
+
 static int
 Bspeed(speed_t code)
 {
@@ -923,98 +944,116 @@ term_set_raw (int fd)
 /***************************************************************************/
 
 int
-term_set_baudrate (int fd, int baudrate)
+tios_set_baudrate (struct termios *tios, int baudrate)
 {
     int rval, r;
-    struct term_s *t;
     speed_t spd;
-    struct termios tio;
+    struct termios ttios;
 
     rval = 0;
-
+    ttios = *tios;
     do { /* dummy */
-
-        t = term_find(fd);
-        if ( ! t ) {
-            rval = -1;
-            break;
-        }
-
-        tio = t->nexttermios;
         spd = Bcode(baudrate);
         if ( spd != BNONE ) {
-            r = cfsetospeed(&tio, spd);
+            r = cfsetospeed(&ttios, spd);
             if ( r < 0 ) {
                 term_errno = TERM_ESETOSPEED;
                 rval = -1;
                 break;
             }
-            /* ispeed = 0, means same as ospeed (see POSIX) */
-            cfsetispeed(&tio, B0);
+            /* ispeed = 0, means same as ospeed */
+            cfsetispeed(&ttios, B0);
         } else {
 #ifdef USE_CUSTOM_BAUD
-            r = cfsetospeed_custom(&tio, baudrate);
+            r = cfsetospeed_custom(&ttios, baudrate);
             if ( r < 0 ) {
                 term_errno = TERM_ESETOSPEED;
                 rval = -1;
                 break;
             }
             /* ispeed = 0, means same as ospeed (see POSIX) */
-            cfsetispeed(&tio, B0);
+            cfsetispeed(&ttios, B0);
 #else /* ! defined USE_CUSTOM_BAUD */
             term_errno = TERM_EBAUD;
             rval = -1;
             break;
 #endif /* of USE_CUSTOM_BAUD */
         }
-
-        t->nexttermios = tio;
-
+        *tios = ttios;
     } while (0);
 
     return rval;
 }
 
+void
+tios_set_baudrate_always(struct termios *tios, int baudrate)
+{
+    int r;
+
+    r = tios_set_baudrate(tios, baudrate);
+    if ( r < 0 ) {
+        if ( term_errno == TERM_EBAUD ) {
+            /* find the nearest, non-custom speed and try with this */
+            baudrate = Bspeed_nearest(baudrate);
+            r = tios_set_baudrate(tios, baudrate);
+            if ( r >= 0 ) return;
+        }
+        /* last resort, set B0 */
+        tios_set_baudrate(tios, 0);
+    }
+}
+
 int
-term_get_baudrate (int fd, int *ispeed)
+term_set_baudrate (int fd, int baudrate)
+{
+    struct term_s *t;
+
+    t = term_find(fd);
+    if ( ! t ) return -1;
+
+    return tios_set_baudrate(&t->nexttermios, baudrate);
+}
+
+int
+tios_get_baudrate(const struct termios *tios, int *ispeed)
 {
     speed_t code;
     int ospeed;
-    struct term_s *t;
 
-    do { /* dummy */
-
-        t = term_find(fd);
-        if ( ! t ) {
-            ospeed = -1;
-            break;
-        }
-
-        if ( ispeed ) {
-            code = cfgetispeed(&t->currtermios);
-            *ispeed = Bspeed(code);
+    if ( ispeed ) {
+        code = cfgetispeed(tios);
+        *ispeed = Bspeed(code);
 #ifdef USE_CUSTOM_BAUD
-            if ( *ispeed < 0 ) {
-                *ispeed = cfgetispeed_custom(&t->currtermios);
-            }
-#endif
+        if ( *ispeed < 0 ) {
+            *ispeed = cfgetispeed_custom(tios);
         }
-        code = cfgetospeed(&t->currtermios);
-        ospeed = Bspeed(code);
+#endif
+    }
+    code = cfgetospeed(tios);
+    ospeed = Bspeed(code);
+    if ( ospeed < 0 ) {
+#ifdef USE_CUSTOM_BAUD
+        ospeed = cfgetospeed_custom(tios);
         if ( ospeed < 0 ) {
-#ifdef USE_CUSTOM_BAUD
-            ospeed = cfgetospeed_custom(&t->currtermios);
-            if ( ospeed < 0 ) {
-                term_errno = TERM_EGETSPEED;
-            }
-#else
             term_errno = TERM_EGETSPEED;
-#endif
         }
-
-    } while (0);
+#else
+        term_errno = TERM_EGETSPEED;
+#endif
+    }
 
     return ospeed;
+}
+
+int
+term_get_baudrate (int fd, int *ispeed)
+{
+    struct term_s *t;
+
+    t = term_find(fd);
+    if ( ! t ) return -1;
+
+    return tios_get_baudrate(&t->currtermios, ispeed);
 }
 
 /***************************************************************************/

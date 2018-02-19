@@ -139,7 +139,7 @@ cf2setispeed(struct termios *tios, speed_t speed)
 }
 
 speed_t
-cf2getispeed(struct termios *tios)
+cf2getispeed(const struct termios *tios)
 {
     return (tios->c_cflag >> IBSHIFT) & (CBAUD | CBAUDEX);
 }

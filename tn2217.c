@@ -466,32 +466,6 @@ tn2217_send_comport_cmd4(struct term_s *t, unsigned char cmd, unsigned int val)
     tn2217_send_comport_cmd(t, cmd, valbuf, sizeof valbuf);
 }
 
-static unsigned int
-decode_speed(speed_t speed)
-{
-    /* TODO: use baud_table[] */
-    switch (speed) {
-    case B0: return 0;
-    case B50: return 50;
-    case B75: return 75;
-    case B110: return 110;
-    case B134: return 134;
-    case B150: return 150;
-    case B200: return 200;
-    case B300: return 300;
-    case B1200: return 1200;
-    case B1800: return 1800;
-    case B2400: return 2400;
-    case B4800: return 4800;
-    case B9600: return 9600;
-    case B19200: return 19200;
-    case B38400: return 38400;
-    case B57600: return 57600;
-    case B115200: return 115200;
-    default: return (unsigned int)speed;
-    }
-}
-
 /* Return simple debug representation of a termios, eg "19200,8n1" */
 const char *
 termios_repr(const struct termios *tio)
@@ -501,7 +475,7 @@ termios_repr(const struct termios *tio)
 
     snprintf(out, sizeof out,
         "%u,%u%c%u%s",
-        decode_speed(cfgetospeed(tio)),
+            tios_get_baudrate(tio, NULL),
             (c & CSIZE) == CS5 ? 5 :
             (c & CSIZE) == CS6 ? 6 :
             (c & CSIZE) == CS7 ? 7 : 8,
@@ -540,9 +514,10 @@ modem_repr(int m)
 
 /* Sends a SET-BAUDRATE message to the remote */
 static void
-tn2217_send_set_baudrate(struct term_s *t, speed_t speed)
+tn2217_send_set_baudrate(struct term_s *t, int speed)
 {
-    tn2217_send_comport_cmd4(t, COMPORT_SET_BAUDRATE, decode_speed(speed));
+    if (speed >= 0)
+        tn2217_send_comport_cmd4(t, COMPORT_SET_BAUDRATE, speed);
 }
 
 /* Sends a SET-DATASIZE message to the remote */
@@ -648,7 +623,7 @@ tn2217_comport_start(struct term_s *t)
     tn2217_send_comport_cmd1(t, COMPORT_SET_MODEMSTATE_MASK, MODEMSTATE_MASK);
 
     if (s->set_termios) {
-        tn2217_send_set_baudrate(t, cfgetospeed(&s->termios));
+        tn2217_send_set_baudrate(t, tios_get_baudrate(&s->termios, NULL));
         tn2217_send_set_datasize(t, s->termios.c_cflag);
         tn2217_send_set_parity(t, s->termios.c_cflag);
         tn2217_send_set_stopsize(t, s->termios.c_cflag);
@@ -714,28 +689,7 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
         if (datalen >= 4) {
             unsigned int baud = (data[0] << 24) | (data[1] << 16) |
                              (data[2] << 8) | data[3];
-            speed_t speed;
-            /* The remote's speed may not be an exact termios baud */
-            if      (baud <=     50) speed = B50;
-            else if (baud <=     75) speed = B75;
-            else if (baud <=    110) speed = B110;
-            else if (baud <=    134) speed = B134;
-            else if (baud <=    150) speed = B150;
-            else if (baud <=    200) speed = B200;
-            else if (baud <=    300) speed = B300;
-            else if (baud <=    600) speed = B600;
-            else if (baud <=   1200) speed = B1200;
-            else if (baud <=   1800) speed = B1800;
-            else if (baud <=   2400) speed = B2400;
-            else if (baud <=   4800) speed = B4800;
-            else if (baud <=   9600) speed = B9600;
-            else if (baud <=  19200) speed = B19200;
-            else if (baud <=  38400) speed = B38400;
-            else if (baud <=  57600) speed = B57600;
-            else if (baud <= 115200) speed = B115200;
-            else                     speed = baud;
-            cfsetospeed(&s->termios, speed);
-            cfsetispeed(&s->termios, B0);
+            tios_set_baudrate_always(&s->termios, baud);
         }
         /* XXX the sredird server sends an extra 4-byte value,
          * which looks like the ispeed. It is not in the RFC. */
@@ -895,7 +849,7 @@ tn2217_tcsetattr(struct term_s *t, int when, const struct termios *tio)
     DEBUG("[tcsetattr %s]", termios_repr(tio));
     s->termios = *tio;
     if (s->can_comport) {
-        tn2217_send_set_baudrate(t, cfgetospeed(tio));
+        tn2217_send_set_baudrate(t, tios_get_baudrate(tio, NULL));
         tn2217_send_set_datasize(t, tio->c_cflag);
         tn2217_send_set_parity(t, tio->c_cflag);
         tn2217_send_set_stopsize(t, tio->c_cflag);
