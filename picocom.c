@@ -1635,6 +1635,8 @@ show_usage(char *name)
 #endif
 #ifdef USE_CUSTOM_BAUD
     printf("  USE_CUSTOM_BAUD is enabled\n");
+    if ( ! use_custom_baud() )
+        printf("  NO_CUSTOM_BAUD is set\n");
 #endif
 #ifdef USE_RFC2217
     printf("  USE_RFC2217 is enabled\n");

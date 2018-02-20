@@ -445,11 +445,10 @@ Bspeed(speed_t code)
 int
 term_baud_ok(int baud)
 {
-#ifndef USE_CUSTOM_BAUD
-    return (Bcode(baud) != BNONE) ? 1 : 0;
-#else
-    return (baud >= 0);
-#endif
+    if ( use_custom_baud() )
+        return (baud >= 0);
+    else
+        return (Bcode(baud) != BNONE) ? 1 : 0;
 }
 
 int
@@ -964,7 +963,11 @@ tios_set_baudrate (struct termios *tios, int baudrate)
             /* ispeed = 0, means same as ospeed */
             cfsetispeed(&ttios, B0);
         } else {
-#ifdef USE_CUSTOM_BAUD
+            if ( ! use_custom_baud() ) {
+                term_errno = TERM_EBAUD;
+                rval = -1;
+                break;
+            }
             r = cfsetospeed_custom(&ttios, baudrate);
             if ( r < 0 ) {
                 term_errno = TERM_ESETOSPEED;
@@ -973,11 +976,6 @@ tios_set_baudrate (struct termios *tios, int baudrate)
             }
             /* ispeed = 0, means same as ospeed (see POSIX) */
             cfsetispeed(&ttios, B0);
-#else /* ! defined USE_CUSTOM_BAUD */
-            term_errno = TERM_EBAUD;
-            rval = -1;
-            break;
-#endif /* of USE_CUSTOM_BAUD */
         }
         *tios = ttios;
     } while (0);
@@ -1023,23 +1021,24 @@ tios_get_baudrate(const struct termios *tios, int *ispeed)
     if ( ispeed ) {
         code = cfgetispeed(tios);
         *ispeed = Bspeed(code);
-#ifdef USE_CUSTOM_BAUD
-        if ( *ispeed < 0 ) {
-            *ispeed = cfgetispeed_custom(tios);
+        if ( use_custom_baud() ) {
+            if ( *ispeed < 0 ) {
+                *ispeed = cfgetispeed_custom(tios);
+            }
         }
-#endif
     }
     code = cfgetospeed(tios);
     ospeed = Bspeed(code);
     if ( ospeed < 0 ) {
-#ifdef USE_CUSTOM_BAUD
+        if ( ! use_custom_baud() ) {
+            term_errno = TERM_EGETSPEED;
+            return ospeed;
+        }
         ospeed = cfgetospeed_custom(tios);
         if ( ospeed < 0 ) {
             term_errno = TERM_EGETSPEED;
+            return ospeed;
         }
-#else
-        term_errno = TERM_EGETSPEED;
-#endif
     }
 
     return ospeed;

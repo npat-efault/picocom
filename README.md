@@ -326,3 +326,47 @@ Some interesting points:
 
 Again, this is only *one* possible setup. There are countless other
 variations and elaborations you can try. Be creative!
+
+## Some notes on custom baudrate support
+
+Custom baudrate support gives you the ability to set arbitrary
+baudrate values (like 1234, or 42000, etc) to a serial port, provided
+that the underlying driver can handle this. Since release 2.0, picocom
+can be compiled with custom baudrate support for some systems. Since
+release 3.1 picocom is compiled with custom baudrate support enabled
+*by default* on some systems (like Linux, kernels > 2.6, on x86 and
+x86_64, modern Intel Macs, and some BSDs). In any case, you can
+explicitly ask for custom baudrate support to be *enabled* by
+compiling picocom like this:
+
+    CPPFLAGS=-DUSE_CUSTOM_BAUD make clean
+    CPPFLAGS=-DUSE_CUSTOM_BAUD make
+
+If custom baudrate support is not available for your system, the
+compilation will fail. Similarly, you can ask for custom baudrate
+support to be *disabled* by compiling like:
+
+    CPPFLAGS=-DNO_CUSTOM_BAUD make clean
+    CPPFLAGS=-DNO_CUSTOM_BAUD make
+
+(or you can comment in or out the respective lines in the Makefile)
+
+When picocom is compiled with custom baudrate support *on Linux*, it
+uses a new set of ioctl's (`TCGETS2`, `TCSETSF2` vs `TCGETS`,
+`TCSETSF`, etc) to access the serial ports. It is not impossible that
+some systems or some serial devices may not accept these new ioctl's
+(though they should). In order to be able to use picocom even in this
+case, and without recompiling it, you can disable the custom baudrate
+support at runtime, and force picocom to use the "old" ioctls. To do
+this (starting with release 3.2) just define the environment variable
+`NO_CUSTOM_BAUD` before running picocom. Something like this:
+
+    NO_CUSTOM_BAUD=1 picocom ...
+
+This only applies to Linux, and to picocom binaries that have been
+compiled with custom baudrate support.
+
+To see if your binary has been compiled with custom baudrate support,
+and / or if it has detected the `NO_CUSTOM_BAUD` variable, run it with
+the **--help** option, and take a look at the first few lines of
+output.

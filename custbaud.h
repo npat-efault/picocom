@@ -87,6 +87,14 @@
 
 #endif /* of ndef NO_CUSTOM_BAUD else */
 
+#include <termios.h>
+
+int use_custom_baud();
+int cfsetispeed_custom(struct termios *tios, int speed);
+int cfsetospeed_custom(struct termios *tios, int speed);
+int cfgetispeed_custom(const struct termios *tios);
+int cfgetospeed_custom(const struct termios *tios);
+
 #endif /* CUSTBAUD_H */
 
 /**************************************************************************/
