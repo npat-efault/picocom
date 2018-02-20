@@ -156,7 +156,7 @@ CBAUD   = 0010017 ---> 0001 0000 0000 1111  mask
 CBUADEX = 0010000 ---> 0001 0000 0000 0000  extender bit
 BOTHER  = 0010000 ---> 0001 0000 0000 0000  a reserved code
 
-Usually CBAUD includes CBAUDEX. In any case the mask is always CBAUD &
+Usually CBAUD includes CBAUDEX. In any case the mask is always CBAUD |
 CBAUDEX (which is usually == CBAUD)
 
        Basic codes (Bxxx & CBAUDEX == 0)
