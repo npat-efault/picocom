@@ -117,7 +117,13 @@ local_tcgetattr(struct term_s *t, struct termios *termios_out)
 static int
 local_tcsetattr(struct term_s *t, int when, const struct termios *termios)
 {
-    return tcsetattr(t->fd, when, termios);
+    int r;
+
+    do {
+        r = tcsetattr(t->fd, when, termios);
+    } while ( r < 0 && errno == EINTR );
+
+    return r;
 }
 
 #ifdef USE_IOCTL
@@ -145,7 +151,12 @@ local_modem_bic(struct term_s *t, const int *modem)
 static int
 local_send_break(struct term_s *t)
 {
-    return tcsendbreak(t->fd, 0);
+    int r;
+    do {
+        r = tcsendbreak(t->fd, 0);
+    } while (r < 0 && errno == EINTR );
+
+    return r;
 }
 
 static int
@@ -159,13 +170,25 @@ local_drain(struct term_s *t)
 {
     int r;
 
+    do {
 #ifdef __BIONIC__
-    /* See: http://dan.drown.org/android/src/gdb/no-tcdrain */
-    r = ioctl(t->fd, TCSBRK, 1);
+        /* See: http://dan.drown.org/android/src/gdb/no-tcdrain */
+        r = ioctl(t->fd, TCSBRK, 1);
 #else
-    r = tcdrain(t->fd);
+        r = tcdrain(t->fd);
 #endif
-    return r;
+    } while ( r < 0 && errno == EINTR);
+    if ( r < 0 )
+        return r;
+
+    /* Give some time to the UART to transmit everything. Some
+       systems and / or drivers corrupt the last character(s) if
+       the port is immediately reconfigured, even after a
+       drain. (I guess, drain does not wait for everything to
+       actually be transitted on the wire). */
+    if ( DRAIN_DELAY ) usleep(DRAIN_DELAY);
+
+    return 0;
 }
 
 int
@@ -572,9 +595,7 @@ term_exitfunc (void)
                 continue;
             term_drain(t->fd);
             t->ops->flush(t, TCIFLUSH);
-            do {
-                r = t->ops->tcsetattr(t, TCSANOW, &t->origtermios);
-            } while ( r < 0 && errno == EINTR );
+            r = t->ops->tcsetattr(t, TCSANOW, &t->origtermios);
             if ( r < 0 ) {
                 const char *tname;
 
@@ -617,9 +638,7 @@ term_lib_init (void)
                 if (t->fd == -1)
                     continue;
                 t->ops->flush(t, TCIOFLUSH);
-                do {
-                    r = t->ops->tcsetattr(t, TCSANOW, &t->origtermios);
-                } while ( r < 0 && errno == EINTR );
+                r = t->ops->tcsetattr(t, TCSANOW, &t->origtermios);
                 if ( r < 0 ) {
                     const char *tname;
 
@@ -1756,20 +1775,12 @@ term_drain(int fd)
             break;
         }
 
-        do {
-            r = t->ops->drain(t);
-        } while ( r < 0 && errno == EINTR);
+        r = t->ops->drain(t);
         if ( r < 0 ) {
             term_errno = TERM_EDRAIN;
             rval = -1;
             break;
         }
-        /* Give some time to the UART to transmit everything. Some
-           systems and / or drivers corrupt the last character(s) if
-           the port is immediately reconfigured, even after a
-           drain. (I guess, drain does not wait for everything to
-           actually be transitted on the wire). */
-        if ( DRAIN_DELAY ) usleep(DRAIN_DELAY);
 
     } while (0);
 
@@ -1821,8 +1832,6 @@ term_fake_flush(int fd)
             rval = -1;
             break;
         }
-        /* see comment in term_drain */
-        if ( DRAIN_DELAY ) usleep(DRAIN_DELAY);
         /* Reset flow-control to original setting. */
         r = t->ops->tcsetattr(t, TCSANOW, &t->currtermios);
         if ( r < 0 ) {
