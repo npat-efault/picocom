@@ -352,13 +352,13 @@ support to be *disabled* by compiling like:
 (or you can comment in or out the respective lines in the Makefile)
 
 When picocom is compiled with custom baudrate support *on Linux*, it
-uses a new set of ioctl's (TCGETS2, TCSETSF2 vs TCGETS, TCSETSF, etc)
-to access the serial ports. It is not impossible that some serial
-devices may not accept these new ioctl's (though they should). In
-order to be able to use picocom even with such devices, and without
-recompiling it, you can disable the custom baudrate support at
-runtime, and force picocom to use the "old" ioctls. To do this
-(starting with release 3.2) just define the environment variable
+uses a new set of ioctl's (`TCGETS2`, `TCSETSF2` vs `TCGETS`,
+`TCSETSF`, etc) to access the serial ports. It is not impossible that
+some systems or some serial devices may not accept these new ioctl's
+(though they should). In order to be able to use picocom even in this
+case, and without recompiling it, you can disable the custom baudrate
+support at runtime, and force picocom to use the "old" ioctls. To do
+this (starting with release 3.2) just define the environment variable
 `NO_CUSTOM_BAUD` before running picocom. Something like this:
 
     NO_CUSTOM_BAUD=1 picocom ...
