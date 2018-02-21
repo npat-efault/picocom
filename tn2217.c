@@ -471,18 +471,14 @@ const char *
 termios_repr(const struct termios *tio)
 {
     static char out[256];
-    int c = tio->c_cflag;
 
     snprintf(out, sizeof out,
-        "%u,%u%c%u%s",
-            tios_get_baudrate(tio, NULL),
-            (c & CSIZE) == CS5 ? 5 :
-            (c & CSIZE) == CS6 ? 6 :
-            (c & CSIZE) == CS7 ? 7 : 8,
-            (c & (PARENB|PARODD)) == PARENB ? 'e' :
-            (c & (PARENB|PARODD)) == PARODD ? 'o' : 'n',
-            (c & CSTOPB) ? 2 : 1,
-            (c & CRTSCTS) ? ",crtscts" : "");
+             "%u:%u:%s:%u:%s",
+             tios_get_baudrate(tio, NULL),
+             tios_get_databits(tio),
+             parity_str[tios_get_parity(tio)],
+             tios_get_stopbits(tio),
+             flow_str[tios_get_flowcntrl(tio)]);
     return out;
 }
 
@@ -522,41 +518,41 @@ tn2217_send_set_baudrate(struct term_s *t, int speed)
 
 /* Sends a SET-DATASIZE message to the remote */
 static void
-tn2217_send_set_datasize(struct term_s *t, int c_flag)
+tn2217_send_set_datasize(struct term_s *t, int databits)
 {
     unsigned char val;
 
-    switch (c_flag & CSIZE) {
-    case CS5:  val = COMPORT_DATASIZE_5; break;
-    case CS6:  val = COMPORT_DATASIZE_6; break;
-    case CS7:  val = COMPORT_DATASIZE_7; break;
-    default:   val = COMPORT_DATASIZE_8; break;
+    switch (databits) {
+    case 5:  val = COMPORT_DATASIZE_5; break;
+    case 6:  val = COMPORT_DATASIZE_6; break;
+    case 7:  val = COMPORT_DATASIZE_7; break;
+    default: val = COMPORT_DATASIZE_8; break;
     }
     tn2217_send_comport_cmd1(t, COMPORT_SET_DATASIZE, val);
 }
 
 /* Sends a SET-PARITY message to the remote */
 static void
-tn2217_send_set_parity(struct term_s *t, int c_flag)
+tn2217_send_set_parity(struct term_s *t, enum parity_e parity)
 {
     unsigned char val;
 
-    switch (c_flag & PARMASK) {
-    case PARENB | PARODD: val = COMPORT_PARITY_ODD; break;
-    case PARENB         : val = COMPORT_PARITY_EVEN; break;
-    default:              val = COMPORT_PARITY_NONE; break;
+    switch (parity) {
+    case P_ODD:  val = COMPORT_PARITY_ODD; break;
+    case P_EVEN: val = COMPORT_PARITY_EVEN; break;
+    default:     val = COMPORT_PARITY_NONE; break;
     }
     tn2217_send_comport_cmd1(t, COMPORT_SET_PARITY, val);
 }
 
 /* Sends a SET-STOPSIZE message to the remote */
 static void
-tn2217_send_set_stopsize(struct term_s *t, int c_flag)
+tn2217_send_set_stopsize(struct term_s *t, int stopbits)
 {
-    if (c_flag & CSTOPB)
-        tn2217_send_comport_cmd1(t, COMPORT_SET_PARITY, COMPORT_STOPSIZE_2);
+    if (stopbits == 2)
+        tn2217_send_comport_cmd1(t, COMPORT_SET_STOPSIZE, COMPORT_STOPSIZE_2);
     else
-        tn2217_send_comport_cmd1(t, COMPORT_SET_PARITY, COMPORT_STOPSIZE_1);
+        tn2217_send_comport_cmd1(t, COMPORT_SET_STOPSIZE, COMPORT_STOPSIZE_1);
 }
 
 /* Sends a SET-CONTROL message to control hardware flow control */
@@ -593,7 +589,7 @@ tn2217_send_set_dtr(struct term_s *t, int modem)
     tn2217_send_comport_cmd1(t, COMPORT_SET_CONTROL, val);
 }
 
-/* Sends a SET-CONTROL message to control remote DTR state */
+/* Sends a SET-CONTROL message to control remote RTS state */
 static void
 tn2217_send_set_rts(struct term_s *t, int modem)
 {
@@ -624,9 +620,9 @@ tn2217_comport_start(struct term_s *t)
 
     if (s->set_termios) {
         tn2217_send_set_baudrate(t, tios_get_baudrate(&s->termios, NULL));
-        tn2217_send_set_datasize(t, s->termios.c_cflag);
-        tn2217_send_set_parity(t, s->termios.c_cflag);
-        tn2217_send_set_stopsize(t, s->termios.c_cflag);
+        tn2217_send_set_datasize(t, tios_get_databits(&s->termios));
+        tn2217_send_set_parity(t, tios_get_parity(&s->termios));
+        tn2217_send_set_stopsize(t, tios_get_stopbits(&s->termios));
         tn2217_send_set_fc(t, tios_get_flowcntrl(&s->termios));
     } else {
         /* If we're not going to specify it, ask for
@@ -690,53 +686,49 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
             unsigned int baud = (data[0] << 24) | (data[1] << 16) |
                              (data[2] << 8) | data[3];
             tios_set_baudrate_always(&s->termios, baud);
+            DEBUG("[notified: BAUDRATE: %d]\r\n", baud);
         }
         /* XXX the sredird server sends an extra 4-byte value,
          * which looks like the ispeed. It is not in the RFC. */
         break;
 
     case COMPORT_SET_DATASIZE: /* Notification of remote data bit size */
-        val = -1;
         if (datalen >= 1) {
+            int val = 0;
             switch (data[0]) {
-            case COMPORT_DATASIZE_5: val = CS5; break;
-            case COMPORT_DATASIZE_6: val = CS6; break;
-            case COMPORT_DATASIZE_7: val = CS7; break;
-            case COMPORT_DATASIZE_8: val = CS8; break;
+            case COMPORT_DATASIZE_5: val = 5; break;
+            case COMPORT_DATASIZE_6: val = 6; break;
+            case COMPORT_DATASIZE_7: val = 7; break;
+            case COMPORT_DATASIZE_8: val = 8; break;
             }
-        }
-        if (val != -1) {
-            tio->c_cflag &= ~CSIZE;
-            tio->c_cflag |= val;
+            tios_set_databits(tio, val);
+            DEBUG("[notified: DATASIZE: %d]\r\n", val);
         }
         break;
 
     case COMPORT_SET_PARITY: /* Remote parity update */
-        val = -1;
         if (datalen >= 1) {
+            enum parity_e val = P_ERROR;
             switch (data[0]) {
-            case COMPORT_PARITY_NONE: val = 0; break;
-            case COMPORT_PARITY_ODD:  val = PARENB | PARODD; break;
-            case COMPORT_PARITY_EVEN: val = PARENB; break;
+            case COMPORT_PARITY_NONE: val = P_NONE; break;
+            case COMPORT_PARITY_ODD:  val = P_ODD; break;
+            case COMPORT_PARITY_EVEN: val = P_EVEN; break;
             }
-        }
-        if (val != -1) {
-            tio->c_cflag &= ~PARMASK;
-            tio->c_cflag |= val;
+            tios_set_parity(tio, val);
+            DEBUG("[notified: PARITY: %s]\r\n", parity_str[val]);
+
         }
         break;
 
     case COMPORT_SET_STOPSIZE: /* Remote stop bits update */
-        val = -1;
         if (datalen >= 1) {
+            int val = 0;
             switch (data[0]) {
-            case COMPORT_STOPSIZE_1: val = 0; break;
-            case COMPORT_STOPSIZE_2: val = CSTOPB; break;
+            case COMPORT_STOPSIZE_1: val = 1; break;
+            case COMPORT_STOPSIZE_2: val = 2; break;
             }
-        }
-        if (val != -1) {
-            tio->c_cflag &= ~CSTOPB;
-            tio->c_cflag |= val;
+            tios_set_stopbits(tio, val);
+            DEBUG("[notified: STOPSIZE: %d]\r\n", val);
         }
         break;
 
@@ -746,14 +738,17 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
             /* Flow control changes and COMPORT_CONTROL_FC_REQUEST reply */
             case COMPORT_CONTROL_FC_XONOFF:
                 tios_set_flowcntrl(tio, FC_XONXOFF);
+                DEBUG("[notified: FLOW: %s]\r\n", parity_str[FC_XONXOFF]);
                 break;
             case COMPORT_CONTROL_FC_HARDWARE:
                 tios_set_flowcntrl(tio, FC_RTSCTS);
+                DEBUG("[notified: FLOW: %s]\r\n", parity_str[FC_RTSCTS]);
                 break;
             case COMPORT_CONTROL_FC_NONE:
             case COMPORT_CONTROL_FC_DCD:
             case COMPORT_CONTROL_FC_DSR:
                 tios_set_flowcntrl(tio, FC_NONE);
+                DEBUG("[notified: FLOW: %s]\r\n", parity_str[FC_NONE]);
                 break;
             /* DTR changes and COMPORT_CONTROL_DTR_REQUEST reply */
             case COMPORT_CONTROL_DTR_ON:
@@ -761,7 +756,7 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
                 val = (data[0] == COMPORT_CONTROL_DTR_ON) ? TIOCM_DTR : 0;
                 *modem &= ~TIOCM_DTR;
                 *modem |= val;
-                DEBUG("[notified: dtr=%u]", !!val);
+                DEBUG("[notified: dtr=%u]\r\n", !!val);
                 break;
             /* RTS changes and COMPORT_CONTROL_RTS_REQUEST reply */
             case COMPORT_CONTROL_RTS_ON:
@@ -769,7 +764,7 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
                 val = (data[0] == COMPORT_CONTROL_RTS_ON) ? TIOCM_RTS : 0;
                 *modem &= ~TIOCM_RTS;
                 *modem |= val;
-                DEBUG("[notified: rts=%u]", !!val);
+                DEBUG("[notified: rts=%u]\r\n", !!val);
                 break;
             }
         }
@@ -781,10 +776,10 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
             val = 0;
             if (data[0] & COMPORT_MODEM_CD)  val |= TIOCM_CD;
             if (data[0] & COMPORT_MODEM_RI)  val |= TIOCM_RI;
-            if (data[0] & COMPORT_MODEM_DSR) val |= TIOCM_LE;
+            if (data[0] & COMPORT_MODEM_DSR) val |= TIOCM_DSR;
             if (data[0] & COMPORT_MODEM_CTS) val |= TIOCM_CTS;
-            DEBUG("[notified: %s]", modem_repr(val));
-            *modem &= ~(TIOCM_CD|TIOCM_RI|TIOCM_LE|TIOCM_CTS);
+            DEBUG("[notified: MODEMSTATE: %s]\r\n", modem_repr(val));
+            *modem &= ~(TIOCM_CD|TIOCM_RI|TIOCM_DSR|TIOCM_CTS);
             *modem |= val;
         }
         break;
@@ -836,7 +831,7 @@ tn2217_tcgetattr(struct term_s *t, struct termios *termios_out)
 {
     struct tn2217_state *s = STATE(t);
 
-    DEBUG("[tcgetattr %s]", termios_repr(&s->termios));
+    DEBUG("[tcgetattr %s]\r\n", termios_repr(&s->termios));
     *termios_out = s->termios;
     return 0;
 }
@@ -846,13 +841,13 @@ tn2217_tcsetattr(struct term_s *t, int when, const struct termios *tio)
 {
     struct tn2217_state *s = STATE(t);
 
-    DEBUG("[tcsetattr %s]", termios_repr(tio));
+    DEBUG("[tcsetattr %s]\r\n", termios_repr(tio));
     s->termios = *tio;
     if (s->can_comport) {
         tn2217_send_set_baudrate(t, tios_get_baudrate(tio, NULL));
-        tn2217_send_set_datasize(t, tio->c_cflag);
-        tn2217_send_set_parity(t, tio->c_cflag);
-        tn2217_send_set_stopsize(t, tio->c_cflag);
+        tn2217_send_set_datasize(t, tios_get_databits(tio));
+        tn2217_send_set_parity(t, tios_get_parity(tio));
+        tn2217_send_set_stopsize(t, tios_get_stopbits(tio));
         tn2217_send_set_fc(t, tios_get_flowcntrl(tio));
     } else
         s->set_termios = 1;
@@ -864,7 +859,7 @@ tn2217_modem_get(struct term_s *t, int *modem_out)
 {
     struct tn2217_state *s = STATE(t);
 
-    DEBUG("[modem_get %s]", modem_repr(s->modem));
+    DEBUG("[modem_get %s]\r\n", modem_repr(s->modem));
     *modem_out = s->modem;
     return 0;
 }
@@ -874,7 +869,7 @@ tn2217_modem_bis(struct term_s *t, const int *modem)
 {
     struct tn2217_state *s = STATE(t);
 
-    DEBUG("[modem_bis %s]", modem_repr(*modem));
+    DEBUG("[modem_bis %s]\r\n", modem_repr(*modem));
 
     s->modem |= *modem;
 
@@ -894,7 +889,7 @@ tn2217_modem_bic(struct term_s *t, const int *modem)
 {
     struct tn2217_state *s = STATE(t);
 
-    DEBUG("[modem_bic %s]", modem_repr(*modem));
+    DEBUG("[modem_bic %s]\r\n", modem_repr(*modem));
 
     s->modem &= ~*modem;
 

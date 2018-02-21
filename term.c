@@ -312,6 +312,27 @@ term_perror (const char *prefix)
 
 /***************************************************************************/
 
+/* parity modes names */
+const char *parity_str[] = {
+    [P_NONE] = "none",
+    [P_EVEN] = "even",
+    [P_ODD] = "odd",
+    [P_MARK] = "mark",
+    [P_SPACE] = "space",
+    [P_ERROR] = "invalid parity mode",
+};
+
+/* flow control modes names */
+const char *flow_str[] = {
+    [FC_NONE] = "none",
+    [FC_RTSCTS] = "RTS/CTS",
+    [FC_XONXOFF] = "xon/xoff",
+    [FC_OTHER] = "other",
+    [FC_ERROR] = "invalid flow control mode",
+};
+
+/**********************************************************************/
+
 #define BNONE 0xFFFFFFFF
 
 struct baud_codes {
@@ -1077,226 +1098,195 @@ term_get_baudrate (int fd, int *ispeed)
 /***************************************************************************/
 
 int
-term_set_parity (int fd, enum parity_e parity)
+tios_set_parity (struct termios *tios, enum parity_e parity)
 {
-    int rval;
-    struct term_s *t;
-    struct termios *tiop;
+    int rval = 0;
 
-    rval = 0;
-
-    do { /* dummy */
-
-        t = term_find(fd);
-        if ( ! t ) {
-            rval = -1;
-            break;
-        }
-
-        tiop = &t->nexttermios;
-
-        switch (parity) {
-        case P_EVEN:
-            tiop->c_cflag &= ~(PARODD | CMSPAR);
-            tiop->c_cflag |= PARENB;
-            break;
-        case P_ODD:
-            tiop->c_cflag &= ~CMSPAR;
-            tiop->c_cflag |= PARENB | PARODD;
-            break;
-        case P_MARK:
-            tiop->c_cflag |= PARENB | PARODD | CMSPAR;
-            break;
-        case P_SPACE:
-            tiop->c_cflag &= ~PARODD;
-            tiop->c_cflag |= PARENB | CMSPAR;
-            break;
-        case P_NONE:
-            tiop->c_cflag &= ~(PARENB | PARODD | CMSPAR);
-            break;
-        default:
-            term_errno = TERM_EPARITY;
-            rval = -1;
-            break;
-        }
-        if ( rval < 0 ) break;
-
-    } while (0);
+    switch (parity) {
+    case P_EVEN:
+        tios->c_cflag &= ~(PARODD | CMSPAR);
+        tios->c_cflag |= PARENB;
+        break;
+    case P_ODD:
+        tios->c_cflag &= ~CMSPAR;
+        tios->c_cflag |= PARENB | PARODD;
+        break;
+    case P_MARK:
+        tios->c_cflag |= PARENB | PARODD | CMSPAR;
+        break;
+    case P_SPACE:
+        tios->c_cflag &= ~PARODD;
+        tios->c_cflag |= PARENB | CMSPAR;
+        break;
+    case P_NONE:
+        tios->c_cflag &= ~(PARENB | PARODD | CMSPAR);
+        break;
+    default:
+        term_errno = TERM_EPARITY;
+        rval = -1;
+        break;
+    }
 
     return rval;
+}
+
+int
+term_set_parity (int fd, enum parity_e parity)
+{
+    struct term_s *t;
+
+    t = term_find(fd);
+    if ( ! t ) return -1;
+
+    return tios_set_parity(&t->nexttermios, parity);
+}
+
+enum parity_e
+tios_get_parity(const struct termios *tios)
+{
+    enum parity_e parity;
+
+    if ( ! (tios->c_cflag & PARENB) ) {
+        parity = P_NONE;
+    } else if ( tios->c_cflag & CMSPAR ) {
+        parity = (tios->c_cflag & PARODD) ? P_MARK : P_SPACE;
+    } else {
+        parity = (tios->c_cflag & PARODD) ? P_ODD : P_EVEN;
+    }
+    return parity;
 }
 
 enum parity_e
 term_get_parity (int fd)
 {
-    tcflag_t flg;
     struct term_s *t;
-    enum parity_e parity;
 
-    do { /* dummy */
+    t = term_find(fd);
+    if ( ! t ) return P_ERROR;
 
-        t = term_find(fd);
-        if ( ! t ) {
-            parity = P_ERROR;
-            break;
-        }
-
-        flg = t->currtermios.c_cflag;
-        if ( ! (flg & PARENB) ) {
-            parity = P_NONE;
-        } else if ( flg & CMSPAR ) {
-            parity = (flg & PARODD) ? P_MARK : P_SPACE;
-        } else {
-            parity = (flg & PARODD) ? P_ODD : P_EVEN;
-        }
-
-    } while (0);
-
-    return parity;
+    return tios_get_parity(&t->currtermios);
 }
 
 /***************************************************************************/
 
 int
+tios_set_databits(struct termios *tios, int databits)
+{
+    int rval = 0;
+
+    switch (databits) {
+    case 5:
+        tios->c_cflag = (tios->c_cflag & ~CSIZE) | CS5;
+        break;
+    case 6:
+        tios->c_cflag = (tios->c_cflag & ~CSIZE) | CS6;
+        break;
+    case 7:
+        tios->c_cflag = (tios->c_cflag & ~CSIZE) | CS7;
+        break;
+    case 8:
+        tios->c_cflag = (tios->c_cflag & ~CSIZE) | CS8;
+        break;
+    default:
+        term_errno = TERM_EDATABITS;
+        rval = -1;
+        break;
+    }
+    return rval;
+}
+
+int
 term_set_databits (int fd, int databits)
 {
-    int rval;
     struct term_s *t;
-    struct termios *tiop;
 
-    rval = 0;
+    t = term_find(fd);
+    if ( ! t ) return -1;
 
-    do { /* dummy */
+    return tios_set_databits(&t->nexttermios, databits);
+}
 
-        t = term_find(fd);
-        if ( ! t ) {
-            rval = -1;
-            break;
-        }
+int
+tios_get_databits(const struct termios *tios)
+{
+    int bits;
 
-        tiop = &t->nexttermios;
-
-        switch (databits) {
-        case 5:
-            tiop->c_cflag = (tiop->c_cflag & ~CSIZE) | CS5;
-            break;
-        case 6:
-            tiop->c_cflag = (tiop->c_cflag & ~CSIZE) | CS6;
-            break;
-        case 7:
-            tiop->c_cflag = (tiop->c_cflag & ~CSIZE) | CS7;
-            break;
-        case 8:
-            tiop->c_cflag = (tiop->c_cflag & ~CSIZE) | CS8;
-            break;
-        default:
-            term_errno = TERM_EDATABITS;
-            rval = -1;
-            break;
-        }
-        if ( rval < 0 ) break;
-
-    } while (0);
-
-    return rval;
+    switch (tios->c_cflag & CSIZE) {
+    case CS5:
+        bits = 5;
+        break;
+    case CS6:
+        bits = 6;
+        break;
+    case CS7:
+        bits = 7;
+        break;
+    case CS8:
+    default:
+        bits = 8;
+        break;
+    }
+    return bits;
 }
 
 int
 term_get_databits (int fd)
 {
-    tcflag_t flg;
     struct term_s *t;
-    int bits;
 
-    do { /* dummy */
+    t = term_find(fd);
+    if ( ! t ) return -1;
 
-        t = term_find(fd);
-        if ( ! t ) {
-            bits = -1;
-            break;
-        }
-
-        flg = t->currtermios.c_cflag & CSIZE;
-        switch (flg) {
-        case CS5:
-            bits = 5;
-            break;
-        case CS6:
-            bits = 6;
-            break;
-        case CS7:
-            bits = 7;
-            break;
-        case CS8:
-        default:
-            bits = 8;
-            break;
-        }
-
-    } while (0);
-
-    return bits;
+    return tios_get_databits(&t->currtermios);
 }
 
 /***************************************************************************/
 
 int
+tios_set_stopbits (struct termios *tios, int stopbits)
+{
+    int rval = 0;
+    switch (stopbits) {
+    case 1:
+        tios->c_cflag &= ~CSTOPB;
+        break;
+    case 2:
+        tios->c_cflag |= CSTOPB;
+        break;
+    default:
+        term_errno = TERM_ESTOPBITS;
+        rval = -1;
+        break;
+    }
+    return rval;
+}
+
+int
 term_set_stopbits (int fd, int stopbits)
 {
-    int rval;
     struct term_s *t;
-    struct termios *tiop;
 
-    rval = 0;
+    t = term_find(fd);
+    if ( ! t ) return -1;
 
-    do { /* dummy */
+    return tios_set_stopbits(&t->nexttermios, stopbits);
+}
 
-        t = term_find(fd);
-        if ( ! t ) {
-            rval = -1;
-            break;
-        }
-
-        tiop = &t->nexttermios;
-
-        switch (stopbits) {
-        case 1:
-            tiop->c_cflag &= ~CSTOPB;
-            break;
-        case 2:
-            tiop->c_cflag |= CSTOPB;
-            break;
-        default:
-            term_errno = TERM_ESTOPBITS;
-            rval = -1;
-            break;
-        }
-        if ( rval < 0 ) break;
-
-    } while (0);
-
-    return rval;
+int
+tios_get_stopbits (const struct termios *tios)
+{
+    return (tios->c_cflag & CSTOPB) ? 2 : 1;
 }
 
 int
 term_get_stopbits (int fd)
 {
     struct term_s *t;
-    int bits;
 
-    do { /* dummy */
+    t = term_find(fd);
+    if ( ! t ) return -1;
 
-        t = term_find(fd);
-        if ( ! t ) {
-            bits = -1;
-            break;
-        }
-
-        bits = (t->currtermios.c_cflag & CSTOPB) ? 2 : 1;
-
-    } while (0);
-
-    return bits;
+    return tios_get_stopbits(&t->currtermios);
 }
 
 /***************************************************************************/

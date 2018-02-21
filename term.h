@@ -76,6 +76,8 @@
  * F term_read - read bytes
  * F term_write - write bytes
  * G term_errno - current error condition of the library
+ * G parity_str - parity mode names
+ * G flow_str - flow control mode names
  * E term_errno_e - error condition codes
  * E parity_t - library supported parity types
  * E flocntrl_t - library supported folw-control modes
@@ -223,6 +225,14 @@ struct term_ops;
  * Keeps the current library error-condtion code
  */
 extern int term_errno;
+
+/*
+ * G parity_str[], flow_str[]
+ *
+ * Parity and flow-control names
+ */
+extern const char *parity_str[];
+extern const char *flow_str[];
 
 /***************************************************************************/
 

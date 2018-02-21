@@ -61,6 +61,15 @@ int tios_set_flowcntrl(struct termios *tios, enum flowcntrl_e flowcntl);
 int tios_get_baudrate(const struct termios *tios, int *ispeed);
 int tios_set_baudrate (struct termios *tios, int baudrate);
 void tios_set_baudrate_always(struct termios *tios, int baudrate);
+int tios_set_parity (struct termios *tios, enum parity_e parity);
+enum parity_e tios_get_parity(const struct termios *tios);
+int tios_set_databits(struct termios *tios, int databits);
+int tios_get_databits(const struct termios *tios);
+int tios_set_stopbits (struct termios *tios, int stopbits);
+int tios_get_stopbits (const struct termios *tios);
+
+
+
 
 #endif /* of TERMINT_H */
 

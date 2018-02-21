@@ -62,27 +62,6 @@
 
 /**********************************************************************/
 
-/* parity modes names */
-const char *parity_str[] = {
-    [P_NONE] = "none",
-    [P_EVEN] = "even",
-    [P_ODD] = "odd",
-    [P_MARK] = "mark",
-    [P_SPACE] = "space",
-    [P_ERROR] = "invalid parity mode",
-};
-
-/* flow control modes names */
-const char *flow_str[] = {
-    [FC_NONE] = "none",
-    [FC_RTSCTS] = "RTS/CTS",
-    [FC_XONXOFF] = "xon/xoff",
-    [FC_OTHER] = "other",
-    [FC_ERROR] = "invalid flow control mode",
-};
-
-/**********************************************************************/
-
 /* control-key to printable character (lowcase) */
 #define KEYC(k) ((k) | 0x60)
 /* printable character to control-key */
