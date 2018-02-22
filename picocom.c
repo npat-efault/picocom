@@ -1650,7 +1650,7 @@ show_usage(char *name)
     printf("  --raise-dtr\n");
     printf("  --<q>uiet\n");
 #ifdef USE_RFC2217
-    printf("  --telnet | -T\n");
+    printf("  --<T>elnet\n");
 #endif
     printf("  --<h>elp\n");
     printf("<map> is a comma-separated list of one or more of:\n");
