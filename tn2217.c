@@ -466,7 +466,8 @@ tn2217_send_comport_cmd4(struct term_s *t, unsigned char cmd, unsigned int val)
     tn2217_send_comport_cmd(t, cmd, valbuf, sizeof valbuf);
 }
 
-/* Return simple debug representation of a termios, eg "19200,8n1" */
+/* Return simple debug representation of a termios,
+   eg "19200:8:none:1:RTS/CTS" */
 const char *
 termios_repr(const struct termios *tio)
 {
@@ -738,17 +739,20 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
             /* Flow control changes and COMPORT_CONTROL_FC_REQUEST reply */
             case COMPORT_CONTROL_FC_XONOFF:
                 tios_set_flowcntrl(tio, FC_XONXOFF);
-                DEBUG("[notified: FLOW: %s]\r\n", parity_str[FC_XONXOFF]);
+                DEBUG("[notified: SET_CONTROL: %d: FLOW: %s]\r\n",
+                      data[0], parity_str[FC_XONXOFF]);
                 break;
             case COMPORT_CONTROL_FC_HARDWARE:
                 tios_set_flowcntrl(tio, FC_RTSCTS);
-                DEBUG("[notified: FLOW: %s]\r\n", parity_str[FC_RTSCTS]);
+                DEBUG("[notified: SET_CONTROL: %d: FLOW: %s]\r\n",
+                      data[0], parity_str[FC_RTSCTS]);
                 break;
             case COMPORT_CONTROL_FC_NONE:
             case COMPORT_CONTROL_FC_DCD:
             case COMPORT_CONTROL_FC_DSR:
                 tios_set_flowcntrl(tio, FC_NONE);
-                DEBUG("[notified: FLOW: %s]\r\n", parity_str[FC_NONE]);
+                DEBUG("[notified: SET_CONTROL: %d: FLOW: %s]\r\n",
+                      data[0], parity_str[FC_NONE]);
                 break;
             /* DTR changes and COMPORT_CONTROL_DTR_REQUEST reply */
             case COMPORT_CONTROL_DTR_ON:
@@ -756,7 +760,8 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
                 val = (data[0] == COMPORT_CONTROL_DTR_ON) ? TIOCM_DTR : 0;
                 *modem &= ~TIOCM_DTR;
                 *modem |= val;
-                DEBUG("[notified: dtr=%u]\r\n", !!val);
+                DEBUG("[notified: SET_CONTROL: %d: dtr=%u]\r\n",
+                      data[0], !!val);
                 break;
             /* RTS changes and COMPORT_CONTROL_RTS_REQUEST reply */
             case COMPORT_CONTROL_RTS_ON:
@@ -764,7 +769,8 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
                 val = (data[0] == COMPORT_CONTROL_RTS_ON) ? TIOCM_RTS : 0;
                 *modem &= ~TIOCM_RTS;
                 *modem |= val;
-                DEBUG("[notified: rts=%u]\r\n", !!val);
+                DEBUG("[notified: SET_CONTROL: %d: rts=%u]\r\n",
+                      data[0], !!val);
                 break;
             }
         }
