@@ -913,6 +913,7 @@ tn2217_modem_bic(struct term_s *t, const int *modem)
 static int
 tn2217_send_break(struct term_s *t)
 {
+    /* FIXME(npat): Check can_comport? */
     tn2217_send_comport_cmd1(t, COMPORT_SET_CONTROL, COMPORT_CONTROL_BREAK_ON);
     usleep(250000); /* 250 msec */
     tn2217_send_comport_cmd1(t, COMPORT_SET_CONTROL, COMPORT_CONTROL_BREAK_OFF);
@@ -924,6 +925,7 @@ tn2217_flush(struct term_s *t, int selector)
 {
     unsigned char val;
 
+    /* FIXME(npat): Check can_comport? */
     /* Purge, presumably so that we have something to flush */
     switch (selector) {
     case TCIFLUSH:  val = COMPORT_PURGE_RX; break;
