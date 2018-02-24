@@ -66,9 +66,6 @@
 # define DEBUG_ON 0
 #endif
 
-/* c_cflags mask used for termios parity */
-#define PARMASK (PARENB | PARODD)
-
 /* We'll ask the remote end to use this modem state mask */
 #define MODEMSTATE_MASK (COMPORT_MODEM_CD | \
                          COMPORT_MODEM_RI | \
