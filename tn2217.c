@@ -47,9 +47,11 @@
 #include <arpa/telnet.h>
 
 #if 0
-# define DEBUG(...) fprintf(stderr, __VA_ARGS__)
+# define DEBUG(...) fd_printf(STDERR_FILENO, __VA_ARGS__)
+# define DEBUG_ON 1
 #else
 # define DEBUG(...) /* nothing */
+# define DEBUG_ON 0
 #endif
 
 /* c_cflags mask used for termios parity */
@@ -705,7 +707,7 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
             unsigned int baud = (data[0] << 24) | (data[1] << 16) |
                              (data[2] << 8) | data[3];
             tios_set_baudrate_always(&s->termios, baud);
-            DEBUG("[notified: BAUDRATE: %d]\r\n", baud);
+            DEBUG("[received: BAUDRATE: %d]\r\n", baud);
         }
         /* XXX the sredird server sends an extra 4-byte value,
          * which looks like the ispeed. It is not in the RFC. */
@@ -722,7 +724,7 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
             case COMPORT_DATASIZE_8: val = 8; break;
             }
             tios_set_databits(tio, val);
-            DEBUG("[notified: DATASIZE: %d]\r\n", val);
+            DEBUG("[received: DATASIZE: %d]\r\n", val);
         }
         s->conf_pending--;
         break;
@@ -736,7 +738,7 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
             case COMPORT_PARITY_EVEN: val = P_EVEN; break;
             }
             tios_set_parity(tio, val);
-            DEBUG("[notified: PARITY: %s]\r\n", parity_str[val]);
+            DEBUG("[received: PARITY: %s]\r\n", parity_str[val]);
 
         }
         s->conf_pending--;
@@ -750,7 +752,7 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
             case COMPORT_STOPSIZE_2: val = 2; break;
             }
             tios_set_stopbits(tio, val);
-            DEBUG("[notified: STOPSIZE: %d]\r\n", val);
+            DEBUG("[received: STOPSIZE: %d]\r\n", val);
         }
         s->conf_pending--;
         break;
@@ -761,13 +763,13 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
             /* Flow control changes and COMPORT_CONTROL_FC_REQUEST reply */
             case COMPORT_CONTROL_FC_XONOFF:
                 tios_set_flowcntrl(tio, FC_XONXOFF);
-                DEBUG("[notified: SET_CONTROL: %d: FLOW: %s]\r\n",
+                DEBUG("[received: SET_CONTROL: %d: FLOW: %s]\r\n",
                       data[0], parity_str[FC_XONXOFF]);
                 s->conf_pending--;
                 break;
             case COMPORT_CONTROL_FC_HARDWARE:
                 tios_set_flowcntrl(tio, FC_RTSCTS);
-                DEBUG("[notified: SET_CONTROL: %d: FLOW: %s]\r\n",
+                DEBUG("[received: SET_CONTROL: %d: FLOW: %s]\r\n",
                       data[0], parity_str[FC_RTSCTS]);
                 s->conf_pending--;
                 break;
@@ -775,7 +777,7 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
             case COMPORT_CONTROL_FC_DCD:
             case COMPORT_CONTROL_FC_DSR:
                 tios_set_flowcntrl(tio, FC_NONE);
-                DEBUG("[notified: SET_CONTROL: %d: FLOW: %s]\r\n",
+                DEBUG("[received: SET_CONTROL: %d: FLOW: %s]\r\n",
                       data[0], parity_str[FC_NONE]);
                 s->conf_pending--;
                 break;
@@ -785,7 +787,7 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
                 val = (data[0] == COMPORT_CONTROL_DTR_ON) ? TIOCM_DTR : 0;
                 *modem &= ~TIOCM_DTR;
                 *modem |= val;
-                DEBUG("[notified: SET_CONTROL: %d: dtr=%u]\r\n",
+                DEBUG("[received: SET_CONTROL: %d: dtr=%u]\r\n",
                       data[0], !!val);
                 break;
             /* RTS changes and COMPORT_CONTROL_RTS_REQUEST reply */
@@ -794,8 +796,11 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
                 val = (data[0] == COMPORT_CONTROL_RTS_ON) ? TIOCM_RTS : 0;
                 *modem &= ~TIOCM_RTS;
                 *modem |= val;
-                DEBUG("[notified: SET_CONTROL: %d: rts=%u]\r\n",
+                DEBUG("[received: SET_CONTROL: %d: rts=%u]\r\n",
                       data[0], !!val);
+                break;
+            default:
+                DEBUG("[received: SET_CONTROL: %d: (?)]\r\n", data[0]);
                 break;
             }
         }
@@ -809,9 +814,19 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
             if (data[0] & COMPORT_MODEM_RI)  val |= TIOCM_RI;
             if (data[0] & COMPORT_MODEM_DSR) val |= TIOCM_DSR;
             if (data[0] & COMPORT_MODEM_CTS) val |= TIOCM_CTS;
-            DEBUG("[notified: MODEMSTATE: %s]\r\n", modem_repr(val));
+            DEBUG("[received: MODEMSTATE: %s]\r\n", modem_repr(val));
             *modem &= ~(TIOCM_CD|TIOCM_RI|TIOCM_DSR|TIOCM_CTS);
             *modem |= val;
+        }
+        break;
+
+    default:
+        if ( DEBUG_ON ) {
+            int i;
+            DEBUG("[received: CMD=%d:", cmd);
+            for ( i = 0; i < datalen; i++ )
+                DEBUG(" %d", data[i]);
+            DEBUG("]\r\n");
         }
         break;
     }
