@@ -5,9 +5,21 @@
  * TELNET and COM-PORT (RFC2217) remote terminal protocol.
  *
  * Provides a network virtual terminal over a TELNET TCP connection.
- * Optionally supports the TELNET COM PORT (RFC2217) option which
- * provides control over baud rate, parity, data bits and modem
- * control lines at a com port server.
+ * Uses the TELNET COM PORT (RFC2217) option which provides control
+ * over baud rate, parity, data bits and modem control lines at a com
+ * port server.
+ *
+ * See also:
+ *   https://tools.ietf.org/html/rfc854 (TELNET protocol)
+ *   https://tools.ietf.org/html/rfc856 (BINARY option)
+ *   https://tools.ietf.org/html/rfc857 (ECHO option)
+ *   https://tools.ietf.org/html/rfc858 (SGA option)
+ *   https://tools.ietf.org/html/rfc2217 (COMPORT option)
+ *   https://tools.ietf.org/html/rfc1143 (Q method for option negotiation)
+ *
+ *   https://sourceforge.net/projects/sredird/ (sredird RFC2217 server)
+ *   http://www.columbia.edu/kermit/ftp/ (sredird from old Kermit project)
+ *   https://sourceforge.net/projects/ser2net/ (another RFC2217 server)
  *
  * by David Leonard (https://github.com/dleonard0)
  *
