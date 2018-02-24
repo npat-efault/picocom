@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <netdb.h>
 #include <errno.h>
 
@@ -102,19 +103,21 @@ struct tn2217_state {
     unsigned char cmdbuflen;
     unsigned int cmdiac : 1;    /* 1 iff last cmdbuf ch is incomplete IAC */
 
+    int conf_pending;           /* # of not-replied config  commands */
     /* When COM-PORT option is fully negotiated, can_comport
      * is set to true. This also means that any deferred termios/modem
      * settings will be triggered. */
     unsigned int can_comport : 1,  /* WILL COMPORT was received */
                  set_termios : 1,  /* tcsetattr called before can_comport */
-                 set_modem : 1;    /* modem_bis/c called before can_comport */
+                 set_modem : 1,    /* modem_bis/c called before can_comport */
+                 configed: 1;      /* INITIAL config complete */
 
 };
 
 
 static int tn2217_remote_should(struct term_s *t, unsigned char opt);
 static int tn2217_local_should(struct term_s *t, unsigned char opt);
-static int tn2217_write(struct term_s *t, const void *buf, unsigned bufsz);
+static int escape_write(struct term_s *t, const void *buf, unsigned bufsz);
 static void tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
     unsigned char *data, unsigned int datalen);
 static void tn2217_comport_start(struct term_s *t);
@@ -293,7 +296,7 @@ tn2217_recv_opt(struct term_s *t, unsigned char op, unsigned char opt)
 /* Receive and process a single byte of an IAC command.
  * The caller will have appended the byte to s->cmdbuf[] already.
  * Completion of a command is signaled by setting s->cmdbuflen to 0. */
-static void
+static int
 tn2217_recv_cmd_partial(struct term_s *t)
 {
     struct tn2217_state *s = STATE(t);
@@ -347,8 +350,9 @@ tn2217_recv_cmd_partial(struct term_s *t)
         break;
     }
     s->cmdbuflen = 0;
+    return 1;
 incomplete:
-    return;
+    return 0;
 }
 
 /* Should the remote enable its option if it tells us it WILL/WONT? */
@@ -440,7 +444,7 @@ tn2217_send_comport_cmd(struct term_s *t, unsigned char cmd,
     /* assert(cmd != IAC); */
     writen_ni(t->fd, msg, sizeof msg);
     if (datalen)
-        tn2217_write(t, data, datalen);
+        escape_write(t, data, datalen);
     writen_ni(t->fd, end, sizeof end);
 }
 
@@ -513,14 +517,19 @@ modem_repr(int m)
 static void
 tn2217_send_set_baudrate(struct term_s *t, int speed)
 {
-    if (speed >= 0)
+    struct tn2217_state *s = STATE(t);
+
+    if (speed >= 0) {
         tn2217_send_comport_cmd4(t, COMPORT_SET_BAUDRATE, speed);
+        s->conf_pending++;
+    }
 }
 
 /* Sends a SET-DATASIZE message to the remote */
 static void
 tn2217_send_set_datasize(struct term_s *t, int databits)
 {
+    struct tn2217_state *s = STATE(t);
     unsigned char val;
 
     switch (databits) {
@@ -530,12 +539,14 @@ tn2217_send_set_datasize(struct term_s *t, int databits)
     default: val = COMPORT_DATASIZE_8; break;
     }
     tn2217_send_comport_cmd1(t, COMPORT_SET_DATASIZE, val);
+    s->conf_pending++;
 }
 
 /* Sends a SET-PARITY message to the remote */
 static void
 tn2217_send_set_parity(struct term_s *t, enum parity_e parity)
 {
+    struct tn2217_state *s = STATE(t);
     unsigned char val;
 
     switch (parity) {
@@ -544,22 +555,27 @@ tn2217_send_set_parity(struct term_s *t, enum parity_e parity)
     default:     val = COMPORT_PARITY_NONE; break;
     }
     tn2217_send_comport_cmd1(t, COMPORT_SET_PARITY, val);
+    s->conf_pending++;
 }
 
 /* Sends a SET-STOPSIZE message to the remote */
 static void
 tn2217_send_set_stopsize(struct term_s *t, int stopbits)
 {
+    struct tn2217_state *s = STATE(t);
+
     if (stopbits == 2)
         tn2217_send_comport_cmd1(t, COMPORT_SET_STOPSIZE, COMPORT_STOPSIZE_2);
     else
         tn2217_send_comport_cmd1(t, COMPORT_SET_STOPSIZE, COMPORT_STOPSIZE_1);
+    s->conf_pending++;
 }
 
 /* Sends a SET-CONTROL message to control hardware flow control */
 static void
 tn2217_send_set_fc(struct term_s *t, enum flowcntrl_e flow)
 {
+    struct tn2217_state *s = STATE(t);
     unsigned char val;
 
     switch (flow) {
@@ -575,6 +591,7 @@ tn2217_send_set_fc(struct term_s *t, enum flowcntrl_e flow)
         break;
     }
     tn2217_send_comport_cmd1(t, COMPORT_SET_CONTROL, val);
+    s->conf_pending++;
 }
 
 /* Sends a SET-CONTROL message to control remote DTR state */
@@ -638,6 +655,7 @@ tn2217_comport_start(struct term_s *t)
                                     COMPORT_STOPSIZE_REQUEST);
         tn2217_send_comport_cmd1(t, COMPORT_SET_CONTROL,
                                     COMPORT_CONTROL_FC_REQUEST);
+        s->conf_pending += 5;
     }
 
     if (s->set_modem) {
@@ -691,6 +709,7 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
         }
         /* XXX the sredird server sends an extra 4-byte value,
          * which looks like the ispeed. It is not in the RFC. */
+        s->conf_pending--;
         break;
 
     case COMPORT_SET_DATASIZE: /* Notification of remote data bit size */
@@ -705,6 +724,7 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
             tios_set_databits(tio, val);
             DEBUG("[notified: DATASIZE: %d]\r\n", val);
         }
+        s->conf_pending--;
         break;
 
     case COMPORT_SET_PARITY: /* Remote parity update */
@@ -719,6 +739,7 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
             DEBUG("[notified: PARITY: %s]\r\n", parity_str[val]);
 
         }
+        s->conf_pending--;
         break;
 
     case COMPORT_SET_STOPSIZE: /* Remote stop bits update */
@@ -731,6 +752,7 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
             tios_set_stopbits(tio, val);
             DEBUG("[notified: STOPSIZE: %d]\r\n", val);
         }
+        s->conf_pending--;
         break;
 
     case COMPORT_SET_CONTROL: /* Remote control state update */
@@ -741,11 +763,13 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
                 tios_set_flowcntrl(tio, FC_XONXOFF);
                 DEBUG("[notified: SET_CONTROL: %d: FLOW: %s]\r\n",
                       data[0], parity_str[FC_XONXOFF]);
+                s->conf_pending--;
                 break;
             case COMPORT_CONTROL_FC_HARDWARE:
                 tios_set_flowcntrl(tio, FC_RTSCTS);
                 DEBUG("[notified: SET_CONTROL: %d: FLOW: %s]\r\n",
                       data[0], parity_str[FC_RTSCTS]);
+                s->conf_pending--;
                 break;
             case COMPORT_CONTROL_FC_NONE:
             case COMPORT_CONTROL_FC_DCD:
@@ -753,6 +777,7 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
                 tios_set_flowcntrl(tio, FC_NONE);
                 DEBUG("[notified: SET_CONTROL: %d: FLOW: %s]\r\n",
                       data[0], parity_str[FC_NONE]);
+                s->conf_pending--;
                 break;
             /* DTR changes and COMPORT_CONTROL_DTR_REQUEST reply */
             case COMPORT_CONTROL_DTR_ON:
@@ -942,6 +967,114 @@ tn2217_drain(struct term_s *t)
     return 0;
 }
 
+/* Wait (keep reading from fd) for a command to be received and
+   processed, or for timeout to expire. Returns a positive if a
+   command was received and processed or if the timeout expired,
+   returns zero if read(2) returns zero, and returns a negative on
+   error. User-data read while waiting are discarded. */
+static int
+tn2217_wait_cmd(struct term_s *t, struct timeval *tmo_tv)
+{
+    struct tn2217_state *s = STATE(t);
+    unsigned char c;
+    int r, cmd = 0;
+    fd_set rdset;
+
+    do {
+        FD_ZERO(&rdset);
+        FD_SET(t->fd, &rdset);
+        r = select(t->fd + 1, &rdset, 0, 0, tmo_tv);
+        if ( r <= 0 )
+            return r == 0 ? 1 : -1;
+        r = read(t->fd, &c, 1);
+        if ( r <= 0 )
+            return r;
+
+        if ( s->cmdbuflen ) {
+            if (s->cmdbuflen >= sizeof s->cmdbuf -1) {
+                s->cmdbuflen = 0; /* Abandon on overflow */
+                fprintf(stderr, "[overlong IAC command]\r\n");
+                continue;
+            }
+            s->cmdbuf[s->cmdbuflen++] = c;
+            if ( s->cmdbuflen == 2 && s->cmdbuf[1] == IAC )
+                s->cmdbuflen = 0;
+            else
+                cmd = tn2217_recv_cmd_partial(t);
+        } else {
+            if ( c == IAC ) {
+                s->cmdbuf[0] = IAC;
+                s->cmdbuflen = 1;
+            }
+        }
+    } while ( ! cmd );
+
+    return 1;
+}
+
+/* Condition: Initial configuration completed. That is: initial
+   negotiations completed, configuration commands sent, *and*
+   replies received. To be used with tn2217_wait_cond(). */
+static int cond_initial_conf_complete(struct term_s *t)
+{
+    struct tn2217_state *s = STATE(t);
+    int v;
+
+    v = s->configed || ( s->can_comport && ! s->conf_pending );
+    if ( v )
+        s->configed = 1;
+    return v;
+}
+
+/* Condition: Initial negotiations completed, and configuration
+   commands sent, but replies not yet received. To be used with
+   tn2217_wait_cond(). */
+static int cond_comport_start(struct term_s *t)
+{
+    return STATE(t)->can_comport;
+}
+
+static struct timeval *
+msec2tv (struct timeval *tv, long ms)
+{
+    tv->tv_sec = ms / 1000;
+    tv->tv_usec = (ms % 1000) * 1000;
+
+    return tv;
+}
+
+/* Wait (keep reading from the fd and processing commands) until the
+   condition is satisfied (that is, until "cond" returns non-zero), or
+   until the timeout expires. Returns a positive on success, zero if
+   read(2) returned zero, and a negative on any other error
+   (incl. timeoute expiration). On timeout expiration, errno is set to
+   ETIME.*/
+static int
+tn2217_wait_cond(struct term_s *t, int (*cond)(struct term_s *t), int tmo_msec)
+{
+    struct timeval now, tmo_tv, tmo_abs;
+    int r;
+
+    msec2tv(&tmo_tv, tmo_msec);
+    gettimeofday(&now, 0);
+    timeradd(&now, &tmo_tv, &tmo_abs);
+
+    while ( ! cond(t) ) {
+        r = tn2217_wait_cmd(t, &tmo_tv);
+        if ( r <= 0 )
+            return r;
+        gettimeofday(&now, 0);
+        if ( timercmp(&now, &tmo_abs, <) ) {
+            timersub(&tmo_abs, &now, &tmo_tv);
+        } else {
+            errno = ETIME;
+            return -1;
+        }
+    }
+
+    return 1;
+}
+
 /* Reads raw binary from the socket and immediately handles any
  * in-stream TELNET commands. */
 static int
@@ -951,6 +1084,20 @@ tn2217_read(struct term_s *t, void *buf, unsigned bufsz)
     unsigned char *in, *out;
     int inlen, outlen;
     unsigned char *iac;
+    int r;
+
+    /* FIXME(npat): Maybe don't wait if s->set_termios is not set
+       (--noinit) */
+    if ( ! cond_initial_conf_complete(t) ) {
+        /* Port may not have been configured yet. Wait for
+           negotiations to end, and configuration commands to get
+           transmitted *and* replies received. */
+        DEBUG("tn2217_read WAITING initial_conf_complete\r\n");
+        r = tn2217_wait_cond(t, cond_initial_conf_complete, 5000);
+        if ( r <= 0 )
+            return r;
+        DEBUG("tn2217_read GOT initial_conf_complete\r\n");
+    }
 
     inlen = read(t->fd, buf, bufsz);
     if (inlen <= 0)
@@ -1019,7 +1166,7 @@ tn2217_read(struct term_s *t, void *buf, unsigned bufsz)
 }
 
 static int
-tn2217_write(struct term_s *t, const void *buf, unsigned bufsz)
+escape_write(struct term_s *t, const void *buf, unsigned bufsz)
 {
     const unsigned char *start, *end;
     unsigned int len;
@@ -1040,6 +1187,31 @@ tn2217_write(struct term_s *t, const void *buf, unsigned bufsz)
     if (write(t->fd, start, len) < 0)
         return -1;
     return bufsz;
+}
+
+
+static int
+tn2217_write(struct term_s *t, const void *buf, unsigned bufsz)
+{
+    int r;
+
+    /* FIXME(npat): Maybe don't wait if s->set_termios is not set
+       (--noinit) */
+    if ( ! cond_comport_start(t) ) {
+        /* Port may not have been configured yet. Wait for
+           negotiations to end, and configuration commands to get
+           transmitted. It is not necessary to wait for them to get
+           replied. */
+        DEBUG("tn2217_write WAITING comport_start\r\n");
+        r = tn2217_wait_cond(t, cond_comport_start, 5000);
+        if ( r <= 0 ) {
+            if ( r == 0 ) errno = EPIPE;
+            return -1;
+        }
+        DEBUG("tn2217_write GOT comport_start\r\n");
+    }
+
+    return escape_write(t, buf, bufsz);
 }
 
 const struct term_ops tn2217_ops = {
