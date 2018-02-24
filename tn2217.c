@@ -435,6 +435,33 @@ out:
     return fd;
 }
 
+/* Closes a TCP socket to a host. See "tn2217.h".  */
+int
+tn2217_close(int fd, int drain)
+{
+    char buff[1024];
+    long fl;
+    int n;
+
+    if ( ! drain )
+        return close(fd);
+
+    /* FIXME(npat): Maybe protect the "reading until server closes"
+       with a large-ish timeout? */
+
+    fl = fcntl(fd, F_GETFL);
+    fl &= ~O_NONBLOCK;
+    fcntl(fd, F_SETFL, fl);
+
+    shutdown(fd, SHUT_WR);
+    do {
+        n = read(fd, buff, sizeof(buff));
+    } while ( n > 0 );
+    if ( n < 0 )
+        return n;
+    return close(fd);
+}
+
 /* Sends {IAC SB COMPORT <cmd> <data> IAC SE} */
 static void
 tn2217_send_comport_cmd(struct term_s *t, unsigned char cmd,

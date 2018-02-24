@@ -32,6 +32,14 @@
  * Returns -1 on failure, and prints an error message to stderr.  */
 int tn2217_open(const char *port);
 
+/* Close a socket to a telnet service.  If "drain" is zero, the socket
+ * is just close(2)ed and the return-value of close(2) is returned. If
+ * "drain" is non-zero, the write-direction of the socket is first
+ * shutdown, and then data are read (and discarded) from the socket,
+ * until the remote end closes it (read(2) returns zero). Returns zero
+ * on success, a negative on error. */
+int tn2217_close(int fd, int drain);
+
 struct term_ops;
 extern const struct term_ops tn2217_ops;
 

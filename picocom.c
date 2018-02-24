@@ -647,20 +647,23 @@ cleanup (int drain, int noreset, int hup)
         /* Print msg if they fail? Can't do anything, anyway... */
         if ( drain )
             term_drain(tty_fd);
-        term_flush(tty_fd);
-        /* term_flush does not work with some drivers. If we try to
-           drain or even close the port while there are still data in
-           it's output buffers *and* flow-control is enabled we may
-           block forever. So we "fake" a flush, by temporarily setting
-           f/c to none, waiting for any data in the output buffer to
-           drain, and then reseting f/c to it's original setting. If
-           the real flush above does works, then the fake one should
-           amount to instantaneously switching f/c to none and then
-           back to its propper setting. */
-        if ( opts.flow != FC_NONE ) term_fake_flush(tty_fd);
+        else {
+            term_flush(tty_fd);
+            /* term_flush does not work with some drivers. If we try
+               to drain or even close the port while there are still
+               data in it's output buffers *and* flow-control is
+               enabled we may block forever. So we "fake" a flush, by
+               temporarily setting f/c to none, waiting for any data
+               in the output buffer to drain, and then reseting f/c to
+               it's original setting. If the real flush above does
+               work, then the fake one should amount to
+               instantaneously switching f/c to none and then back to
+               its propper setting. */
+            if ( opts.flow != FC_NONE ) term_fake_flush(tty_fd);
+        }
         term_set_hupcl(tty_fd, !noreset || hup);
         term_apply(tty_fd, 1);
-        if ( noreset ) {
+        if ( noreset || opts.telnet ) {
             pinfo("Skipping tty reset...\r\n");
             term_erase(tty_fd);
 #ifdef USE_FLOCK
@@ -668,7 +671,14 @@ cleanup (int drain, int noreset, int hup)
                comments in term.c/term_exitfunc() for more. */
             flock(tty_fd, LOCK_UN);
 #endif
+#ifdef USE_RFC2217
+            if ( opts.telnet )
+                tn2217_close(tty_fd, drain);
+            else
+                close(tty_fd);
+#else
             close(tty_fd);
+#endif
             tty_fd = -1;
         }
     }
