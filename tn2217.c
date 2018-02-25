@@ -1137,9 +1137,9 @@ tn2217_read(struct term_s *t, void *buf, unsigned bufsz)
     unsigned char *iac;
     int r;
 
-    /* FIXME(npat): Maybe don't wait if s->set_termios is not set
-       (--noinit) */
-    if ( ! cond_initial_conf_complete(t) ) {
+    /* If s->set_termios is not set (i.e. --noinit was given), the
+       port will not be configured and we don't have to wait. */
+    if ( s->set_termios && ! cond_initial_conf_complete(t) ) {
         /* Port may not have been configured yet. Wait for
            negotiations to end, and configuration commands to get
            transmitted *and* replies received. */
@@ -1246,9 +1246,9 @@ tn2217_write(struct term_s *t, const void *buf, unsigned bufsz)
 {
     int r;
 
-    /* FIXME(npat): Maybe don't wait if s->set_termios is not set
-       (--noinit) */
-    if ( ! cond_comport_start(t) ) {
+    /* If s->set_termios is not set (i.e. --noinit was given), the
+       port will not be configured and we don't have to wait. */
+    if ( STATE(t)->set_termios && ! cond_comport_start(t) ) {
         /* Port may not have been configured yet. Wait for
            negotiations to end, and configuration commands to get
            transmitted. It is not necessary to wait for them to get
