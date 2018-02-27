@@ -24,7 +24,19 @@
 
 #ifndef FDIO_H
 
+/* Write exactly "n" bytes from "buff" to "fd". Works with blocking
+   and non-blocking fds. Returns number of bytes written; if != "n",
+   sets errno. */
 ssize_t writen_ni(int fd, const void *buff, size_t n);
+
+#if 0
+/* Write exactly "n" bytes from "buff" to "fd", with an optional
+   (relative or absolute) timeout "tv_tmo".  Works with blocking and
+   non-blocking fds. Returns number of bytes written; if != "n", sets
+   errno. */
+ssize_t writento_ni(int fd, const void *buff, size_t n,
+                    int absolute, struct timeval *tv_tmo);
+#endif
 
 int fd_vprintf (int fd, const char *format, va_list ap);
 

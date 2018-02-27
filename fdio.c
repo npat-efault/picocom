@@ -28,6 +28,9 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdarg.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/select.h>
 
 /**********************************************************************/
 
@@ -37,6 +40,8 @@ writen_ni(int fd, const void *buff, size_t n)
     size_t nl;
     ssize_t nw;
     const char *p;
+    fd_set wrset;
+    int r;
 
     p = buff;
     nl = n;
@@ -44,13 +49,80 @@ writen_ni(int fd, const void *buff, size_t n)
         do {
             nw = write(fd, p, nl);
         } while ( nw < 0 && errno == EINTR );
-        if ( nw <= 0 ) break;
+        if ( nw <= 0 ) {
+            if ( nw < 0 && (errno == EWOULDBLOCK || errno == EAGAIN) ) {
+                FD_ZERO(&wrset); FD_SET(fd, &wrset);
+                do {
+                    r = select(fd + 1, 0, &wrset, 0, NULL);
+                } while ( r < 0 && errno == EINTR);
+                if ( r < 0 ) break;
+                continue;
+            }
+            break;
+        }
         nl -= nw;
         p += nw;
     }
 
     return n - nl;
 }
+
+# if 0
+
+ssize_t
+writento_ni(int fd, const void *buff, size_t n,
+            int absolute, struct timeval *tv_tmo)
+{
+    size_t nl;
+    ssize_t nw;
+    const char *p;
+    struct timeval tv_abs, now;
+    fd_set wrset;
+    int r;
+
+    if ( tv_tmo ) {
+        if ( ! absolute ) {
+            gettimeofday(&now, 0);
+            timeradd(&now, tv_tmo, &tv_abs);
+        } else tv_abs = *tv_tmo;
+    }
+
+    p = buff;
+    nl = n;
+    while (nl > 0) {
+        if ( tv_tmo ) {
+            gettimeofday(&now, 0);
+            if ( ! timercmp(&now, &tv_abs, <) ) {
+                errno = ETIMEDOUT;
+                break;
+            }
+            timersub(&tv_abs, &now, tv_tmo);
+        }
+
+        FD_ZERO(&wrset);
+        FD_SET(fd, &wrset);
+        do {
+            r = select(fd + 1, 0, &wrset, 0, tv_tmo);
+        } while ( r < 0 && errno == EINTR );
+        if ( r < 0 ) break;
+        if ( r == 0 ) { errno = ETIMEDOUT; break; }
+
+        do {
+            nw = write(fd, p, nl);
+        } while ( nw < 0 && errno == EINTR );
+        if ( nw <= 0 ) {
+            if ( r < 0 && (errno == EWOULDBLOCK || errno == EAGAIN) )
+                continue;
+            break;
+        }
+        nl -= nw;
+        p += nw;
+    }
+
+    return n - nl;
+}
+
+#endif
 
 int
 fd_vprintf (int fd, const char *format, va_list ap)
