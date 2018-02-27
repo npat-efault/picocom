@@ -59,11 +59,28 @@
 #include <arpa/telnet.h>
 
 #if 0
-# define DEBUG(...) fd_printf(STDERR_FILENO, __VA_ARGS__)
-# define DEBUG_ON 1
+/* Disable debugging code altogether */
+#define DEBUG 0
+#define DB(fl, ...) /* nothing */
+#define DBG(...) /* nothing */
+#define DB_ON(fl) 0
 #else
-# define DEBUG(...) /* nothing */
-# define DEBUG_ON 0
+/* Enable debugging code */
+#define DEBUG 1
+#define DB(fl, ...)                                 \
+    do {                                            \
+        if ( DB_MASK & (fl) )                       \
+            fd_printf(STDERR_FILENO, __VA_ARGS__);  \
+    } while (0)
+#define DBG(...) DB(DB_OTH, __VA_ARGS__)
+#define DB_ON(fl) (DB_MASK & (fl))
+/* Debugging message groups */
+#define DB_OTH (1 << 0) /* other */
+#define DB_NEG (1 << 1) /* option negotiation messages */
+#define DB_OPT (1 << 2) /* option values */
+#define DB_CMP (1 << 3) /* comport messages */
+/* Enable specific groups */
+#define DB_MASK (DB_OTH | DB_NEG | DB_OPT | DB_CMP)
 #endif
 
 /* We'll ask the remote end to use this modem state mask */
@@ -114,7 +131,7 @@ struct tn2217_state {
     unsigned char cmdbuflen;
     unsigned int cmdiac : 1;    /* 1 iff last cmdbuf ch is incomplete IAC */
 
-    int conf_pending;           /* # of not-replied config  commands */
+    int conf_pending;           /* # of not-replied config commands */
     /* When COM-PORT option is fully negotiated, can_comport
      * is set to true. This also means that any deferred termios/modem
      * settings will be triggered. */
@@ -129,6 +146,7 @@ struct tn2217_state {
 static int tn2217_remote_should(struct term_s *t, unsigned char opt);
 static int tn2217_local_should(struct term_s *t, unsigned char opt);
 static int escape_write(struct term_s *t, const void *buf, unsigned bufsz);
+static int read_and_proc(struct term_s *t, void *buf, unsigned bufsz);
 static void tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
     unsigned char *data, unsigned int datalen);
 static void tn2217_comport_start(struct term_s *t);
@@ -141,17 +159,109 @@ tn2217_state(struct term_s *t)
 }
 #define STATE(t) tn2217_state(t)
 
+#if DEBUG
+
+/* Some debug helpers */
+
+static const char *
+nn_str(unsigned char i)
+{
+    static const char *names[256];
+    if ( ! names[i] ) {
+        char *v;
+        v = malloc(4);
+        snprintf(v, 4, "%d", i);
+        names[i] = v;
+    }
+    return names[i];
+}
+
+static const char *
+tncmd_str(unsigned char cmd) {
+    static const char *names[] = {
+        "WILL", "WONT", "DO", "DONT"
+    };
+    return  ( (cmd < WILL || cmd > DONT)
+              ? nn_str(cmd) : names[cmd - WILL] );
+}
+
+static const char *
+tnopt_str(unsigned char opt) {
+    static const char *names[] = {
+        [TELOPT_BINARY] = "BINARY",
+        [TELOPT_ECHO] = "ECHO",
+        [TELOPT_SGA] = "SGA",
+        [TELOPT_COMPORT] = "COMPORT",
+        [255] = NULL
+    };
+    return names[opt] ? names[opt] : nn_str(opt);
+}
+
+static const char *
+tnoptval_str(int val) {
+    static const char *names[] = {
+        "NO", "YES", "WANTYES", "WANTNO"
+    };
+    return names[(unsigned)val&3];
+}
+
+/* Return simple debug representation of a termios,
+   eg "19200:8:none:1:RTS/CTS" */
+const char *
+repr_termios(const struct termios *tio)
+{
+    static char out[256];
+
+    snprintf(out, sizeof out,
+             "%u:%u:%s:%u:%s",
+             tios_get_baudrate(tio, NULL),
+             tios_get_databits(tio),
+             parity_str[tios_get_parity(tio)],
+             tios_get_stopbits(tio),
+             flow_str[tios_get_flowcntrl(tio)]);
+    return out;
+}
+
+/* Return simple debug representation of a modem bits, eg "<dtr,cd>" */
+const char *
+repr_modem(int m)
+{
+    static char out[256];
+
+    snprintf(out, sizeof out,
+        "<%s%s%s%s%s%s%s%s%s>",
+        (m & TIOCM_LE)  ? ",dsr": "",
+        (m & TIOCM_DTR) ? ",dtr": "",
+        (m & TIOCM_RTS) ? ",rts": "",
+        (m & TIOCM_ST)  ? ",st" : "",
+        (m & TIOCM_SR)  ? ",sr" : "",
+        (m & TIOCM_CTS) ? ",cts": "",
+        (m & TIOCM_CD)  ? ",cd" : "",
+        (m & TIOCM_RI)  ? ",ri" : "",
+        (m & TIOCM_DSR) ? ",dsr": ""
+    );
+    if (out[1] == ',') {
+        out[1] = '<';
+        return &out[1];
+    } else
+        return "<>";
+}
+
+#endif /* of DEBUG */
+
 /* Called when a TELNET option changes */
 static void
-tn2217_check_options_changed(struct term_s *t)
+tn2217_check_options_changed(struct term_s *t, unsigned char opt)
 {
     struct tn2217_state *s = STATE(t);
 
+    DB(DB_OPT, "[opt %s %s %s]\r\n", tnopt_str(opt),
+       tnoptval_str(s->opt[opt].us), tnoptval_str(s->opt[opt].him));
+
     /* Detect the first time that the COM-PORT option becomes acceptable
      * at both remote and local. */
-    if (!s->can_comport &&
-         s->opt[TELOPT_COMPORT].us == YES &&
-         s->opt[TELOPT_COMPORT].him == YES)
+    if ( !s->can_comport &&
+         s->opt[TELOPT_COMPORT].us == YES )
     {
         s->can_comport = 1;
         tn2217_comport_start(t);
@@ -170,13 +280,14 @@ tn2217_remote_opt(struct term_s *t, unsigned char opt, int want)
         msg[1] = want ? DO : DONT;
         if (writen_ni(t->fd, msg, sizeof msg) == -1)
             return -1;
+        DB(DB_NEG, "[sent: %s %s]\r\n", tncmd_str(msg[1]), tnopt_str(opt));
         q->him = want ? WANTYES : WANTNO;
     } else if (q->him == WANTNO) {
         q->himq = want ? OPPOSITE : EMPTY;
     } else if (q->him == WANTYES) {
         q->himq = want ? EMPTY : OPPOSITE;
     }
-    tn2217_check_options_changed(t);
+    tn2217_check_options_changed(t, opt);
     return 0;
 }
 
@@ -192,13 +303,14 @@ tn2217_local_opt(struct term_s *t, unsigned char opt, int want)
         msg[1] = want ? WILL : WONT;
         if (writen_ni(t->fd, msg, sizeof msg) == -1)
             return -1;
+        DB(DB_NEG, "[sent: %s %s]\r\n", tncmd_str(msg[1]), tnopt_str(opt));
         q->us = want ? WANTYES : WANTNO;
     } else if (q->us == WANTNO) {
         q->usq = want ? OPPOSITE : EMPTY;
     } else if (q->us == WANTYES) {
         q->usq = want ? EMPTY : OPPOSITE;
     }
-    tn2217_check_options_changed(t);
+    tn2217_check_options_changed(t, opt);
     return 0;
 }
 
@@ -207,7 +319,6 @@ tn2217_local_opt(struct term_s *t, unsigned char opt, int want)
 #define tn2217_will(t, opt) tn2217_local_opt(t, opt, 1)
 #define tn2217_wont(t, opt) tn2217_local_opt(t, opt, 0)
 
-
 /* Receive a WILL/WONT/DO/DONT message, and update our local state. */
 static void
 tn2217_recv_opt(struct term_s *t, unsigned char op, unsigned char opt)
@@ -215,6 +326,8 @@ tn2217_recv_opt(struct term_s *t, unsigned char op, unsigned char opt)
     struct tn2217_state *s = STATE(t);
     struct q_option *q = &s->opt[opt];
     unsigned char respond = 0;
+
+    DB(DB_NEG, "[received: %s %s]\r\n", tncmd_str(op), tnopt_str(opt));
 
     /* See RFC1143 for detailed explanation of the following logic.
      * It is a transliteration & compacting of the RFC's algorithm. */
@@ -300,8 +413,10 @@ tn2217_recv_opt(struct term_s *t, unsigned char op, unsigned char opt)
     if (respond) {
         unsigned char msg[3] = { IAC, respond, opt };
         writen_ni(t->fd, msg, sizeof msg);
+
+        DB(DB_NEG, "[sent: %s %s]\r\n", tncmd_str(respond), tnopt_str(opt));
     }
-    tn2217_check_options_changed(t);
+    tn2217_check_options_changed(t, opt);
 }
 
 /* Receive and process a single byte of an IAC command.
@@ -371,8 +486,8 @@ static int
 tn2217_remote_should(struct term_s *t, unsigned char opt)
 {
     return opt == TELOPT_BINARY ||
-           opt == TELOPT_SGA ||
-           opt == TELOPT_COMPORT;
+        opt == TELOPT_ECHO ||
+        opt == TELOPT_SGA;
 }
 
 /* Should we enable a local option if remote asks us to DO/DONT? */
@@ -507,49 +622,6 @@ tn2217_send_comport_cmd4(struct term_s *t, unsigned char cmd, unsigned int val)
     valbuf[3] = (val >>  0) & 0xff;
     tn2217_send_comport_cmd(t, cmd, valbuf, sizeof valbuf);
 }
-
-/* Return simple debug representation of a termios,
-   eg "19200:8:none:1:RTS/CTS" */
-const char *
-termios_repr(const struct termios *tio)
-{
-    static char out[256];
-
-    snprintf(out, sizeof out,
-             "%u:%u:%s:%u:%s",
-             tios_get_baudrate(tio, NULL),
-             tios_get_databits(tio),
-             parity_str[tios_get_parity(tio)],
-             tios_get_stopbits(tio),
-             flow_str[tios_get_flowcntrl(tio)]);
-    return out;
-}
-
-/* Return simple debug representation of a modem bits, eg "<dtr,cd>" */
-const char *
-modem_repr(int m)
-{
-    static char out[256];
-
-    snprintf(out, sizeof out,
-        "<%s%s%s%s%s%s%s%s%s>",
-        (m & TIOCM_LE)  ? ",dsr": "",
-        (m & TIOCM_DTR) ? ",dtr": "",
-        (m & TIOCM_RTS) ? ",rts": "",
-        (m & TIOCM_ST)  ? ",st" : "",
-        (m & TIOCM_SR)  ? ",sr" : "",
-        (m & TIOCM_CTS) ? ",cts": "",
-        (m & TIOCM_CD)  ? ",cd" : "",
-        (m & TIOCM_RI)  ? ",ri" : "",
-        (m & TIOCM_DSR) ? ",dsr": ""
-    );
-    if (out[1] == ',') {
-        out[1] = '<';
-        return &out[1];
-    } else
-        return "<>";
-}
-
 
 /* Sends a SET-BAUDRATE message to the remote */
 static void
@@ -733,7 +805,7 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
         /* This is optional, but we might later exploit it to achieve
          * server-specific workarounds. */
         if (datalen)
-            fprintf(stderr, "[REMOTE SIGNATURE: '%.*s']\r\n", datalen, data);
+            DB(DB_CMP, "[REMOTE SIGNATURE: '%.*s']\r\n", datalen, data);
         else
             tn2217_send_comport_cmd(t, COMPORT_SIGNATURE, "picocom", 7);
         break;
@@ -743,7 +815,7 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
             unsigned int baud = (data[0] << 24) | (data[1] << 16) |
                              (data[2] << 8) | data[3];
             tios_set_baudrate_always(&s->termios, baud);
-            DEBUG("[received: BAUDRATE: %d]\r\n", baud);
+            DB(DB_CMP, "[received: COMPORT BAUDRATE: %d]\r\n", baud);
         }
         /* XXX the sredird server sends an extra 4-byte value,
          * which looks like the ispeed. It is not in the RFC. */
@@ -760,7 +832,7 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
             case COMPORT_DATASIZE_8: val = 8; break;
             }
             tios_set_databits(tio, val);
-            DEBUG("[received: DATASIZE: %d]\r\n", val);
+            DB(DB_CMP, "[received: COMPORT DATASIZE: %d]\r\n", val);
         }
         s->conf_pending--;
         break;
@@ -774,7 +846,7 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
             case COMPORT_PARITY_EVEN: val = P_EVEN; break;
             }
             tios_set_parity(tio, val);
-            DEBUG("[received: PARITY: %s]\r\n", parity_str[val]);
+            DB(DB_CMP, "[received: COMPORT PARITY: %s]\r\n", parity_str[val]);
 
         }
         s->conf_pending--;
@@ -788,7 +860,7 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
             case COMPORT_STOPSIZE_2: val = 2; break;
             }
             tios_set_stopbits(tio, val);
-            DEBUG("[received: STOPSIZE: %d]\r\n", val);
+            DB(DB_CMP, "[received: COMPORT STOPSIZE: %d]\r\n", val);
         }
         s->conf_pending--;
         break;
@@ -799,13 +871,13 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
             /* Flow control changes and COMPORT_CONTROL_FC_REQUEST reply */
             case COMPORT_CONTROL_FC_XONOFF:
                 tios_set_flowcntrl(tio, FC_XONXOFF);
-                DEBUG("[received: SET_CONTROL: %d: FLOW: %s]\r\n",
+                DB(DB_CMP, "[received: COMPORT SET_CONTROL: %d: FLOW: %s]\r\n",
                       data[0], parity_str[FC_XONXOFF]);
                 s->conf_pending--;
                 break;
             case COMPORT_CONTROL_FC_HARDWARE:
                 tios_set_flowcntrl(tio, FC_RTSCTS);
-                DEBUG("[received: SET_CONTROL: %d: FLOW: %s]\r\n",
+                DB(DB_CMP, "[received: COMPORT SET_CONTROL: %d: FLOW: %s]\r\n",
                       data[0], parity_str[FC_RTSCTS]);
                 s->conf_pending--;
                 break;
@@ -813,7 +885,7 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
             case COMPORT_CONTROL_FC_DCD:
             case COMPORT_CONTROL_FC_DSR:
                 tios_set_flowcntrl(tio, FC_NONE);
-                DEBUG("[received: SET_CONTROL: %d: FLOW: %s]\r\n",
+                DB(DB_CMP, "[received: COMPORT SET_CONTROL: %d: FLOW: %s]\r\n",
                       data[0], parity_str[FC_NONE]);
                 s->conf_pending--;
                 break;
@@ -823,7 +895,7 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
                 val = (data[0] == COMPORT_CONTROL_DTR_ON) ? TIOCM_DTR : 0;
                 *modem &= ~TIOCM_DTR;
                 *modem |= val;
-                DEBUG("[received: SET_CONTROL: %d: dtr=%u]\r\n",
+                DB(DB_CMP, "[received: COMPORT SET_CONTROL: %d: dtr=%u]\r\n",
                       data[0], !!val);
                 break;
             /* RTS changes and COMPORT_CONTROL_RTS_REQUEST reply */
@@ -832,11 +904,11 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
                 val = (data[0] == COMPORT_CONTROL_RTS_ON) ? TIOCM_RTS : 0;
                 *modem &= ~TIOCM_RTS;
                 *modem |= val;
-                DEBUG("[received: SET_CONTROL: %d: rts=%u]\r\n",
+                DB(DB_CMP, "[received: COMPORT SET_CONTROL: %d: rts=%u]\r\n",
                       data[0], !!val);
                 break;
             default:
-                DEBUG("[received: SET_CONTROL: %d: (?)]\r\n", data[0]);
+                DB(DB_CMP, "[received: COMPORT SET_CONTROL: %d: (?)]\r\n", data[0]);
                 break;
             }
         }
@@ -850,19 +922,19 @@ tn2217_recv_comport_cmd(struct term_s *t, unsigned char cmd,
             if (data[0] & COMPORT_MODEM_RI)  val |= TIOCM_RI;
             if (data[0] & COMPORT_MODEM_DSR) val |= TIOCM_DSR;
             if (data[0] & COMPORT_MODEM_CTS) val |= TIOCM_CTS;
-            DEBUG("[received: MODEMSTATE: %s]\r\n", modem_repr(val));
+            DB(DB_CMP, "[received: COMPORT MODEMSTATE: %s]\r\n", repr_modem(val));
             *modem &= ~(TIOCM_CD|TIOCM_RI|TIOCM_DSR|TIOCM_CTS);
             *modem |= val;
         }
         break;
 
     default:
-        if ( DEBUG_ON ) {
+        if ( DB_ON(DB_CMP) ) {
             int i;
-            DEBUG("[received: CMD=%d:", cmd);
+            DB(DB_CMP, "[received: COMPORT CMD=%d:", cmd);
             for ( i = 0; i < datalen; i++ )
-                DEBUG(" %d", data[i]);
-            DEBUG("]\r\n");
+                DB(DB_CMP, " %d", data[i]);
+            DB(DB_CMP, "]\r\n");
         }
         break;
     }
@@ -897,7 +969,6 @@ tn2217_init(struct term_s *t)
     tn2217_will(t, TELOPT_SGA);
     tn2217_do(t, TELOPT_SGA);
     tn2217_will(t, TELOPT_COMPORT);
-    tn2217_do(t, TELOPT_COMPORT);
 
     return 0;
 }
@@ -913,7 +984,7 @@ tn2217_tcgetattr(struct term_s *t, struct termios *termios_out)
 {
     struct tn2217_state *s = STATE(t);
 
-    DEBUG("[tcgetattr %s]\r\n", termios_repr(&s->termios));
+    DB(DB_CMP, "[tcgetattr %s]\r\n", repr_termios(&s->termios));
     *termios_out = s->termios;
     return 0;
 }
@@ -923,7 +994,7 @@ tn2217_tcsetattr(struct term_s *t, int when, const struct termios *tio)
 {
     struct tn2217_state *s = STATE(t);
 
-    DEBUG("[tcsetattr %s]\r\n", termios_repr(tio));
+    DB(DB_CMP, "[tcsetattr %s]\r\n", repr_termios(tio));
     s->termios = *tio;
     if (s->can_comport) {
         tn2217_send_set_baudrate(t, tios_get_baudrate(tio, NULL));
@@ -941,7 +1012,7 @@ tn2217_modem_get(struct term_s *t, int *modem_out)
 {
     struct tn2217_state *s = STATE(t);
 
-    DEBUG("[modem_get %s]\r\n", modem_repr(s->modem));
+    DB(DB_CMP, "[modem_get %s]\r\n", repr_modem(s->modem));
     *modem_out = s->modem;
     return 0;
 }
@@ -951,7 +1022,7 @@ tn2217_modem_bis(struct term_s *t, const int *modem)
 {
     struct tn2217_state *s = STATE(t);
 
-    DEBUG("[modem_bis %s]\r\n", modem_repr(*modem));
+    DB(DB_CMP, "[modem_bis %s]\r\n", repr_modem(*modem));
 
     s->modem |= *modem;
 
@@ -971,7 +1042,7 @@ tn2217_modem_bic(struct term_s *t, const int *modem)
 {
     struct tn2217_state *s = STATE(t);
 
-    DEBUG("[modem_bic %s]\r\n", modem_repr(*modem));
+    DB(DB_CMP, "[modem_bic %s]\r\n", repr_modem(*modem));
 
     s->modem &= ~*modem;
 
@@ -1018,63 +1089,19 @@ tn2217_drain(struct term_s *t)
     return 0;
 }
 
-/* Wait (keep reading from fd) for a command to be received and
-   processed, or for timeout to expire. Returns a positive if a
-   command was received and processed or if the timeout expired,
-   returns zero if read(2) returns zero, and returns a negative on
-   error. User-data read while waiting are discarded. */
-static int
-tn2217_wait_cmd(struct term_s *t, struct timeval *tmo_tv)
-{
-    struct tn2217_state *s = STATE(t);
-    unsigned char c;
-    int r, cmd = 0;
-    fd_set rdset;
-
-    do {
-        FD_ZERO(&rdset);
-        FD_SET(t->fd, &rdset);
-        r = select(t->fd + 1, &rdset, 0, 0, tmo_tv);
-        if ( r <= 0 )
-            return r == 0 ? 1 : -1;
-        r = read(t->fd, &c, 1);
-        if ( r <= 0 )
-            return r;
-
-        if ( s->cmdbuflen ) {
-            if (s->cmdbuflen >= sizeof s->cmdbuf -1) {
-                s->cmdbuflen = 0; /* Abandon on overflow */
-                fprintf(stderr, "[overlong IAC command]\r\n");
-                continue;
-            }
-            s->cmdbuf[s->cmdbuflen++] = c;
-            if ( s->cmdbuflen == 2 && s->cmdbuf[1] == IAC )
-                s->cmdbuflen = 0;
-            else
-                cmd = tn2217_recv_cmd_partial(t);
-        } else {
-            if ( c == IAC ) {
-                s->cmdbuf[0] = IAC;
-                s->cmdbuflen = 1;
-            }
-        }
-    } while ( ! cmd );
-
-    return 1;
-}
-
 /* Condition: Initial configuration completed. That is: initial
    negotiations completed, configuration commands sent, *and*
    replies received. To be used with tn2217_wait_cond(). */
 static int cond_initial_conf_complete(struct term_s *t)
 {
     struct tn2217_state *s = STATE(t);
-    int v;
 
-    v = s->configed || ( s->can_comport && ! s->conf_pending );
-    if ( v )
+    if ( s->configed ) return 1;
+    if ( s->can_comport && ! s->conf_pending ) {
         s->configed = 1;
-    return v;
+        return 1;
+    }
+    return 0;
 }
 
 /* Condition: Initial negotiations completed, and configuration
@@ -1104,16 +1131,26 @@ static int
 tn2217_wait_cond(struct term_s *t, int (*cond)(struct term_s *t), int tmo_msec)
 {
     struct timeval now, tmo_tv, tmo_abs;
+    unsigned char c;
     int r;
+    fd_set rdset;
 
     msec2tv(&tmo_tv, tmo_msec);
     gettimeofday(&now, 0);
     timeradd(&now, &tmo_tv, &tmo_abs);
 
     while ( ! cond(t) ) {
-        r = tn2217_wait_cmd(t, &tmo_tv);
-        if ( r <= 0 )
-            return r;
+        FD_ZERO(&rdset);
+        FD_SET(t->fd, &rdset);
+        r = select(t->fd + 1, &rdset, 0, 0, &tmo_tv);
+        if ( r < 0 )
+            return -1;
+        else if ( r > 0 ) {
+            r = read_and_proc(t, &c, 1);
+            if ( r == 0 || (r < 0 && errno != EAGAIN) )
+                return r;
+            /* discard c */
+        }
         gettimeofday(&now, 0);
         if ( timercmp(&now, &tmo_abs, <) ) {
             timersub(&tmo_abs, &now, &tmo_tv);
@@ -1129,26 +1166,12 @@ tn2217_wait_cond(struct term_s *t, int (*cond)(struct term_s *t), int tmo_msec)
 /* Reads raw binary from the socket and immediately handles any
  * in-stream TELNET commands. */
 static int
-tn2217_read(struct term_s *t, void *buf, unsigned bufsz)
+read_and_proc(struct term_s *t, void *buf, unsigned bufsz)
 {
     struct tn2217_state *s = STATE(t);
     unsigned char *in, *out;
     int inlen, outlen;
     unsigned char *iac;
-    int r;
-
-    /* If s->set_termios is not set (i.e. --noinit was given), the
-       port will not be configured and we don't have to wait. */
-    if ( s->set_termios && ! cond_initial_conf_complete(t) ) {
-        /* Port may not have been configured yet. Wait for
-           negotiations to end, and configuration commands to get
-           transmitted *and* replies received. */
-        DEBUG("tn2217_read WAITING initial_conf_complete\r\n");
-        r = tn2217_wait_cond(t, cond_initial_conf_complete, 5000);
-        if ( r <= 0 )
-            return r;
-        DEBUG("tn2217_read GOT initial_conf_complete\r\n");
-    }
 
     inlen = read(t->fd, buf, bufsz);
     if (inlen <= 0)
@@ -1216,6 +1239,29 @@ tn2217_read(struct term_s *t, void *buf, unsigned bufsz)
     return outlen;
 }
 
+/* Reads raw binary from the socket and immediately handles any
+ * in-stream TELNET commands. */
+static int
+tn2217_read(struct term_s *t, void *buf, unsigned bufsz)
+{
+    int r;
+
+    /* If s->set_termios is not set (i.e. --noinit was given), the
+       port will not be configured and we don't have to wait. */
+    if ( STATE(t)->set_termios && ! cond_initial_conf_complete(t) ) {
+        /* Port may not have been configured yet. Wait for
+           negotiations to end, and configuration commands to get
+           transmitted *and* replies received. */
+        DBG("tn2217_read WAITING initial_conf_complete\r\n");
+        r = tn2217_wait_cond(t, cond_initial_conf_complete, 5000);
+        if ( r <= 0 )
+            return r;
+        DBG("tn2217_read GOT initial_conf_complete\r\n");
+    }
+
+    return read_and_proc(t, buf, bufsz);
+}
+
 static int
 escape_write(struct term_s *t, const void *buf, unsigned bufsz)
 {
@@ -1253,13 +1299,13 @@ tn2217_write(struct term_s *t, const void *buf, unsigned bufsz)
            negotiations to end, and configuration commands to get
            transmitted. It is not necessary to wait for them to get
            replied. */
-        DEBUG("tn2217_write WAITING comport_start\r\n");
+        DBG("tn2217_write WAITING comport_start\r\n");
         r = tn2217_wait_cond(t, cond_comport_start, 5000);
         if ( r <= 0 ) {
             if ( r == 0 ) errno = EPIPE;
             return -1;
         }
-        DEBUG("tn2217_write GOT comport_start\r\n");
+        DBG("tn2217_write GOT comport_start\r\n");
     }
 
     return escape_write(t, buf, bufsz);
