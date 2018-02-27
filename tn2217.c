@@ -164,7 +164,7 @@ tn2217_state(struct term_s *t)
 /* Some debug helpers */
 
 static const char *
-nn_str(unsigned char i)
+str_nn(unsigned char i)
 {
     static const char *names[256];
     if ( ! names[i] ) {
@@ -177,16 +177,16 @@ nn_str(unsigned char i)
 }
 
 static const char *
-tncmd_str(unsigned char cmd) {
+str_cmd(unsigned char cmd) {
     static const char *names[] = {
         "WILL", "WONT", "DO", "DONT"
     };
     return  ( (cmd < WILL || cmd > DONT)
-              ? nn_str(cmd) : names[cmd - WILL] );
+              ? str_nn(cmd) : names[cmd - WILL] );
 }
 
 static const char *
-tnopt_str(unsigned char opt) {
+str_opt(unsigned char opt) {
     static const char *names[] = {
         [TELOPT_BINARY] = "BINARY",
         [TELOPT_ECHO] = "ECHO",
@@ -194,11 +194,11 @@ tnopt_str(unsigned char opt) {
         [TELOPT_COMPORT] = "COMPORT",
         [255] = NULL
     };
-    return names[opt] ? names[opt] : nn_str(opt);
+    return names[opt] ? names[opt] : str_nn(opt);
 }
 
 static const char *
-tnoptval_str(int val) {
+str_optval(int val) {
     static const char *names[] = {
         "NO", "YES", "WANTYES", "WANTNO"
     };
@@ -255,11 +255,10 @@ tn2217_check_options_changed(struct term_s *t, unsigned char opt)
 {
     struct tn2217_state *s = STATE(t);
 
-    DB(DB_OPT, "[opt %s %s %s]\r\n", tnopt_str(opt),
-       tnoptval_str(s->opt[opt].us), tnoptval_str(s->opt[opt].him));
+    DB(DB_OPT, "[opt %s %s %s]\r\n", str_opt(opt),
+       str_optval(s->opt[opt].us), str_optval(s->opt[opt].him));
 
-    /* Detect the first time that the COM-PORT option becomes acceptable
-     * at both remote and local. */
+    /* Detect the first time that the COM-PORT option becomes acceptable. */
     if ( !s->can_comport &&
          s->opt[TELOPT_COMPORT].us == YES )
     {
@@ -280,7 +279,7 @@ tn2217_remote_opt(struct term_s *t, unsigned char opt, int want)
         msg[1] = want ? DO : DONT;
         if (writen_ni(t->fd, msg, sizeof msg) == -1)
             return -1;
-        DB(DB_NEG, "[sent: %s %s]\r\n", tncmd_str(msg[1]), tnopt_str(opt));
+        DB(DB_NEG, "[sent: %s %s]\r\n", str_cmd(msg[1]), str_opt(opt));
         q->him = want ? WANTYES : WANTNO;
     } else if (q->him == WANTNO) {
         q->himq = want ? OPPOSITE : EMPTY;
@@ -303,7 +302,7 @@ tn2217_local_opt(struct term_s *t, unsigned char opt, int want)
         msg[1] = want ? WILL : WONT;
         if (writen_ni(t->fd, msg, sizeof msg) == -1)
             return -1;
-        DB(DB_NEG, "[sent: %s %s]\r\n", tncmd_str(msg[1]), tnopt_str(opt));
+        DB(DB_NEG, "[sent: %s %s]\r\n", str_cmd(msg[1]), str_opt(opt));
         q->us = want ? WANTYES : WANTNO;
     } else if (q->us == WANTNO) {
         q->usq = want ? OPPOSITE : EMPTY;
@@ -327,7 +326,7 @@ tn2217_recv_opt(struct term_s *t, unsigned char op, unsigned char opt)
     struct q_option *q = &s->opt[opt];
     unsigned char respond = 0;
 
-    DB(DB_NEG, "[received: %s %s]\r\n", tncmd_str(op), tnopt_str(opt));
+    DB(DB_NEG, "[received: %s %s]\r\n", str_cmd(op), str_opt(opt));
 
     /* See RFC1143 for detailed explanation of the following logic.
      * It is a transliteration & compacting of the RFC's algorithm. */
@@ -413,8 +412,7 @@ tn2217_recv_opt(struct term_s *t, unsigned char op, unsigned char opt)
     if (respond) {
         unsigned char msg[3] = { IAC, respond, opt };
         writen_ni(t->fd, msg, sizeof msg);
-
-        DB(DB_NEG, "[sent: %s %s]\r\n", tncmd_str(respond), tnopt_str(opt));
+        DB(DB_NEG, "[sent: %s %s]\r\n", str_cmd(respond), str_opt(opt));
     }
     tn2217_check_options_changed(t, opt);
 }
