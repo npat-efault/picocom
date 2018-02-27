@@ -1124,7 +1124,7 @@ msec2tv (struct timeval *tv, long ms)
    until the timeout expires. Returns a positive on success, zero if
    read(2) returned zero, and a negative on any other error
    (incl. timeoute expiration). On timeout expiration, errno is set to
-   ETIME.*/
+   ETIMEDOUT.*/
 static int
 tn2217_wait_cond(struct term_s *t, int (*cond)(struct term_s *t), int tmo_msec)
 {
@@ -1153,7 +1153,7 @@ tn2217_wait_cond(struct term_s *t, int (*cond)(struct term_s *t), int tmo_msec)
         if ( timercmp(&now, &tmo_abs, <) ) {
             timersub(&tmo_abs, &now, &tmo_tv);
         } else {
-            errno = ETIME;
+            errno = ETIMEDOUT;
             return -1;
         }
     }
