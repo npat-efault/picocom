@@ -58,7 +58,7 @@
 #include <sys/ioctl.h>
 #include <arpa/telnet.h>
 
-#if 0
+#if 1
 /* Disable debugging code altogether */
 #define DEBUG 0
 #define DB(fl, ...) /* nothing */
@@ -80,7 +80,7 @@
 #define DB_OPT (1 << 2) /* option values */
 #define DB_CMP (1 << 3) /* comport messages */
 /* Enable specific groups */
-#define DB_MASK (DB_OTH | DB_NEG | DB_OPT | DB_CMP)
+#define DB_MASK (DB_OTH | DB_NEG /* | DB_OPT */ | DB_CMP)
 #endif
 
 /* We'll ask the remote end to use this modem state mask */
