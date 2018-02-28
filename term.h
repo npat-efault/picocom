@@ -153,7 +153,8 @@ enum term_errno_e {
     TERM_EDRAIN,     /* see errno */
     TERM_EBREAK,
     TERM_ERTSDOWN,
-    TERM_ERTSUP
+    TERM_ERTSUP,
+    TERM_EDEVINIT,   /* see errno */
 };
 
 /* E parity_e

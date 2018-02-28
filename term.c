@@ -252,7 +252,8 @@ static const char * const term_err_str[] = {
     [TERM_EDRAIN]     = "Cannot drain the device",
     [TERM_EBREAK]     = "Cannot send break sequence",
     [TERM_ERTSDOWN]   = "Cannot lower RTS",
-    [TERM_ERTSUP]     = "Cannot raise RTS"
+    [TERM_ERTSUP]     = "Cannot raise RTS",
+    [TERM_EDEVINIT]   = "Cannot initialize device"
 };
 
 static char term_err_buff[1024];
@@ -270,6 +271,7 @@ term_strerror (int terrnum, int errnum)
     case TERM_ESETISPEED:
     case TERM_EDRAIN:
     case TERM_EBREAK:
+    case TERM_EDEVINIT:
         snprintf(term_err_buff, sizeof(term_err_buff),
                  "%s: %s", term_err_str[terrnum], strerror(errnum));
         rval = term_err_buff;
@@ -534,6 +536,7 @@ term_new (int fd, const char *name, const struct term_ops *ops)
         if (ops->init) {
             int r = ops->init(rval);
             if ( r < 0 ) {
+                term_errno = TERM_EDEVINIT;
                 /* Failed to init, abandon allocation */
                 rval->fd = -1;
                 if ( rval->name ) {
