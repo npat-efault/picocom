@@ -34,6 +34,15 @@
 
 /**********************************************************************/
 
+struct timeval *
+msec2tv (struct timeval *tv, long ms)
+{
+    tv->tv_sec = ms / 1000;
+    tv->tv_usec = (ms % 1000) * 1000;
+
+    return tv;
+}
+
 ssize_t
 writen_ni(int fd, const void *buff, size_t n)
 {

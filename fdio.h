@@ -24,6 +24,8 @@
 
 #ifndef FDIO_H
 
+struct timeval *msec2tv (struct timeval *tv, long ms);
+
 /* Write exactly "n" bytes from "buff" to "fd". Works with blocking
    and non-blocking fds. Returns number of bytes written; if != "n",
    sets errno. */

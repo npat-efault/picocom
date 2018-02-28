@@ -1385,15 +1385,6 @@ do_command (unsigned char c)
 
 /**********************************************************************/
 
-static struct timeval *
-msec2tv (struct timeval *tv, long ms)
-{
-    tv->tv_sec = ms / 1000;
-    tv->tv_usec = (ms % 1000) * 1000;
-
-    return tv;
-}
-
 /* loop-exit reason */
 enum le_reason {
     LE_CMD,

@@ -1199,15 +1199,6 @@ cond_comport_start(struct term_s *t)
     return STATE(t)->can_comport;
 }
 
-static struct timeval *
-msec2tv (struct timeval *tv, long ms)
-{
-    tv->tv_sec = ms / 1000;
-    tv->tv_usec = (ms % 1000) * 1000;
-
-    return tv;
-}
-
 /* Wait (keep reading from the fd and processing commands) until the
    condition is satisfied (that is, until "cond" returns non-zero), or
    until the timeout expires. Returns a positive on success, zero if
