@@ -35,16 +35,17 @@ non-option argument (or the *last* non-option argument, if multiple
 are given). The serial port is usually given as a device-node path
 (e.g. */dev/ttyXX*). If RFC2217 support is compiled in, the port may
 instead be specified as an RFC2217 service name, if the **--telnet**
-option is also given. Unless the **--noinit** option is given, picocom
-configures the port to the settings specified by the option-arguments
-(or to some default settings), and sets it to "raw" mode. If
-**--noinit** is given, the initialization and configuration is
-skipped; the port is just opened. Following this, if standard input is
-a tty, picocom sets the tty to raw mode. Then it goes in a loop where
-it listens for input from stdin, or from the serial port. Input from
-the serial port is copied to the standard output while input from the
-standard input is copied to the serial port. Picocom also scans its
-input stream for a user-specified control character, called the
+option is also given (for more see
+**[TELNET AND RFC2217 SUPPORT]**). Unless the **--noinit** option is
+given, picocom configures the port to the settings specified by the
+option-arguments (or to some default settings), and sets it to "raw"
+mode. If **--noinit** is given, the initialization and configuration
+is skipped; the port is just opened. Following this, if standard input
+is a tty, picocom sets the tty to raw mode. Then it goes in a loop
+where it listens for input from stdin, or from the serial port. Input
+from the serial port is copied to the standard output while input from
+the standard input is copied to the serial port. Picocom also scans
+its input stream for a user-specified control character, called the
 _escape character_ (being by default **C-a**). If the escape character
 is seen, then instead of sending it to the serial-device, the program
 enters "command mode" and waits for the next character (which is
@@ -464,7 +465,8 @@ Picocom accepts the following command-line options.
 
 :   Interpret the _device_ non-option argument as the name of an RFC
     2217 service, with an optional port: _hostname_[,_port_]. This
-    option may not be supported on all picocom builds.
+    option may not be supported on all picocom builds. For more see
+    **[TELNET AND RFC2217 SUPPORT]**.
 
 
 # DISPLAY OF OPTIONS AND PORT SETTINGS
@@ -610,6 +612,57 @@ will:
 - Replace every CR character with CR and LF when echoing to the
   terminal (if local-echo is enabled).
 
+# TELNET AND RFC2217 SUPPORT
+
+Picocom can be compiled with Telnet and RFC2217 support. This
+facilitates accessing remote ports through TCP connections using the
+Telnet protocol, and configuring and controling them (e.g. changing
+their settings or the status of the modem-control lines) using the
+COMPORT protocol option described in RFC2217. To test if support for
+Telnet and RFC2217 has been compiled-in your picocom binary, run with
+**--help** and observe the first few lines of output. The use of a
+remote port is specified like this:
+
+    picocom --telnet --baud 9600 host,8888
+
+for more see the **--telnet** option. When picocom is used with a
+remote port its behavior is, for the most part, the same as if the
+port was local, with the following limitations and differences:
+
+- You cannot use the **C-s** (send file) and **C-r** (received file)
+  commands. This is a known limitation that may be fixed in the
+  future.
+
+- The **--noreset** and **--hangup** options, are meaningless and,
+  therefore, not allowed. Whether the remote port will be reset to its
+  original settings when picocom terminates (and disconnects from it),
+  and whether the modem control lines will be reset, is something
+  controlled by the remote access server. Some servers reset their
+  ports when the client disconnects, other don't, other are per-port
+  configurable. RFC2217, indicates that a server *should* reset and
+  hangup its port when the client disconnects. Similarly the **C-x**
+  (Exit) and **C-q** (Quit) commands, do the same thing.
+
+- The **--noinit** option works as expected. Actually, by running
+  picocom with **--noinit** you can connect to port servers that do
+  not support the COMPORT (RFC2217) remote port configuration option,
+  but only support plain Telnet. Without the **--noinit** option this
+  is not possible, for obvious reasons. When picocom is run without
+  **--noinit** it first configures the remote port to the requested
+  settings (given in the command-line or the picocom defaults) and
+  then starts reading and writing to or from it. Any data received
+  from the port, before it has been configured are discarded. If
+  picocom is run with **--noinit** then it immediately starts reading
+  and writing data to and from the remote port (as the port is assumed
+  already configured).
+
+- Interactive commands that change the port's settings or change the
+  status of the modem-control lines, are executed in an asynchronous
+  manner, which may be a bit confusing. That is, you may not get an
+  immediate indication of a command's failure to affect the port, but
+  the *true* status of the port *will* be updated (it a short while)
+  and you *can* verify it using the **C-v** (show port settings)
+  command.
 
 # EXITING PICOCOM
 
