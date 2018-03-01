@@ -1504,12 +1504,12 @@ loop(void)
 
             do {
                 n = term_read(tty_fd, &buff_rd, sizeof(buff_rd));
-            } while (n < 0 && errno == EINTR);
+            } while (n < 0 && term_esys() == EINTR);
             if (n == 0) {
-                fatal("read zero bytes from port");
+                fatal("term_read: Zero bytes from port");
             } else if ( n < 0 ) {
-                if ( errno != EAGAIN && errno != EWOULDBLOCK )
-                    fatal("read from port failed: %s", strerror(errno));
+                if ( term_esys() != EAGAIN && term_esys() != EWOULDBLOCK )
+                    fatal("term_read: %s", term_strerror(term_errno, errno));
             } else {
                 int i;
                 char *bmp = &buff_map[0];
@@ -1533,9 +1533,9 @@ loop(void)
             sz = (tty_q.len < tty_write_sz) ? tty_q.len : tty_write_sz;
             do {
                 n = term_write(tty_fd, tty_q.buff, sz);
-            } while ( n < 0 && errno == EINTR );
+            } while ( n < 0 && term_esys() == EINTR );
             if ( n <= 0 )
-                fatal("write to port failed: %s", strerror(errno));
+                fatal("term_write: %s", term_strerror(term_errno, errno));
             if ( opts.lecho && opts.log_filename )
                 if ( writen_ni(log_fd, tty_q.buff, n) < n )
                     fatal("write to logfile failed: %s", strerror(errno));

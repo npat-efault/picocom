@@ -67,14 +67,15 @@
  * F term_flush - discard terminal input and output queue contents
  * F term_fake_flush - discard terminal input and output queue contents
  * F term_break - generate a break condition on a device
+ * F term_read - read bytes
+ * F term_write - write bytes
  * F term_baud_up - return next higher baudrate
  * F term_baud_down - return next lower baudrate
  * F term_baud_ok - check if baudrate is valid
  * F term_baud_std - check if baudrate is on of our listed standard baudrates
+ * F term_esys - return errno if error condition reflects system error
  * F term_strerror - return a string describing current error condition
  * F term_perror - print a string describing the current error condition
- * F term_read - read bytes
- * F term_write - write bytes
  * G term_errno - current error condition of the library
  * G parity_str - parity mode names
  * G flow_str - flow control mode names
@@ -121,40 +122,48 @@
 /*
  * E term_errno_e
  *
- * Library error-condition codes. These marked with "see errno"
- * correspond to system errors, so it makes sense to also check the
- * system's error-condition code (errno) in order to fully determine
- * what went wrong.
+ * Library error-condition codes. These marked with "check errno for
+ * more" correspond to system errors, so it makes sense to also check
+ * the system's error-condition code (errno) in order to fully
+ * determine what went wrong.
  *
  * See the error strings in "term.c" for a description of each.
  */
 enum term_errno_e {
-    TERM_EOK = 0,
+    /* Internal errors (no errno) */
+    TERM_EOK,
+    TERM_EMEM,
+    TERM_EUNSUP,
     TERM_ENOINIT,
     TERM_EFULL,
     TERM_ENOTFOUND,
     TERM_EEXISTS,
     TERM_EATEXIT,
     TERM_EISATTY,
-    TERM_EFLUSH,     /* see errno */
-    TERM_EGETATTR,   /* see errno */
-    TERM_ESETATTR,   /* see errno */
     TERM_EBAUD,
-    TERM_ESETOSPEED,
-    TERM_ESETISPEED,
-    TERM_EGETSPEED,
     TERM_EPARITY,
     TERM_EDATABITS,
     TERM_ESTOPBITS,
     TERM_EFLOW,
-    TERM_EDTRDOWN,
-    TERM_EDTRUP,
-    TERM_EMCTL,
-    TERM_EDRAIN,     /* see errno */
+    TERM_ETIMEDOUT,
+    TERM_ERDZERO,
+    TERM_EINTEND, /* end of internal errors, sentinel */
+
+    /* System errors (check errno for more) */
+    TERM_EGETATTR,
+    TERM_ESETATTR,
+    TERM_EFLUSH,
+    TERM_EDRAIN,
     TERM_EBREAK,
-    TERM_ERTSDOWN,
-    TERM_ERTSUP,
-    TERM_EDEVINIT,   /* see errno */
+    TERM_ESETOSPEED,
+    TERM_ESETISPEED,
+    TERM_EGETSPEED,
+    TERM_EGETMCTL,
+    TERM_ESETMCTL,
+    TERM_EINPUT,
+    TERM_EOUTPUT,
+    TERM_ESELECT,
+    TERM_EEND /* end of error condes, sentinel */
 };
 
 /* E parity_e
@@ -236,6 +245,20 @@ extern const char *parity_str[];
 extern const char *flow_str[];
 
 /***************************************************************************/
+
+/*
+ * F term_esys
+ *
+ * Return the current system errno value, if the current library error
+ * condition reflects a system error where errno is applicable;
+ * returns 0 otherwise. Exmple usage:
+ *
+ *     do {
+ *         rn = term_read(t, buff, n);
+ *     } while ( rn < 0 && term_esys() == EINTR )
+ *
+ */
+int term_esys();
 
 /*
  * F term_strerror

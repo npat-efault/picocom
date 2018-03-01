@@ -280,8 +280,9 @@ remote_opt(struct term_s *t, unsigned char opt, int want)
 
     if (q->him == want ? NO : YES) {
         msg[1] = want ? DO : DONT;
-        if ( writen_ni(t->fd, msg, sizeof msg) != sizeof msg )
-            return -1;
+        if ( writen_ni(t->fd, msg, sizeof msg) != sizeof msg ) {
+            term_errno = TERM_EOUTPUT; return -1;
+        }
         DB(DB_NEG, "[sent: %s %s]\r\n", str_cmd(msg[1]), str_opt(opt));
         q->him = want ? WANTYES : WANTNO;
     } else if (q->him == WANTNO) {
@@ -302,8 +303,9 @@ local_opt(struct term_s *t, unsigned char opt, int want)
 
     if (q->us == want ? NO : YES) {
         msg[1] = want ? WILL : WONT;
-        if ( writen_ni(t->fd, msg, sizeof msg) != sizeof msg )
-            return -1;
+        if ( writen_ni(t->fd, msg, sizeof msg) != sizeof msg ) {
+            term_errno = TERM_EOUTPUT; return -1;
+        }
         DB(DB_NEG, "[sent: %s %s]\r\n", str_cmd(msg[1]), str_opt(opt));
         q->us = want ? WANTYES : WANTNO;
     } else if (q->us == WANTNO) {
@@ -412,8 +414,9 @@ recv_opt(struct term_s *t, unsigned char op, unsigned char opt)
 
     if (respond) {
         unsigned char msg[3] = { IAC, respond, opt };
-        if ( writen_ni(t->fd, msg, sizeof msg) != sizeof msg)
-            return -1;
+        if ( writen_ni(t->fd, msg, sizeof msg) != sizeof msg) {
+            term_errno = TERM_EOUTPUT; return -1;
+        }
         DB(DB_NEG, "[sent: %s %s]\r\n", str_cmd(respond), str_opt(opt));
     }
     return check_options_changed(t, opt);
@@ -597,13 +600,18 @@ comport_send_cmd(struct term_s *t, unsigned char cmd,
 
     /* assert(cmd != IAC); */
     if ( writen_ni(t->fd, msg, sizeof msg) != sizeof msg )
-        return -1;
+        goto werror;
     if (datalen)
         if ( escape_write(t, data, datalen) != datalen )
-            return -1;
+            goto werror;
     if ( writen_ni(t->fd, end, sizeof end) != sizeof end )
-        return -1;
+        goto werror;
+
     return 0;
+
+werror:
+    term_errno = TERM_EOUTPUT;
+    return -1;
 }
 
 /* Sends a COM-PORT command consisting of a single byte (a common case) */
@@ -1015,6 +1023,7 @@ tn2217_init(struct term_s *t)
 
     t->priv = calloc(1, sizeof (struct tn2217_state));
     if ( ! t->priv ) {
+        term_errno = TERM_EMEM;
         return -1;
     }
 
@@ -1168,12 +1177,6 @@ tn2217_flush(struct term_s *t, int selector)
     return comport_send_cmd1(t, COMPORT_PURGE_DATA, val);
 }
 
-static int
-tn2217_drain(struct term_s *t)
-{
-    return 0;
-}
-
 /* Condition: Initial configuration completed. That is: initial
    negotiations completed, configuration commands sent, *and*
    replies received. To be used with wait_cond(). */
@@ -1203,8 +1206,8 @@ cond_comport_start(struct term_s *t)
    condition is satisfied (that is, until "cond" returns non-zero), or
    until the timeout expires. Returns a positive on success, zero if
    read(2) returned zero, and a negative on any other error
-   (incl. timeoute expiration). On timeout expiration, errno is set to
-   ETIMEDOUT.*/
+   (incl. timeoute expiration). On timeout expiration, term_errno is set to
+   TERM_ETIMEDOUT.*/
 static int
 wait_cond(struct term_s *t, int (*cond)(struct term_s *t), int tmo_msec)
 {
@@ -1221,11 +1224,11 @@ wait_cond(struct term_s *t, int (*cond)(struct term_s *t), int tmo_msec)
         FD_ZERO(&rdset);
         FD_SET(t->fd, &rdset);
         r = select(t->fd + 1, &rdset, 0, 0, &tmo_tv);
-        if ( r < 0 )
-            return -1;
-        else if ( r > 0 ) {
+        if ( r < 0 ) {
+            term_errno = TERM_ESELECT; return -1;
+        } else if ( r > 0 ) {
             r = read_and_proc(t, &c, 1);
-            if ( r == 0 || (r < 0 && errno != EAGAIN) )
+            if ( r == 0 || (r < 0 && term_esys() != EAGAIN) )
                 return r;
             /* discard c */
         }
@@ -1233,6 +1236,8 @@ wait_cond(struct term_s *t, int (*cond)(struct term_s *t), int tmo_msec)
         if ( timercmp(&now, &tmo_abs, <) ) {
             timersub(&tmo_abs, &now, &tmo_tv);
         } else {
+            /* Set both term_errno and errno so clients can check either */
+            term_errno = TERM_ETIMEDOUT;
             errno = ETIMEDOUT;
             return -1;
         }
@@ -1252,8 +1257,10 @@ read_and_proc(struct term_s *t, void *buf, unsigned bufsz)
     unsigned char *iac;
 
     inlen = read(t->fd, buf, bufsz);
-    if (inlen <= 0)
+    if (inlen <= 0) {
+        if ( inlen < 0 ) term_errno = TERM_EINPUT;
         return inlen;
+    }
 
     in = out = (unsigned char *)buf;
     outlen = 0;
@@ -1310,7 +1317,9 @@ read_and_proc(struct term_s *t, void *buf, unsigned bufsz)
     if (outlen == 0) {
         /* If all we processed were TELNET commands, we can't return 0
          * because that would falsely indicate an EOF condition. Instead,
-         * signal EAGAIN. See the article "Worse is Better". */
+         * signal EAGAIN. See the article "Worse is Better".
+         */
+        term_errno = TERM_EINPUT;
         errno = EAGAIN;
         outlen = -1;
     }
@@ -1354,15 +1363,18 @@ escape_write(struct term_s *t, const void *buf, unsigned bufsz)
     end = (const unsigned char *)memchr(start, IAC, len);
     while (end) {
         n = (end - start) + 1;
-        if ( writen_ni(t->fd, start, n) != n )
-            return -1;
+        if ( writen_ni(t->fd, start, n) != n ) {
+            term_errno = TERM_EOUTPUT; return -1;
+        }
         len -= end - start;
         start = end;
         end = (const unsigned char *)memchr(start + 1, IAC, len - 1);
     }
 
-    if ( writen_ni(t->fd, start, len) != len )
+    if ( writen_ni(t->fd, start, len) != len ) {
+        term_errno = TERM_EOUTPUT; return -1;
         return -1;
+    }
     return bufsz;
 }
 
@@ -1382,7 +1394,7 @@ tn2217_write(struct term_s *t, const void *buf, unsigned bufsz)
         DBG("tn2217_write WAITING comport_start\r\n");
         r = wait_cond(t, cond_comport_start, 5000);
         if ( r <= 0 ) {
-            if ( r == 0 ) errno = EPIPE;
+            if ( r == 0 ) term_errno = TERM_ERDZERO;
             return -1;
         }
         DBG("tn2217_write GOT comport_start\r\n");
@@ -1401,7 +1413,8 @@ const struct term_ops tn2217_ops = {
     .modem_bic = tn2217_modem_bic,
     .send_break = tn2217_send_break,
     .flush = tn2217_flush,
-    .drain = tn2217_drain,
+    .fake_flush = NULL,
+    .drain = NULL,
     .read = tn2217_read,
     .write = tn2217_write,
 };

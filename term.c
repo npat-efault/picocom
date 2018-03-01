@@ -111,7 +111,11 @@ local_init(struct term_s *t)
 static int
 local_tcgetattr(struct term_s *t, struct termios *termios_out)
 {
-    return tcgetattr(t->fd, termios_out);
+    int r;
+
+    r = tcgetattr(t->fd, termios_out);
+    if ( r < 0 ) term_errno = TERM_EGETATTR;
+    return r;
 }
 
 static int
@@ -122,7 +126,7 @@ local_tcsetattr(struct term_s *t, int when, const struct termios *termios)
     do {
         r = tcsetattr(t->fd, when, termios);
     } while ( r < 0 && errno == EINTR );
-
+    if ( r < 0 ) term_errno = TERM_ESETATTR;
     return r;
 }
 
@@ -131,19 +135,31 @@ local_tcsetattr(struct term_s *t, int when, const struct termios *termios)
 static int
 local_modem_get(struct term_s *t, int *modem_out)
 {
-    return ioctl(t->fd, TIOCMGET, modem_out);
+    int r;
+
+    r = ioctl(t->fd, TIOCMGET, modem_out);
+    if ( r < 0 ) term_errno = TERM_EGETMCTL;
+    return r;
 }
 
 static int
 local_modem_bis(struct term_s *t, const int *modem)
 {
-    return ioctl(t->fd, TIOCMBIS, modem);
+    int r;
+
+    r = ioctl(t->fd, TIOCMBIS, modem);
+    if ( r < 0 ) term_errno = TERM_ESETMCTL;
+    return r;
 }
 
 static int
 local_modem_bic(struct term_s *t, const int *modem)
 {
-    return ioctl(t->fd, TIOCMBIC, modem);
+    int r;
+
+    r = ioctl(t->fd, TIOCMBIC, modem);
+    if ( r < 0 ) term_errno = TERM_ESETMCTL;
+    return r;
 }
 
 #endif /* of USE_IOCTL */
@@ -155,27 +171,31 @@ local_send_break(struct term_s *t)
     do {
         r = tcsendbreak(t->fd, 0);
     } while (r < 0 && errno == EINTR );
-
+    if ( r < 0 ) term_errno = TERM_EBREAK;
     return r;
 }
 
 static int
 local_flush(struct term_s *t, int selector)
 {
-    return tcflush(t->fd, selector);
+    int r;
+
+    r = tcflush(t->fd, selector);
+    if ( r < 0 ) term_errno = TERM_EFLUSH;
+    return r;
 }
 
 static int
 local_fake_flush(struct term_s *t)
 {
     struct termios tio, tio_orig;
+    int term_errno_hold = 0, errno_hold = 0;
     int r, rval = 0;
 
     do { /* dummy */
         /* Get current termios */
         r = t->ops->tcgetattr(t, &tio);
         if ( r < 0 ) {
-            term_errno = TERM_EGETATTR;
             rval = -1;
             break;
         }
@@ -186,7 +206,6 @@ local_fake_flush(struct term_s *t)
         /* Apply termios */
         r = t->ops->tcsetattr(t, TCSANOW, &tio);
         if ( r < 0 ) {
-            term_errno = TERM_ESETATTR;
             rval = -1;
             break;
         }
@@ -194,19 +213,24 @@ local_fake_flush(struct term_s *t)
            complete in finite time. */
         r = t->ops->drain(t);
         if ( r < 0 ) {
-            term_errno = TERM_EDRAIN;
+            term_errno_hold = term_errno;
+            errno_hold = errno;
             rval = -1;
             /* continue */
         }
         /* Reset flow-control to original setting. */
         r = t->ops->tcsetattr(t, TCSANOW, &tio_orig);
-        if ( rval >=0 && r < 0 ) {
-            term_errno = TERM_ESETATTR;
+        if ( r < 0 ) {
             rval = -1;
-            /* continue */
+            break;
         }
 
     } while(0);
+
+    if ( term_errno_hold ) {
+        term_errno = term_errno_hold;
+        errno = errno_hold;
+    }
 
     return rval;
 }
@@ -224,8 +248,10 @@ local_drain(struct term_s *t)
         r = tcdrain(t->fd);
 #endif
     } while ( r < 0 && errno == EINTR);
-    if ( r < 0 )
+    if ( r < 0 ) {
+        term_errno = TERM_EDRAIN;
         return r;
+    }
 
     /* Give some time to the UART to transmit everything. Some
        systems and / or drivers corrupt the last character(s) if
@@ -240,17 +266,24 @@ local_drain(struct term_s *t)
 int
 local_read(struct term_s *t, void *buf, unsigned bufsz)
 {
-    return read(t->fd, buf, bufsz);
+    int r;
+    r = read(t->fd, buf, bufsz);
+    if ( r < 0 ) term_errno = TERM_EINPUT;
+    return r;
 }
 
 int
 local_write(struct term_s *t, const void *buf, unsigned bufsz)
 {
-    return write(t->fd, buf, bufsz);
+    int r;
+    r = write(t->fd, buf, bufsz);
+    if ( r < 0 ) term_errno = TERM_EOUTPUT;
+    return r;
 }
 
 static const struct term_ops local_term_ops = {
     .init = local_init,
+    .fini = NULL,
     .tcgetattr = local_tcgetattr,
     .tcsetattr = local_tcsetattr,
 #ifdef USE_IOCTL
@@ -275,79 +308,63 @@ static const struct term_ops local_term_ops = {
 int term_errno;
 
 static const char * const term_err_str[] = {
+    /* Internal errors (no errno) */
     [TERM_EOK]        = "No error",
+    [TERM_EMEM]       = "Memory allocation failed",
+    [TERM_EUNSUP]     = "Operation not supported",
     [TERM_ENOINIT]    = "Framework is uninitialized",
     [TERM_EFULL]      = "Framework is full",
     [TERM_ENOTFOUND]  = "Filedes not in the framework",
     [TERM_EEXISTS]    = "Filedes already in the framework",
     [TERM_EATEXIT]    = "Cannot install atexit handler",
     [TERM_EISATTY]    = "Filedes is not a tty",
-    [TERM_EFLUSH]     = "Cannot flush the device",
-    [TERM_EGETATTR]   = "Cannot get the device attributes",
-    [TERM_ESETATTR]   = "Cannot set the device attributes",
     [TERM_EBAUD]      = "Invalid baud rate",
-    [TERM_ESETOSPEED] = "Cannot set the output speed",
-    [TERM_ESETISPEED] = "Cannot set the input speed",
-    [TERM_EGETSPEED]  = "Cannot decode speed",
     [TERM_EPARITY]    = "Invalid parity mode",
     [TERM_EDATABITS]  = "Invalid number of databits",
     [TERM_ESTOPBITS]  = "Invalid number of stopbits",
     [TERM_EFLOW]      = "Invalid flowcontrol mode",
-    [TERM_EDTRDOWN]   = "Cannot lower DTR",
-    [TERM_EDTRUP]     = "Cannot raise DTR",
-    [TERM_EMCTL]      = "Cannot get mctl status",
-    [TERM_EDRAIN]     = "Cannot drain the device",
-    [TERM_EBREAK]     = "Cannot send break sequence",
-    [TERM_ERTSDOWN]   = "Cannot lower RTS",
-    [TERM_ERTSUP]     = "Cannot raise RTS",
-    [TERM_EDEVINIT]   = "Cannot initialize device"
+    [TERM_ETIMEDOUT]  = "Operation timed-out",
+    [TERM_ERDZERO]    = "Read zero bytes",
+
+    /* System errors (check errno for more) */
+    [TERM_EGETATTR]   = "Get attributes error",
+    [TERM_ESETATTR]   = "Set attributes error",
+    [TERM_EFLUSH]     = "Flush error",
+    [TERM_EDRAIN]     = "Drain error",
+    [TERM_EBREAK]     = "Break error",
+    [TERM_ESETOSPEED] = "Set output speed error",
+    [TERM_ESETISPEED] = "Set input speed error",
+    [TERM_EGETSPEED]  = "Get speed error",
+    [TERM_EGETMCTL]   = "Get mctl status error",
+    [TERM_ESETMCTL]   = "Set mctl status error",
+    [TERM_EINPUT]     = "Input error",
+    [TERM_EOUTPUT]    = "Output error",
+    [TERM_ESELECT]    = "Select error",
 };
 
 static char term_err_buff[1024];
+
+int
+term_esys (void)
+{
+    return ( term_errno > TERM_EINTEND && term_errno < TERM_EEND ) ? errno : 0;
+}
 
 const char *
 term_strerror (int terrnum, int errnum)
 {
     const char *rval;
 
-    switch(terrnum) {
-    case TERM_EFLUSH:
-    case TERM_EGETATTR:
-    case TERM_ESETATTR:
-    case TERM_ESETOSPEED:
-    case TERM_ESETISPEED:
-    case TERM_EDRAIN:
-    case TERM_EBREAK:
-    case TERM_EDEVINIT:
+    if ( term_errno > TERM_EINTEND && term_errno < TERM_EEND ) {
         snprintf(term_err_buff, sizeof(term_err_buff),
                  "%s: %s", term_err_str[terrnum], strerror(errnum));
         rval = term_err_buff;
-        break;
-    case TERM_EOK:
-    case TERM_ENOINIT:
-    case TERM_EFULL:
-    case TERM_ENOTFOUND:
-    case TERM_EEXISTS:
-    case TERM_EATEXIT:
-    case TERM_EISATTY:
-    case TERM_EBAUD:
-    case TERM_EPARITY:
-    case TERM_EDATABITS:
-    case TERM_ESTOPBITS:
-    case TERM_EFLOW:
-    case TERM_EDTRDOWN:
-    case TERM_EDTRUP:
-    case TERM_EMCTL:
-    case TERM_ERTSDOWN:
-    case TERM_ERTSUP:
+    } else if ( term_errno >=0 && term_errno < TERM_EINTEND ) {
         snprintf(term_err_buff, sizeof(term_err_buff),
                  "%s", term_err_str[terrnum]);
         rval = term_err_buff;
-        break;
-    default:
+    } else
         rval = NULL;
-        break;
-    }
 
     return rval;
 }
@@ -583,7 +600,6 @@ term_new (int fd, const char *name, const struct term_ops *ops)
         if (ops->init) {
             int r = ops->init(rval);
             if ( r < 0 ) {
-                term_errno = TERM_EDEVINIT;
                 /* Failed to init, abandon allocation */
                 rval->fd = -1;
                 if ( rval->name ) {
@@ -664,8 +680,8 @@ term_exitfunc (void)
             struct term_s *t = &term[i];
             if (t->fd == -1)
                 continue;
-            term_drain(t->fd);
-            t->ops->flush(t, TCIFLUSH);
+            if (t->ops->drain) t->ops->drain(t);
+            if (t->ops->flush) t->ops->flush(t, TCIFLUSH);
             r = t->ops->tcsetattr(t, TCSANOW, &t->origtermios);
             if ( r < 0 ) {
                 const char *tname;
@@ -708,7 +724,7 @@ term_lib_init (void)
                 struct term_s *t = &term[i];
                 if (t->fd == -1)
                     continue;
-                t->ops->flush(t, TCIOFLUSH);
+                if (t->ops->flush) t->ops->flush(t, TCIOFLUSH);
                 r = t->ops->tcsetattr(t, TCSANOW, &t->origtermios);
                 if ( r < 0 ) {
                     const char *tname;
@@ -766,9 +782,8 @@ term_add (int fd, const char *name, const struct term_ops *ops)
 
         r = t->ops->tcgetattr(t, &t->origtermios);
         if ( r < 0 ) {
-            term_errno = TERM_EGETATTR;
-            rval = -1;
             term_free(t->fd);
+            rval = -1;
             break;
         }
 
@@ -834,14 +849,12 @@ term_replace (int oldfd, int newfd)
 
         r = t->ops->tcsetattr(t, TCSANOW, &t->currtermios);
         if ( r < 0 ) {
-            term_errno = TERM_ESETATTR;
             rval = -1;
             t->fd = oldfd;
             break;
         }
         r = t->ops->tcgetattr(t, &t->currtermios);
         if ( r < 0 ) {
-            term_errno = TERM_EGETATTR;
             rval = -1;
             t->fd = oldfd;
             break;
@@ -870,21 +883,20 @@ term_reset (int fd)
             break;
         }
 
-        r = t->ops->flush(t, TCIOFLUSH);
-        if ( r < 0 ) {
-            term_errno = TERM_EFLUSH;
-            rval = -1;
-            break;
+        if ( t->ops->flush ) {
+            r = t->ops->flush(t, TCIOFLUSH);
+            if ( r < 0 ) {
+                rval = -1;
+                break;
+            }
         }
         r = t->ops->tcsetattr(t, TCSANOW, &t->origtermios);
         if ( r < 0 ) {
-            term_errno = TERM_ESETATTR;
             rval = -1;
             break;
         }
         r = t->ops->tcgetattr(t, &t->currtermios);
         if ( r < 0 ) {
-            term_errno = TERM_EGETATTR;
             rval = -1;
             break;
         }
@@ -940,7 +952,6 @@ term_refresh (int fd)
 
         r = t->ops->tcgetattr(t, &t->currtermios);
         if ( r < 0 ) {
-            term_errno = TERM_EGETATTR;
             rval = -1;
             break;
         }
@@ -972,13 +983,11 @@ term_apply (int fd, int now)
 
         r = t->ops->tcsetattr(t, when, &t->nexttermios);
         if ( r < 0 ) {
-            term_errno = TERM_ESETATTR;
             rval = -1;
             break;
         }
         r = t->ops->tcgetattr(t, &t->nexttermios);
         if ( r < 0 ) {
-            term_errno = TERM_EGETATTR;
             rval = -1;
             break;
         }
@@ -1564,7 +1573,6 @@ term_pulse_dtr (int fd)
 
             r = t->ops->modem_bic(t, &opins);
             if ( r < 0 ) {
-                term_errno = TERM_EDTRDOWN;
                 rval = -1;
                 break;
             }
@@ -1573,7 +1581,6 @@ term_pulse_dtr (int fd)
 
             r = t->ops->modem_bis(t, &opins);
             if ( r < 0 ) {
-                term_errno = TERM_EDTRUP;
                 rval = -1;
                 break;
             }
@@ -1582,7 +1589,6 @@ term_pulse_dtr (int fd)
 
             r = t->ops->tcgetattr(t, &tio);
             if ( r < 0 ) {
-                term_errno = TERM_EGETATTR;
                 rval = -1;
                 break;
             }
@@ -1593,7 +1599,6 @@ term_pulse_dtr (int fd)
             cfsetospeed(&tio, B0);
             r = t->ops->tcsetattr(t, TCSANOW, &tio);
             if ( r < 0 ) {
-                term_errno = TERM_ESETATTR;
                 rval = -1;
                 break;
             }
@@ -1603,7 +1608,6 @@ term_pulse_dtr (int fd)
             r = t->ops->tcsetattr(t, TCSANOW, &tioold);
             if ( r < 0 ) {
                 t->currtermios = tio;
-                term_errno = TERM_ESETATTR;
                 rval = -1;
                 break;
             }
@@ -1615,150 +1619,27 @@ term_pulse_dtr (int fd)
 
 /***************************************************************************/
 
-int
-term_raise_dtr(int fd)
+static int
+set_pins (int fd, int raise, int pins)
 {
-    int rval;
     struct term_s *t;
+    int (*rol)(struct term_s *, const int *);
 
-    rval = 0;
+    t = term_find(fd);
+    if ( ! t ) return -1;
 
-    do { /* dummy */
+    rol = raise ? t->ops->modem_bis : t->ops->modem_bic;
+    if ( ! rol ) {
+        term_errno = TERM_EUNSUP; return -1;
+    }
 
-        t = term_find(fd);
-        if ( ! t ) {
-            rval = -1;
-            break;
-        }
-
-        if ( t->ops->modem_bis ) {
-            int r, opins = TIOCM_DTR;
-
-            r = t->ops->modem_bis(t, &opins);
-            if ( r < 0 ) {
-                term_errno = TERM_EDTRUP;
-                rval = -1;
-                break;
-            }
-        } else {
-            term_errno = TERM_EDTRUP;
-            rval = -1;
-        }
-    } while (0);
-
-    return rval;
+    return rol(t, &pins);
 }
 
-/***************************************************************************/
-
-
-int
-term_lower_dtr(int fd)
-{
-    int rval;
-    struct term_s *t;
-
-    rval = 0;
-
-    do { /* dummy */
-
-        t = term_find(fd);
-        if ( ! t ) {
-            rval = -1;
-            break;
-        }
-
-        if ( t->ops->modem_bic ) {
-            int r, opins = TIOCM_DTR;
-
-            r = t->ops->modem_bic(t, &opins);
-            if ( r < 0 ) {
-                term_errno = TERM_EDTRDOWN;
-                rval = -1;
-                break;
-            }
-        } else {
-            term_errno = TERM_EDTRDOWN;
-            rval = -1;
-        }
-    } while (0);
-
-    return rval;
-}
-
-/***************************************************************************/
-
-int
-term_raise_rts(int fd)
-{
-    int rval;
-    struct term_s *t;
-
-    rval = 0;
-
-    do { /* dummy */
-
-        t = term_find(fd);
-        if ( ! t ) {
-            rval = -1;
-            break;
-        }
-
-        if ( t->ops->modem_bis ) {
-            int r;
-            int opins = TIOCM_RTS;
-
-            r = t->ops->modem_bis(t, &opins);
-            if ( r < 0 ) {
-                term_errno = TERM_ERTSUP;
-                rval = -1;
-                break;
-            }
-        } else {
-            term_errno = TERM_ERTSUP;
-            rval = -1;
-        }
-    } while (0);
-
-    return rval;
-}
-
-/***************************************************************************/
-
-int
-term_lower_rts(int fd)
-{
-    int rval;
-    struct term_s *t;
-
-    rval = 0;
-
-    do { /* dummy */
-
-        t = term_find(fd);
-        if ( ! t ) {
-            rval = -1;
-            break;
-        }
-
-        if ( t->ops->modem_bic ) {
-            int r;
-            int opins = TIOCM_RTS;
-
-            r = t->ops->modem_bic(t, &opins);
-            if ( r < 0 ) {
-                term_errno = TERM_ERTSDOWN;
-                rval = -1;
-                break;
-            }
-        } else {
-            term_errno = TERM_ERTSDOWN;
-            rval = -1;
-        }
-    } while (0);
-
-    return rval;
-}
+int term_raise_dtr(int fd) { return set_pins(fd, 1, TIOCM_DTR); }
+int term_lower_dtr(int fd) { return set_pins(fd, 0, TIOCM_DTR); }
+int term_raise_rts(int fd) { return set_pins(fd, 1, TIOCM_RTS); }
+int term_lower_rts(int fd) { return set_pins(fd, 0, TIOCM_RTS); }
 
 /***************************************************************************/
 
@@ -1799,32 +1680,19 @@ term_get_mctl (int fd)
     return mctl;
 }
 
+/***************************************************************************/
+
 int
 term_drain(int fd)
 {
-    int rval, r;
     struct term_s *t;
-
-    rval = 0;
-
-    do { /* dummy */
-
         t = term_find(fd);
-        if ( ! t ) {
-            rval = -1;
-            break;
+        if ( ! t ) return -1;
+
+        if ( ! t->ops->drain ) {
+            term_errno = TERM_EUNSUP; return -1;
         }
-
-        r = t->ops->drain(t);
-        if ( r < 0 ) {
-            term_errno = TERM_EDRAIN;
-            rval = -1;
-            break;
-        }
-
-    } while (0);
-
-    return rval;
+        return t->ops->drain(t);
 }
 
 /***************************************************************************/
@@ -1835,40 +1703,26 @@ term_fake_flush(int fd)
     struct term_s *t;
 
     t = term_find(fd);
-    if ( ! t )
-        return -1;
+    if ( ! t ) return -1;
 
-    if ( t->ops->fake_flush )
-        return t->ops->fake_flush(t);
-    return 0;
+    if ( ! t->ops->fake_flush ) {
+        term_errno = TERM_EUNSUP; return -1;
+    }
+    return t->ops->fake_flush(t);
 }
 
 int
 term_flush(int fd)
 {
-    int rval, r;
     struct term_s *t;
 
-    rval = 0;
+    t = term_find(fd);
+    if ( ! t ) return -1;
 
-    do { /* dummy */
-
-        t = term_find(fd);
-        if ( ! t ) {
-            rval = -1;
-            break;
-        }
-
-        r = t->ops->flush(t, TCIOFLUSH);
-        if ( r < 0 ) {
-            term_errno = TERM_EFLUSH;
-            rval = -1;
-            break;
-        }
-
-    } while (0);
-
-    return rval;
+    if ( ! t->ops->flush ) {
+        term_errno = TERM_EUNSUP; return -1;
+    }
+    return t->ops->flush(t, TCIOFLUSH);
 }
 
 /***************************************************************************/
@@ -1876,29 +1730,15 @@ term_flush(int fd)
 int
 term_break(int fd)
 {
-    int rval, r;
     struct term_s *t;
 
-    rval = 0;
+    t = term_find(fd);
+    if ( ! t ) return -1;
 
-    do { /* dummy */
-
-        t = term_find(fd);
-        if ( ! t ) {
-            rval = -1;
-            break;
-        }
-
-        r = t->ops->send_break(t);
-        if ( r < 0 ) {
-            term_errno = TERM_EBREAK;
-            rval = -1;
-            break;
-        }
-
-    } while (0);
-
-    return rval;
+    if ( ! t->ops->send_break ) {
+        term_errno = TERM_EUNSUP; return -1;
+    }
+    return t->ops->send_break(t);
 }
 
 /**************************************************************************/
@@ -1906,37 +1746,23 @@ term_break(int fd)
 int
 term_read (int fd, void *buf, unsigned int bufsz)
 {
-    int rval;
     struct term_s *t;
 
-    do { /* dummy */
-        t = term_find(fd);
-        if ( ! t ) {
-            rval = -1;
-            break;
-        }
-        rval = t->ops->read(t, buf, bufsz);
-    } while (0);
+    t = term_find(fd);
+    if ( ! t ) return -1;
 
-    return rval;
+    return t->ops->read(t, buf, bufsz);
 }
 
 int
 term_write (int fd, const void *buf, unsigned int bufsz)
 {
-    int rval;
     struct term_s *t;
 
-    do { /* dummy */
-        t = term_find(fd);
-        if ( ! t ) {
-            rval = -1;
-            break;
-        }
-        rval = t->ops->write(t, buf, bufsz);
-    } while (0);
+    t = term_find(fd);
+    if ( ! t ) return -1;
 
-    return rval;
+    return t->ops->write(t, buf, bufsz);
 }
 
 

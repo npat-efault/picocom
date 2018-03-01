@@ -43,9 +43,13 @@ struct term_s {
 /* Operations on a term */
 struct term_ops {
     int (*init)(struct term_s *t);
+    /* NULL ok */
     void (*fini)(struct term_s *t);
+
     int (*tcgetattr)(struct term_s *t, struct termios *termios_out);
     int (*tcsetattr)(struct term_s *t, int when, const struct termios *termios);
+
+    /* NULL ok */
     int (*modem_get)(struct term_s *t, int *modem_out);
     int (*modem_bis)(struct term_s *t, const int *modem);
     int (*modem_bic)(struct term_s *t, const int *modem);
@@ -53,6 +57,7 @@ struct term_ops {
     int (*flush)(struct term_s *t, int selector);
     int (*fake_flush)(struct term_s *t);
     int (*drain)(struct term_s *t);
+
     int (*read)(struct term_s *t, void *buf, unsigned bufsz);
     int (*write)(struct term_s *t, const void *buf, unsigned bufsz);
 };
