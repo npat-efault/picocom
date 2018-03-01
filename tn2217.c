@@ -937,13 +937,13 @@ comport_recv_cmd(struct term_s *t, unsigned char cmd,
             case COMPORT_CONTROL_FC_XONOFF:
                 tios_set_flowcntrl(tio, FC_XONXOFF);
                 DB(DB_CMP, "[received: COMPORT SET_CONTROL: %d: FLOW: %s]\r\n",
-                      data[0], parity_str[FC_XONXOFF]);
+                      data[0], flow_str[FC_XONXOFF]);
                 s->conf_pending--;
                 break;
             case COMPORT_CONTROL_FC_HARDWARE:
                 tios_set_flowcntrl(tio, FC_RTSCTS);
                 DB(DB_CMP, "[received: COMPORT SET_CONTROL: %d: FLOW: %s]\r\n",
-                      data[0], parity_str[FC_RTSCTS]);
+                      data[0], flow_str[FC_RTSCTS]);
                 s->conf_pending--;
                 break;
             case COMPORT_CONTROL_FC_NONE:
@@ -951,7 +951,7 @@ comport_recv_cmd(struct term_s *t, unsigned char cmd,
             case COMPORT_CONTROL_FC_DSR:
                 tios_set_flowcntrl(tio, FC_NONE);
                 DB(DB_CMP, "[received: COMPORT SET_CONTROL: %d: FLOW: %s]\r\n",
-                      data[0], parity_str[FC_NONE]);
+                      data[0], flow_str[FC_NONE]);
                 s->conf_pending--;
                 break;
             /* DTR changes and COMPORT_CONTROL_DTR_REQUEST reply */
