@@ -166,6 +166,52 @@ local_flush(struct term_s *t, int selector)
 }
 
 static int
+local_fake_flush(struct term_s *t)
+{
+    struct termios tio, tio_orig;
+    int r, rval = 0;
+
+    do { /* dummy */
+        /* Get current termios */
+        r = t->ops->tcgetattr(t, &tio);
+        if ( r < 0 ) {
+            term_errno = TERM_EGETATTR;
+            rval = -1;
+            break;
+        }
+        tio_orig = tio;
+        /* Set flow-control to none */
+        tio.c_cflag &= ~(CRTSCTS);
+        tio.c_iflag &= ~(IXON | IXOFF | IXANY);
+        /* Apply termios */
+        r = t->ops->tcsetattr(t, TCSANOW, &tio);
+        if ( r < 0 ) {
+            term_errno = TERM_ESETATTR;
+            rval = -1;
+            break;
+        }
+        /* Wait for output to drain. Without flow-control this should
+           complete in finite time. */
+        r = t->ops->drain(t);
+        if ( r < 0 ) {
+            term_errno = TERM_EDRAIN;
+            rval = -1;
+            /* continue */
+        }
+        /* Reset flow-control to original setting. */
+        r = t->ops->tcsetattr(t, TCSANOW, &tio_orig);
+        if ( rval >=0 && r < 0 ) {
+            term_errno = TERM_ESETATTR;
+            rval = -1;
+            /* continue */
+        }
+
+    } while(0);
+
+    return rval;
+}
+
+static int
 local_drain(struct term_s *t)
 {
     int r;
@@ -218,6 +264,7 @@ static const struct term_ops local_term_ops = {
 #endif
     .send_break = local_send_break,
     .flush = local_flush,
+    .fake_flush = local_fake_flush,
     .drain = local_drain,
     .read = local_read,
     .write = local_write,
@@ -1785,57 +1832,15 @@ term_drain(int fd)
 int
 term_fake_flush(int fd)
 {
-    struct termios tio;
-    int rval, r;
     struct term_s *t;
 
-    rval = 0;
+    t = term_find(fd);
+    if ( ! t )
+        return -1;
 
-    do { /* dummy */
-
-        t = term_find(fd);
-        if ( ! t ) {
-            rval = -1;
-            break;
-        }
-
-        /* Get current termios */
-        r = t->ops->tcgetattr(t, &tio);
-        if ( r < 0 ) {
-            term_errno = TERM_EGETATTR;
-            rval = -1;
-            break;
-        }
-        t->currtermios = tio;
-        /* Set flow-control to none */
-        tio.c_cflag &= ~(CRTSCTS);
-        tio.c_iflag &= ~(IXON | IXOFF | IXANY);
-        /* Apply termios */
-        r = t->ops->tcsetattr(t, TCSANOW, &tio);
-        if ( r < 0 ) {
-            term_errno = TERM_ESETATTR;
-            rval = -1;
-            break;
-        }
-        /* Wait for output to drain. Without flow-control this should
-           complete in finite time. */
-        r = t->ops->drain(t);
-        if ( r < 0 ) {
-            term_errno = TERM_EDRAIN;
-            rval = -1;
-            break;
-        }
-        /* Reset flow-control to original setting. */
-        r = t->ops->tcsetattr(t, TCSANOW, &t->currtermios);
-        if ( r < 0 ) {
-            term_errno = TERM_ESETATTR;
-            rval = -1;
-            break;
-        }
-
-    } while (0);
-
-    return rval;
+    if ( t->ops->fake_flush )
+        return t->ops->fake_flush(t);
+    return 0;
 }
 
 int

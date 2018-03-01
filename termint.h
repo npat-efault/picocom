@@ -51,6 +51,7 @@ struct term_ops {
     int (*modem_bic)(struct term_s *t, const int *modem);
     int (*send_break)(struct term_s *t);
     int (*flush)(struct term_s *t, int selector);
+    int (*fake_flush)(struct term_s *t);
     int (*drain)(struct term_s *t);
     int (*read)(struct term_s *t, void *buf, unsigned bufsz);
     int (*write)(struct term_s *t, const void *buf, unsigned bufsz);
