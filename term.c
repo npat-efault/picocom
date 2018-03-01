@@ -56,25 +56,10 @@
 #define CMSPAR 0
 #endif
 
-/* On these systems, use the TIOCM[BIS|BIC|GET] ioctls to manipulate
- * the modem control lines (DTR / RTS) */
-#if defined(__linux__) || \
-    defined(__FreeBSD__) || defined(__OpenBSD__) || \
-    defined(__NetBSD__) || defined(__DragonFly__) || \
-    defined(__APPLE__)
-#define USE_IOCTL
-#endif
-#ifdef USE_IOCTL
-#include <sys/ioctl.h>
-#endif
-
 #include "custbaud.h"
 #ifdef USE_CUSTOM_BAUD
 #include CUSTOM_BAUD_HEAD
 #endif
-
-/* Time to wait for UART to clear after a drain (in usec). */
-#define DRAIN_DELAY 200000
 
 #include "term.h"
 #include "termint.h"
@@ -85,223 +70,8 @@ static int term_initted;
 
 static struct term_s term[MAX_TERMS];
 
-/***************************************************************************/
-
-static int
-local_init(struct term_s *t)
-{
-    int rval = 0;
-    const char *n;
-
-    do { /* dummy */
-        if ( ! isatty(t->fd) ) {
-            term_errno = TERM_EISATTY;
-            rval = -1;
-            break;
-        }
-        if ( ! t->name ) {
-            n = ttyname(t->fd);
-            if ( n ) t->name = strdup(n);
-        }
-    } while (0);
-
-    return rval;
-}
-
-static int
-local_tcgetattr(struct term_s *t, struct termios *termios_out)
-{
-    int r;
-
-    r = tcgetattr(t->fd, termios_out);
-    if ( r < 0 ) term_errno = TERM_EGETATTR;
-    return r;
-}
-
-static int
-local_tcsetattr(struct term_s *t, int when, const struct termios *termios)
-{
-    int r;
-
-    do {
-        r = tcsetattr(t->fd, when, termios);
-    } while ( r < 0 && errno == EINTR );
-    if ( r < 0 ) term_errno = TERM_ESETATTR;
-    return r;
-}
-
-#ifdef USE_IOCTL
-
-static int
-local_modem_get(struct term_s *t, int *modem_out)
-{
-    int r;
-
-    r = ioctl(t->fd, TIOCMGET, modem_out);
-    if ( r < 0 ) term_errno = TERM_EGETMCTL;
-    return r;
-}
-
-static int
-local_modem_bis(struct term_s *t, const int *modem)
-{
-    int r;
-
-    r = ioctl(t->fd, TIOCMBIS, modem);
-    if ( r < 0 ) term_errno = TERM_ESETMCTL;
-    return r;
-}
-
-static int
-local_modem_bic(struct term_s *t, const int *modem)
-{
-    int r;
-
-    r = ioctl(t->fd, TIOCMBIC, modem);
-    if ( r < 0 ) term_errno = TERM_ESETMCTL;
-    return r;
-}
-
-#endif /* of USE_IOCTL */
-
-static int
-local_send_break(struct term_s *t)
-{
-    int r;
-    do {
-        r = tcsendbreak(t->fd, 0);
-    } while (r < 0 && errno == EINTR );
-    if ( r < 0 ) term_errno = TERM_EBREAK;
-    return r;
-}
-
-static int
-local_flush(struct term_s *t, int selector)
-{
-    int r;
-
-    r = tcflush(t->fd, selector);
-    if ( r < 0 ) term_errno = TERM_EFLUSH;
-    return r;
-}
-
-static int
-local_fake_flush(struct term_s *t)
-{
-    struct termios tio, tio_orig;
-    int term_errno_hold = 0, errno_hold = 0;
-    int r, rval = 0;
-
-    do { /* dummy */
-        /* Get current termios */
-        r = t->ops->tcgetattr(t, &tio);
-        if ( r < 0 ) {
-            rval = -1;
-            break;
-        }
-        tio_orig = tio;
-        /* Set flow-control to none */
-        tio.c_cflag &= ~(CRTSCTS);
-        tio.c_iflag &= ~(IXON | IXOFF | IXANY);
-        /* Apply termios */
-        r = t->ops->tcsetattr(t, TCSANOW, &tio);
-        if ( r < 0 ) {
-            rval = -1;
-            break;
-        }
-        /* Wait for output to drain. Without flow-control this should
-           complete in finite time. */
-        r = t->ops->drain(t);
-        if ( r < 0 ) {
-            term_errno_hold = term_errno;
-            errno_hold = errno;
-            rval = -1;
-            /* continue */
-        }
-        /* Reset flow-control to original setting. */
-        r = t->ops->tcsetattr(t, TCSANOW, &tio_orig);
-        if ( r < 0 ) {
-            rval = -1;
-            break;
-        }
-
-    } while(0);
-
-    if ( term_errno_hold ) {
-        term_errno = term_errno_hold;
-        errno = errno_hold;
-    }
-
-    return rval;
-}
-
-static int
-local_drain(struct term_s *t)
-{
-    int r;
-
-    do {
-#ifdef __BIONIC__
-        /* See: http://dan.drown.org/android/src/gdb/no-tcdrain */
-        r = ioctl(t->fd, TCSBRK, 1);
-#else
-        r = tcdrain(t->fd);
-#endif
-    } while ( r < 0 && errno == EINTR);
-    if ( r < 0 ) {
-        term_errno = TERM_EDRAIN;
-        return r;
-    }
-
-    /* Give some time to the UART to transmit everything. Some
-       systems and / or drivers corrupt the last character(s) if
-       the port is immediately reconfigured, even after a
-       drain. (I guess, drain does not wait for everything to
-       actually be transitted on the wire). */
-    if ( DRAIN_DELAY ) usleep(DRAIN_DELAY);
-
-    return 0;
-}
-
-int
-local_read(struct term_s *t, void *buf, unsigned bufsz)
-{
-    int r;
-    r = read(t->fd, buf, bufsz);
-    if ( r < 0 ) term_errno = TERM_EINPUT;
-    return r;
-}
-
-int
-local_write(struct term_s *t, const void *buf, unsigned bufsz)
-{
-    int r;
-    r = write(t->fd, buf, bufsz);
-    if ( r < 0 ) term_errno = TERM_EOUTPUT;
-    return r;
-}
-
-static const struct term_ops local_term_ops = {
-    .init = local_init,
-    .fini = NULL,
-    .tcgetattr = local_tcgetattr,
-    .tcsetattr = local_tcsetattr,
-#ifdef USE_IOCTL
-    .modem_get = local_modem_get,
-    .modem_bis = local_modem_bis,
-    .modem_bic = local_modem_bic,
-#else
-    .modem_get = NULL,
-    .modem_bis = NULL,
-    .modem_bic = NULL,
-#endif
-    .send_break = local_send_break,
-    .flush = local_flush,
-    .fake_flush = local_fake_flush,
-    .drain = local_drain,
-    .read = local_read,
-    .write = local_write,
-};
+/* defined and initialized in ttylocal.c */
+extern struct term_ops ttylocal_term_ops;
 
 /***************************************************************************/
 
@@ -772,7 +542,7 @@ term_add (int fd, const char *name, const struct term_ops *ops)
         }
 
         if ( ! ops )
-            ops = &local_term_ops;
+            ops = &ttylocal_term_ops;
 
         t = term_new(fd, name, ops);
         if ( ! t ) {
@@ -1569,7 +1339,7 @@ term_pulse_dtr (int fd)
         }
 
         if ( t->ops->modem_bic && t->ops->modem_bis )  {
-            int opins = TIOCM_DTR;
+            int opins = MCTL_DTR;
 
             r = t->ops->modem_bic(t, &opins);
             if ( r < 0 ) {
@@ -1636,46 +1406,28 @@ set_pins (int fd, int raise, int pins)
     return rol(t, &pins);
 }
 
-int term_raise_dtr(int fd) { return set_pins(fd, 1, TIOCM_DTR); }
-int term_lower_dtr(int fd) { return set_pins(fd, 0, TIOCM_DTR); }
-int term_raise_rts(int fd) { return set_pins(fd, 1, TIOCM_RTS); }
-int term_lower_rts(int fd) { return set_pins(fd, 0, TIOCM_RTS); }
+int term_raise_dtr(int fd) { return set_pins(fd, 1, MCTL_DTR); }
+int term_lower_dtr(int fd) { return set_pins(fd, 0, MCTL_DTR); }
+int term_raise_rts(int fd) { return set_pins(fd, 1, MCTL_RTS); }
+int term_lower_rts(int fd) { return set_pins(fd, 0, MCTL_RTS); }
 
 /***************************************************************************/
 
 int
 term_get_mctl (int fd)
 {
-    int mctl;
+    int r, mctl;
     struct term_s *t;
 
-    do { /* dummy */
+    t = term_find(fd);
+    if ( ! t ) return -1;
 
-        t = term_find(fd);
-        if ( ! t ) {
-            mctl = -1;
-            break;
-        }
+    if ( ! t->ops->modem_get ) {
+        return MCTL_UNAVAIL;
+    }
 
-        if ( t->ops->modem_get ) {
-            int r, pmctl;
-
-            r = t->ops->modem_get(t, &pmctl);
-            if (r < 0) {
-                mctl = -1;
-                break;
-            }
-            mctl = 0;
-            if (pmctl & TIOCM_DTR) mctl |= MCTL_DTR;
-            if (pmctl & TIOCM_DSR) mctl |= MCTL_DSR;
-            if (pmctl & TIOCM_CD) mctl |= MCTL_DCD;
-            if (pmctl & TIOCM_RTS) mctl |= MCTL_RTS;
-            if (pmctl & TIOCM_CTS) mctl |= MCTL_CTS;
-            if (pmctl & TIOCM_RI) mctl |= MCTL_RI;
-        } else {
-            mctl = MCTL_UNAVAIL;
-        }
-    } while(0);
+    r = t->ops->modem_get(t, &mctl);
+    if (r < 0) return -1;
 
     return mctl;
 }

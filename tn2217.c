@@ -55,10 +55,9 @@
 #include "tncomport.h"
 #include "tn2217.h"
 
-#include <sys/ioctl.h>
 #include <arpa/telnet.h>
 
-#if 1
+#if 0
 /* Disable debugging code altogether */
 #define DEBUG 0
 #define DB(fl, ...) /* nothing */
@@ -230,17 +229,13 @@ repr_modem(int m)
     static char out[256];
 
     snprintf(out, sizeof out,
-        "<%s%s%s%s%s%s%s%s%s>",
-        (m & TIOCM_LE)  ? ",dsr": "",
-        (m & TIOCM_DTR) ? ",dtr": "",
-        (m & TIOCM_RTS) ? ",rts": "",
-        (m & TIOCM_ST)  ? ",st" : "",
-        (m & TIOCM_SR)  ? ",sr" : "",
-        (m & TIOCM_CTS) ? ",cts": "",
-        (m & TIOCM_CD)  ? ",cd" : "",
-        (m & TIOCM_RI)  ? ",ri" : "",
-        (m & TIOCM_DSR) ? ",dsr": ""
-    );
+             "<%s%s%s%s%s%s>",
+             (m & MCTL_DTR) ? ",dtr":"",
+             (m & MCTL_DSR) ? ",dsr":"",
+             (m & MCTL_DCD) ? ",dcd":"",
+             (m & MCTL_RTS) ? ",rts":"",
+             (m & MCTL_CTS) ? ",cts":"",
+             (m & MCTL_RI) ? ",ri":"");
     if (out[1] == ',') {
         out[1] = '<';
         return &out[1];
@@ -740,7 +735,7 @@ comport_send_set_dtr(struct term_s *t, int modem)
 {
     unsigned char val;
 
-    if (modem & TIOCM_DTR)
+    if (modem & MCTL_DTR)
         val = COMPORT_CONTROL_DTR_ON;
     else
         val = COMPORT_CONTROL_DTR_OFF;
@@ -753,7 +748,7 @@ comport_send_set_rts(struct term_s *t, int modem)
 {
     unsigned char val;
 
-    if (modem & TIOCM_RTS)
+    if (modem & MCTL_RTS)
         val = COMPORT_CONTROL_RTS_ON;
     else
         val = COMPORT_CONTROL_RTS_OFF;
@@ -965,8 +960,8 @@ comport_recv_cmd(struct term_s *t, unsigned char cmd,
             /* DTR changes and COMPORT_CONTROL_DTR_REQUEST reply */
             case COMPORT_CONTROL_DTR_ON:
             case COMPORT_CONTROL_DTR_OFF:
-                val = (data[0] == COMPORT_CONTROL_DTR_ON) ? TIOCM_DTR : 0;
-                *modem &= ~TIOCM_DTR;
+                val = (data[0] == COMPORT_CONTROL_DTR_ON) ? MCTL_DTR : 0;
+                *modem &= ~MCTL_DTR;
                 *modem |= val;
                 DB(DB_CMP, "[received: COMPORT SET_CONTROL: %d: dtr=%u]\r\n",
                       data[0], !!val);
@@ -974,8 +969,8 @@ comport_recv_cmd(struct term_s *t, unsigned char cmd,
             /* RTS changes and COMPORT_CONTROL_RTS_REQUEST reply */
             case COMPORT_CONTROL_RTS_ON:
             case COMPORT_CONTROL_RTS_OFF:
-                val = (data[0] == COMPORT_CONTROL_RTS_ON) ? TIOCM_RTS : 0;
-                *modem &= ~TIOCM_RTS;
+                val = (data[0] == COMPORT_CONTROL_RTS_ON) ? MCTL_RTS : 0;
+                *modem &= ~MCTL_RTS;
                 *modem |= val;
                 DB(DB_CMP, "[received: COMPORT SET_CONTROL: %d: rts=%u]\r\n",
                       data[0], !!val);
@@ -991,12 +986,12 @@ comport_recv_cmd(struct term_s *t, unsigned char cmd,
         /* Updates are masked by COMPORT_SET_MODEMSTATE_MASK elsewhere */
         if (datalen >= 1) {
             val = 0;
-            if (data[0] & COMPORT_MODEM_CD)  val |= TIOCM_CD;
-            if (data[0] & COMPORT_MODEM_RI)  val |= TIOCM_RI;
-            if (data[0] & COMPORT_MODEM_DSR) val |= TIOCM_DSR;
-            if (data[0] & COMPORT_MODEM_CTS) val |= TIOCM_CTS;
+            if (data[0] & COMPORT_MODEM_CD)  val |= MCTL_DCD;
+            if (data[0] & COMPORT_MODEM_RI)  val |= MCTL_RI;
+            if (data[0] & COMPORT_MODEM_DSR) val |= MCTL_DSR;
+            if (data[0] & COMPORT_MODEM_CTS) val |= MCTL_CTS;
             DB(DB_CMP, "[received: COMPORT MODEMSTATE: %s]\r\n", repr_modem(val));
-            *modem &= ~(TIOCM_CD|TIOCM_RI|TIOCM_DSR|TIOCM_CTS);
+            *modem &= ~(MCTL_DCD|MCTL_RI|MCTL_DSR|MCTL_CTS);
             *modem |= val;
         }
         break;
@@ -1037,7 +1032,7 @@ tn2217_init(struct term_s *t)
     cfsetispeed(&s->termios, B0); /* This means "same as ospeed" */
 
     /* Normally DTR and RTS are asserted, but an update can change that */
-    s->modem = TIOCM_DTR | TIOCM_RTS;
+    s->modem = MCTL_DTR | MCTL_RTS;
 
     /* Start the negotiations. */
     r = opt_will(t, TELOPT_BINARY);
@@ -1106,15 +1101,15 @@ tn2217_modem_bis(struct term_s *t, const int *modem)
     s->modem |= *modem;
 
     if (s->can_comport) {
-        if (*modem & TIOCM_DTR) {
-            r = comport_send_set_dtr(t, TIOCM_DTR);
+        if (*modem & MCTL_DTR) {
+            r = comport_send_set_dtr(t, MCTL_DTR);
             if (r < 0) return r;
         }
-        if (*modem & TIOCM_RTS) {
-            r = comport_send_set_rts(t, TIOCM_RTS);
+        if (*modem & MCTL_RTS) {
+            r = comport_send_set_rts(t, MCTL_RTS);
             if (r < 0) return r;
         }
-    } else if (*modem & (TIOCM_DTR|TIOCM_RTS))
+    } else if (*modem & (MCTL_DTR|MCTL_RTS))
         s->set_modem = 1;
 
     return 0;
@@ -1131,15 +1126,15 @@ tn2217_modem_bic(struct term_s *t, const int *modem)
     s->modem &= ~*modem;
 
     if (s->can_comport) {
-        if (*modem & TIOCM_DTR) {
+        if (*modem & MCTL_DTR) {
             r = comport_send_set_dtr(t, 0);
             if ( r < 0 ) return r;
         }
-        if (*modem & TIOCM_RTS) {
+        if (*modem & MCTL_RTS) {
             r = comport_send_set_rts(t, 0);
             if ( r < 0 ) return r;
         }
-    } else if (*modem & (TIOCM_DTR|TIOCM_RTS))
+    } else if (*modem & (MCTL_DTR|MCTL_RTS))
         s->set_modem = 1;
 
     return 0;
