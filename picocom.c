@@ -1934,6 +1934,12 @@ parse_args(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    if (opts.telnet && (opts.noreset || opts.hangup)) {
+        fprintf(stderr, "Options --telnet and --noreset / --hangup "
+                "cannot be given together\n");
+        exit(EXIT_FAILURE);
+    }
+
     /* --exit overrides --exit-after */
     if ( opts.exit ) opts.exit_after = -1;
 
