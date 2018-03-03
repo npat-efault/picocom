@@ -57,7 +57,7 @@
 
 #include <arpa/telnet.h>
 
-#if 0
+#if 1
 /* Disable debugging code altogether */
 #define DEBUG 0
 #define DB(fl, ...) /* nothing */
@@ -81,6 +81,9 @@
 /* Enable specific groups */
 #define DB_MASK (DB_OTH | DB_NEG /* | DB_OPT */ | DB_CMP)
 #endif
+
+/* Important info / warnings / errors to stderr */
+#define pinfof(...) fd_printf(STDERR_FILENO, __VA_ARGS__)
 
 /* We'll ask the remote end to use this modem state mask */
 #define MODEMSTATE_MASK (COMPORT_MODEM_CD | \
@@ -454,21 +457,21 @@ recv_cmd_partial(struct term_s *t)
         if (cmd[cmdlen - 1] == IAC)
             goto incomplete; /* IAC left at end of cmd[] */
         if (cmd[--cmdlen] != SE) { /* remove trailing SE */
-            fprintf(stderr, "[BAD TELNET SB]");
+            pinfof("[BAD TELNET SB]\r\n");
             break;
         }
         if (cmdlen >= 4 && cmd[2] == TELOPT_COMPORT)
             rval = comport_recv_cmd(t, cmd[3], cmd + 4, cmdlen - 4);
         break;
     case AYT:
-        fprintf(stderr, "[REMOTE AYT]");
+        pinfof("[REMOTE AYT]\r\n");
         /* writen_ni(t->fd, "\377\361", 2); */ /* respond with NOP? */
         break;
     case BREAK:
-        fprintf(stderr, "[REMOTE BREAK]");
+        pinfof("[REMOTE BREAK]\r\n");
         break;
     case IP:
-        fprintf(stderr, "[REMOTE INTERRUPT]");
+        pinfof("[REMOTE INTERRUPT]\r\n");
         break;
     default:
         /* Ignore everything else */
@@ -1149,10 +1152,13 @@ tn2217_send_break(struct term_s *t)
     r = comport_send_cmd1(t, COMPORT_SET_CONTROL,
                           COMPORT_CONTROL_BREAK_ON);
     if ( r < 0 ) return r;
+    DB(DB_CMP, "[sent: COMPORT SET_CONTROL BREAK_ON]\r\n");
+
     usleep(250000); /* 250 msec */
     r = comport_send_cmd1(t, COMPORT_SET_CONTROL,
                           COMPORT_CONTROL_BREAK_OFF);
     if ( r < 0 ) return r;
+    DB(DB_CMP, "[sent: COMPORT SET_CONTROL BREAK_OFF]\r\n");
 
     return 0;
 }
@@ -1169,6 +1175,7 @@ tn2217_flush(struct term_s *t, int selector)
     case TCOFLUSH:  val = COMPORT_PURGE_TX; break;
     default:        val = COMPORT_PURGE_RXTX; break;
     }
+    DB(DB_CMP, "[sent: COMPORT PURGE_DATA %d]\r\n", val);
     return comport_send_cmd1(t, COMPORT_PURGE_DATA, val);
 }
 
@@ -1265,7 +1272,7 @@ read_and_proc(struct term_s *t, void *buf, unsigned bufsz)
             /* We are currently appending to the command accumulator. */
             if (s->cmdbuflen >= sizeof s->cmdbuf - 1) {
                 s->cmdbuflen = 0; /* Abandon on overflow */
-                fprintf(stderr, "[overlong IAC command]\r\n");
+                pinfof("[overlong IAC command]\r\n");
                 break;
             }
             s->cmdbuf[s->cmdbuflen++] = *in++;
