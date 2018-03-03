@@ -279,7 +279,7 @@ _picocom()
 {
     local cur cur0 cur1 prev
     local -a words opts baudrates mappings mapfilt
-    local DEBUG=/dev/pts/8
+    local DEBUG=/dev/null
     
     opts=( --baud --flow --databits --stopbits --parity \
            --lower-rts --lower-dtr --raise-rts --raise-dtr \
