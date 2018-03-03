@@ -198,9 +198,8 @@ propose valid selections for both. This makes the experience of using
 picocom more pleasant.
 
 Custom completion works only with recent versions of the Bash shell
-(>= 4.3). It is in no way mandatory to enable / install custom
-completion in order to use picocom. Here's how you can enable it, if
-you wish.
+(>= 4.3). **It is in no way mandatory in order to use
+picocom**. Here's how you can enable it, if you wish.
 
 To manually enable custom completion support you need to source the
 file (custom completion script):
