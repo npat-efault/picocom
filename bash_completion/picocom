@@ -254,6 +254,8 @@ _picocom_filter_mappings()
     IFS=$', \t'
     cura=( $cur1 )
     IFS=$' \t\n'
+    # consider last mapping partial unless string ends in separator
+    [[ $cur1 != *[$', \t'] ]] && unset cura[-1]
     for m in "${mappings[@]}"; do
         found=
         for c in "${cura[@]}"; do
