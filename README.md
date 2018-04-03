@@ -15,17 +15,11 @@ It was designed to serve as a simple, manual, modem configuration,
 testing, and debugging tool. It has also served (quite well) as a
 low-tech serial communications program to allow access to all types of
 devices that provide serial consoles. It could also prove useful in
-many other similar tasks.
+many other similar tasks. It can be used in embedded systems, since
+its memory footprint is rather small (approximately 40K, when stripped
+and minimally configured).
 
-It is ideal for embedded systems since its memory footprint is small
-(approximately 40K, when stripped and minimally configured). Apart
-from being a handy little tool, *picocom's* source distribution
-includes a simple, easy to use, and thoroughly documented
-terminal-management library, which could serve other projects as
-well. This library hides the termios(3) calls, and provides a less
-complex and safer (though certainly less feature-rich) interface.
-
-*picocom* runs and is, primarily, tested on Linux. With no, or with
+*Picocom* runs and is primarily tested on Linux. With no, or with
 minor, modifications it will run (and most of its features will work)
 on any Unix-like system with a reasonably POSIX-compatible termios(3)
 interface. Patches to support idiosyncrasies of specific Unix-like
@@ -413,18 +407,17 @@ Custom baudrate support gives you the ability to set arbitrary
 baudrate values (like 1234, or 42000, etc) to a serial port, provided
 that the underlying driver can handle this. Since release 2.0, picocom
 can be compiled with custom baudrate support for some systems. Since
-release 3.1 picocom is compiled with custom baudrate support enabled
-*by default* on some systems (like Linux, kernels > 2.6, on x86 and
-x86_64, modern Intel Macs, and some BSDs). In any case, you can
-explicitly ask for custom baudrate support to be *enabled* by
-compiling picocom like this:
+release 3.1 picocom is compiled with support enabled *by default* on
+some systems (like Linux, kernels > 2.6, on x86 and x86_64, modern
+Intel Macs, and some BSDs). In any case, you can explicitly ask for
+support to be *enabled* by compiling picocom like this:
 
     CPPFLAGS=-DUSE_CUSTOM_BAUD make clean
     CPPFLAGS=-DUSE_CUSTOM_BAUD make
 
 If custom baudrate support is not available for your system, the
-compilation will fail. Similarly, you can ask for custom baudrate
-support to be *disabled* by compiling like:
+compilation will fail. Similarly, you can ask for support to be
+*disabled* by compiling like:
 
     CPPFLAGS=-DNO_CUSTOM_BAUD make clean
     CPPFLAGS=-DNO_CUSTOM_BAUD make
