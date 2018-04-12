@@ -26,6 +26,8 @@
 #ifndef CUSTBAUD_H
 #define CUSTBAUD_H
 
+#include <termios.h>
+
 #ifndef NO_CUSTOM_BAUD
 
 #if defined (__linux__)
@@ -33,7 +35,13 @@
 /* Enable by-default for kernels > 2.6.0 on x86 and x86_64 only */
 #include <linux/version.h>
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,0)
-#if defined (__i386__) || defined (__x86_64__) || defined (USE_CUSTOM_BAUD)
+/* Some libc implementations (e.g. musl) do not define the cispeed and
+   cospeed struct termios fields. We do not support custom baudrates
+   on them. */
+#if ( (defined (__i386__) || defined (__x86_64__))  \
+      && defined (_HAVE_STRUCT_TERMIOS_C_ISPEED)    \
+      && defined (_HAVE_STRUCT_TERMIOS_C_OSPEED) )  \
+    || defined (USE_CUSTOM_BAUD)
 #ifndef USE_CUSTOM_BAUD
 #define USE_CUSTOM_BAUD
 #endif
@@ -87,7 +95,6 @@
 
 #endif /* of ndef NO_CUSTOM_BAUD else */
 
-#include <termios.h>
 
 int use_custom_baud();
 int cfsetispeed_custom(struct termios *tios, int speed);
