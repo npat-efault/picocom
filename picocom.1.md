@@ -404,7 +404,7 @@ Picocom accepts the following command-line options.
     is system dependent. On most systems the signal is raised.
 
 
-**--exit-aftrer** | **-x**
+**--exit-after** | **-x**
 
 :   Exit picocom if it remains idle for the specified time (in
     milliseconds). Picocom is considered idle if: Nothing is read
