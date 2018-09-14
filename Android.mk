@@ -30,7 +30,8 @@ LOCAL_SRC_FILES := \
     term.c \
     fdio.c \
     split.c \
-    termios2.c
+    termios2.c \
+    custbaud.c
 
 LOCAL_CFLAGS += -DVERSION_STR=\"$(VERSION)\"
 
