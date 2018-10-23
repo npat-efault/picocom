@@ -51,7 +51,7 @@ Depending on the value of the function character, picocom performs one
 of the operations described in the \f[B]COMMANDS\f[] section below.
 .SH COMMANDS
 .PP
-Commands are given to picocom by first keying the \f[I]espace
+Commands are given to picocom by first keying the \f[I]escape
 character\f[] which by default is \f[B]C\-a\f[] (see \f[B]OPTIONS\f[]
 below for how to change it), and then keying one of the function
 (command) characters shown here.
@@ -541,7 +541,7 @@ With \f[B]\-\-exit\f[] and \f[B]\-\-noreset\f[] (and possibly
 \f[B]\-\-hangup\f[]) picocom can be used as a very crude replacement of
 \f[B]stty(1)\f[].
 If an init string is also given (see \f[B]\-\-initstring\f[] option),
-picocom exits imediatelly after sending (writing) the init string to the
+picocom exits immediatelly after sending (writing) the init string to the
 serial port and draining the O/S serial port output buffer (i.e.
 waiting for data written to the port to be transmitted).
 Again, nothing is read from the standard input, or from the serial port.
