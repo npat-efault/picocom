@@ -119,9 +119,11 @@ port's device node. To overcome this you can run picocom as root:
 
 Alternatively, and preferably, you can add yourself to the user-group
 that your system has for allowing access to serial ports. For most
-Unix-like systems this group is called "dialout". Consult you system's
-documentation to find out how you can do this (as it differs form
-system to system). On most Linux systems you can do it like this:
+Unix-like systems this group is called "dialout" or "uucp". You can
+verify the group assigned to your TTY with `ls -l /dev/ttyS0`. From
+now on, let's assume your TTY's group is "dialout". Consult your
+system's documentation to find out how you can do this (as it differs
+form system to system). On most Linux systems you can do it like this:
 
     sudo usermod -a -G dialout username
 
