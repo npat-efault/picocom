@@ -404,6 +404,10 @@ Picocom accepts the following command-line options.
     is system dependent. On most systems the signal is raised.
 
 
+**--excl**
+
+:   Open the port exclusively using TIOCEXCL ioctl.
+
 **--exit-aftrer** | **-x**
 
 :   Exit picocom if it remains idle for the specified time (in

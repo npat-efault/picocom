@@ -36,6 +36,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <sys/ioctl.h>
 #include <limits.h>
 #ifdef USE_FLOCK
 #include <sys/file.h>
@@ -218,6 +219,7 @@ struct {
     int lower_dtr;
     int raise_rts;
     int raise_dtr;
+    int excl;
     int quiet;
 } opts = {
     .port = NULL,
@@ -248,6 +250,7 @@ struct {
     .lower_dtr = 0,
     .raise_rts = 0,
     .raise_dtr = 0,
+    .excl = 0,
     .quiet = 0
 };
 
@@ -1657,6 +1660,7 @@ show_usage(char *name)
     printf("  --raise-rts\n");
     printf("  --lower-dtr\n");
     printf("  --raise-dtr\n");
+    printf("  --excl\n");
     printf("  --<q>uiet\n");
     printf("  --<h>elp\n");
     printf("<map> is a comma-separated list of one or more of:\n");
@@ -1716,6 +1720,7 @@ parse_args(int argc, char *argv[])
         {"lower-dtr", no_argument, 0, 2},
         {"raise-rts", no_argument, 0, 3},
         {"raise-dtr", no_argument, 0, 4},
+        {"excl", no_argument, 0, 5},
         {"quiet", no_argument, 0, 'q'},
         {"help", no_argument, 0, 'h'},
         {0, 0, 0, 0}
@@ -1895,6 +1900,9 @@ parse_args(int argc, char *argv[])
         case 4:
             opts.raise_dtr = 1;
             break;
+        case 5:
+            opts.excl = 1;
+            break;
         case 'x':
             opts.exit_after = strtol(optarg, &ep, 10);
             if ( ! ep || *ep != '\0' || opts.exit_after < 0 ) {
@@ -2071,6 +2079,9 @@ main (int argc, char *argv[])
     tty_fd = open(opts.port, O_RDWR | O_NONBLOCK | O_NOCTTY);
     if (tty_fd < 0)
         fatal("cannot open %s: %s", opts.port, strerror(errno));
+
+    if (opts.excl)
+        ioctl(tty_fd, TIOCEXCL);
 
 #ifdef USE_FLOCK
     if ( ! opts.nolock ) {
