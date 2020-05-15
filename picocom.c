@@ -1523,15 +1523,24 @@ loop(void)
                     fatal("read from port failed: %s", strerror(errno));
             } else {
                 int i;
-                char *bmp = &buff_map[0];
-                if ( opts.log_filename )
-                    if ( writen_ni(log_fd, buff_rd, n) < n )
+                char *bmp;
+                int nm;
+                if ( opts.log_filename ) {
+                    bmp = &buff_map[0];
+                    for (i = 0; i < n; i++) {
+                        bmp += do_map(bmp, opts.emap, buff_rd[i]);
+                    }
+                    nm = bmp - buff_map;
+                    if ( writen_ni(log_fd, buff_map, nm) < nm )
                         fatal("write to logfile failed: %s", strerror(errno));
+                }
+
+                bmp = &buff_map[0];
                 for (i = 0; i < n; i++) {
                     bmp += do_map(bmp, opts.imap, buff_rd[i]);
                 }
-                n = bmp - buff_map;
-                if ( writen_ni(STO, buff_map, n) < n )
+                nm = bmp - buff_map;
+                if ( writen_ni(STO, buff_map, nm) < nm )
                     fatal("write to stdout failed: %s", strerror(errno));
             }
         }
