@@ -336,7 +336,7 @@ Picocom accepts the following command-line options.
 :   Specifies the local-echo character map (i.e. special characters to
     be replaced before being echoed-back to the terminal, if
     local-echo is enabled). See
-    **[INPUT, OUTPUT, AND ECHO MAPPING]**. (Defaul: **delbs,crcrlf**)
+    **[INPUT, OUTPUT, AND ECHO MAPPING]**. (Default: **delbs,crcrlf**)
 
 **--logfile** | **-g**
 
