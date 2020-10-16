@@ -817,7 +817,7 @@ do_map (char *b, int map, char c)
         b[0] = c; n = 1;
     }
 
-    assert(n > 0 && n <= M_MAXMAP);
+    assert(n >= 0 && n <= M_MAXMAP);
 
     return n;
 }
