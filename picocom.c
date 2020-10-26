@@ -225,6 +225,7 @@ struct {
     int raise_dtr;
     int quiet;
     int wait;
+    int reconnect;
 } opts = {
     .port = NULL,
     .baud = 9600,
@@ -256,6 +257,7 @@ struct {
     .raise_dtr = 0,
     .quiet = 0,
     .wait = 0,
+    .reconnect = 0,
 };
 
 int sig_exit = 0;
@@ -1408,7 +1410,8 @@ enum le_reason {
     LE_CMD,
     LE_IDLE,
     LE_STDIN,
-    LE_SIGNAL
+    LE_SIGNAL,
+    LE_RECONNECT
 };
 
 enum le_reason
@@ -1524,7 +1527,7 @@ loop(void)
                 n = read(tty_fd, &buff_rd, sizeof(buff_rd));
             } while (n < 0 && errno == EINTR);
             if (n == 0) {
-                fatal("read zero bytes from port");
+                return LE_RECONNECT;
             } else if ( n < 0 ) {
                 if ( errno != EAGAIN && errno != EWOULDBLOCK )
                     fatal("read from port failed: %s", strerror(errno));
@@ -1666,6 +1669,7 @@ show_usage(char *name)
     printf("  --raise-dtr\n");
 #ifdef INOTIFY_SUPPORT
     printf("  --<w>ait\n");
+    printf("  --<R>econnect (implies -w)\n");
 #endif
     printf("  --<q>uiet\n");
     printf("  --<h>elp\n");
@@ -1728,6 +1732,7 @@ parse_args(int argc, char *argv[])
         {"raise-dtr", no_argument, 0, 4},
 #ifdef INOTIFY_SUPPORT
         {"wait", no_argument, 0, 'w'},
+        {"reconnect", no_argument, 0, 'R'},
 #endif
         {"quiet", no_argument, 0, 'q'},
         {"help", no_argument, 0, 'h'},
@@ -1744,7 +1749,7 @@ parse_args(int argc, char *argv[])
         /* no default error messages printed. */
         opterr = 0;
 
-        c = getopt_long(argc, argv, "hirwulcqXnv:s:r:e:f:b:y:d:p:g:t:x:",
+        c = getopt_long(argc, argv, "hirwRulcqXnv:s:r:e:f:b:y:d:p:g:t:x:",
                         longOptions, &optionIndex);
 
         if (c < 0)
@@ -1920,6 +1925,9 @@ parse_args(int argc, char *argv[])
             opts.exit = 1;
             break;
 #ifdef INOTIFY_SUPPORT
+        case 'R':
+            opts.reconnect = 1;
+            /* reconnect implies wait */
         case 'w':
             opts.wait = 1;
             break;
@@ -2155,6 +2163,7 @@ main (int argc, char *argv[])
     int ler;
     int r;
 
+start_again:
     parse_args(argc, argv);
 
     establish_signal_handlers();
@@ -2300,7 +2309,11 @@ main (int argc, char *argv[])
     else
         cleanup(1 /* drain */, opts.noreset, opts.hangup);
 
-    if ( ler == LE_SIGNAL ) {
+    if (opts.reconnect && ler == LE_RECONNECT) {
+        pinfo("read zero bytes from port\r\n");
+        close(tty_fd);
+        goto start_again;
+    } else if ( ler == LE_SIGNAL ) {
         pinfo("Picocom was killed\r\n");
         xcode = EXIT_FAILURE;
     } else
