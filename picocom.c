@@ -1922,6 +1922,7 @@ parse_args(int argc, char *argv[])
 #ifdef INOTIFY_SUPPORT
         case 'w':
             opts.wait = 1;
+            break;
 #endif
         case 'q':
             opts.quiet = 1;
