@@ -57,6 +57,11 @@
 
 #include "custbaud.h"
 
+#ifdef INOTIFY_SUPPORT
+#include <poll.h>
+#include <sys/inotify.h>
+#endif
+
 /**********************************************************************/
 
 /* parity modes names */
@@ -219,6 +224,8 @@ struct {
     int raise_rts;
     int raise_dtr;
     int quiet;
+    int wait;
+    int reconnect;
 } opts = {
     .port = NULL,
     .baud = 9600,
@@ -248,7 +255,9 @@ struct {
     .lower_dtr = 0,
     .raise_rts = 0,
     .raise_dtr = 0,
-    .quiet = 0
+    .quiet = 0,
+    .wait = 0,
+    .reconnect = 0,
 };
 
 int sig_exit = 0;
@@ -1401,7 +1410,8 @@ enum le_reason {
     LE_CMD,
     LE_IDLE,
     LE_STDIN,
-    LE_SIGNAL
+    LE_SIGNAL,
+    LE_RECONNECT
 };
 
 enum le_reason
@@ -1517,7 +1527,7 @@ loop(void)
                 n = read(tty_fd, &buff_rd, sizeof(buff_rd));
             } while (n < 0 && errno == EINTR);
             if (n == 0) {
-                fatal("read zero bytes from port");
+                return LE_RECONNECT;
             } else if ( n < 0 ) {
                 if ( errno != EAGAIN && errno != EWOULDBLOCK )
                     fatal("read from port failed: %s", strerror(errno));
@@ -1657,6 +1667,10 @@ show_usage(char *name)
     printf("  --raise-rts\n");
     printf("  --lower-dtr\n");
     printf("  --raise-dtr\n");
+#ifdef INOTIFY_SUPPORT
+    printf("  --<w>ait\n");
+    printf("  --<R>econnect (implies -w)\n");
+#endif
     printf("  --<q>uiet\n");
     printf("  --<h>elp\n");
     printf("<map> is a comma-separated list of one or more of:\n");
@@ -1716,6 +1730,10 @@ parse_args(int argc, char *argv[])
         {"lower-dtr", no_argument, 0, 2},
         {"raise-rts", no_argument, 0, 3},
         {"raise-dtr", no_argument, 0, 4},
+#ifdef INOTIFY_SUPPORT
+        {"wait", no_argument, 0, 'w'},
+        {"reconnect", no_argument, 0, 'R'},
+#endif
         {"quiet", no_argument, 0, 'q'},
         {"help", no_argument, 0, 'h'},
         {0, 0, 0, 0}
@@ -1731,7 +1749,7 @@ parse_args(int argc, char *argv[])
         /* no default error messages printed. */
         opterr = 0;
 
-        c = getopt_long(argc, argv, "hirulcqXnv:s:r:e:f:b:y:d:p:g:t:x:",
+        c = getopt_long(argc, argv, "hirwRulcqXnv:s:r:e:f:b:y:d:p:g:t:x:",
                         longOptions, &optionIndex);
 
         if (c < 0)
@@ -1906,6 +1924,14 @@ parse_args(int argc, char *argv[])
         case 'X':
             opts.exit = 1;
             break;
+#ifdef INOTIFY_SUPPORT
+        case 'R':
+            opts.reconnect = 1;
+            /* reconnect implies wait */
+        case 'w':
+            opts.wait = 1;
+            break;
+#endif
         case 'q':
             opts.quiet = 1;
             break;
@@ -2038,6 +2064,97 @@ set_dtr_rts (void)
     }
 }
 
+int
+wait_for_file (const char *file)
+{
+#ifdef INOTIFY_SUPPORT
+    int r;
+    int inotify_fd = -1;
+    int watch_fd = -1;
+    struct pollfd inotify_poll;
+    char *dir;
+    char *filename;
+    char *file_copy;
+    unsigned timeout = UINT_MAX;
+
+    if (!access(file, F_OK)) {
+        return (0);
+    }
+
+    /* File not found, need to wait for it to appear */
+
+    inotify_fd = inotify_init1(IN_NONBLOCK);
+    if (inotify_fd == -1) {
+        return (-errno);
+    }
+
+    dir = strdup(file);
+    dirname(dir);
+
+    watch_fd = inotify_add_watch(inotify_fd, dir, IN_CREATE);
+    if (watch_fd == -1) {
+        fd_printf(STE, "failed to add inotify watch for %s (%s)",
+              file, strerror(errno));
+        r = -errno;
+        goto cleanup;
+    }
+
+    inotify_poll.fd = inotify_fd;
+    inotify_poll.events = POLLIN;
+
+    file_copy = strdup(file);
+    /* GNU's basename does not modify the original string, unlike dirname */
+    filename = basename(file_copy);
+
+    fd_printf(STO, "Waiting for %s...\r\n", file);
+    while (1) {
+        r = poll(&inotify_poll, 1, -1);
+        if (r == -1) {
+            /* Something went wrong */
+            r = -errno;
+            goto cleanup;
+        } else if (r > 0 && inotify_poll.revents & POLLIN) {
+            char buf[1024];
+            size_t offset = 0;
+            const struct inotify_event *event;
+
+            /*
+             * A file has been created in the path, check if it's the
+             * one we want.
+             */
+
+            /* Read all events */
+            while ((r = read(inotify_fd, buf, sizeof(buf))) > 0) {
+                /* Iterate through all events read */
+                do {
+                    event = (const struct inotify_event *)(buf + offset);
+                    offset += sizeof(*event) + event->len;
+                    if (!strcmp(filename, event->name)) {
+                        goto found;
+                    }
+                } while (offset < r);
+            }
+        }
+    }
+found:
+    /* Wait until udev has setup the permissions */
+    while (access(file, W_OK | R_OK)) {
+        if (!--timeout) {
+            /* Took too long - maybe we don't have permission? */
+            r = -EACCES;
+            goto cleanup;
+        }
+    }
+    fd_printf(STO, "Found %s\r\n", file);
+    r = 0;
+cleanup:
+    free(dir);
+    free(file_copy);
+    close(inotify_fd);
+    return r;
+#endif
+    return 0;
+}
 
 int
 main (int argc, char *argv[])
@@ -2046,6 +2163,7 @@ main (int argc, char *argv[])
     int ler;
     int r;
 
+start_again:
     parse_args(argc, argv);
 
     establish_signal_handlers();
@@ -2066,6 +2184,12 @@ main (int argc, char *argv[])
                       S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH);
         if (log_fd < 0)
             fatal("cannot open %s: %s", opts.log_filename, strerror(errno));
+    }
+
+    if (opts.wait) {
+        if ((r = wait_for_file(opts.port)) < 0) {
+            fatal("could not wait for %s to appear: %s", strerror(-r));
+        }
     }
 
     tty_fd = open(opts.port, O_RDWR | O_NONBLOCK | O_NOCTTY);
@@ -2185,7 +2309,11 @@ main (int argc, char *argv[])
     else
         cleanup(1 /* drain */, opts.noreset, opts.hangup);
 
-    if ( ler == LE_SIGNAL ) {
+    if (opts.reconnect && ler == LE_RECONNECT) {
+        pinfo("read zero bytes from port\r\n");
+        close(tty_fd);
+        goto start_again;
+    } else if ( ler == LE_SIGNAL ) {
         pinfo("Picocom was killed\r\n");
         xcode = EXIT_FAILURE;
     } else

@@ -443,6 +443,11 @@ Picocom accepts the following command-line options.
      input, or from the serial port. The **--exit** option, overrides
      the **--exit-after** option. (Default: Disabled)
 
+**--wait** | **-w**
+
+:   Picocom will wait until the specified serial port is available, rather
+    than exiting immediately if the port was not found.
+
 **--quiet** | **-q**
 
 :   Forces picocom to be quiet. Suppresses the output of the initial

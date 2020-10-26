@@ -48,6 +48,10 @@ linenoise-1.0/linenoise.o : linenoise-1.0/linenoise.c linenoise-1.0/linenoise.h
 ## Comment this IN to remove help strings (saves ~ 4-6 Kb).
 #CPPFLAGS += -DNO_HELP
 
+ifeq ($(shell uname), Linux)
+## Comment this out to disable inotify support for watching files on Linux
+CPPFLAGS += -DINOTIFY_SUPPORT
+endif
 
 OBJS += picocom.o term.o fdio.o split.o custbaud.o termios2.o custbaud_bsd.o
 picocom : $(OBJS)
