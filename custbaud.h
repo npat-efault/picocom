@@ -58,7 +58,7 @@
 #elif TARGET_OS_IPHONE
 /* Do not enable by default for iOS until it has been tested */
 #elif TARGET_OS_MAC
-#if defined (__i386__) || defined (__x86_64__)
+#if defined (__i386__) || defined (__x86_64__) || defined (__arm64__)
 /* Enable by-default for Intel Mac, macOS / OSX >= 10.4 (Tiger) */
 #ifndef USE_CUSTOM_BAUD
 #define USE_CUSTOM_BAUD
