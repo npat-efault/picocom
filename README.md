@@ -119,7 +119,7 @@ port's device node. To overcome this you can run picocom as root:
 
 Alternatively, and preferably, you can add yourself to the user-group
 that your system has for allowing access to serial ports. For most
-Unix-like systems this group is called "dialout". Consult you system's
+Unix-like systems this group is called "dialout". Consult your system's
 documentation to find out how you can do this (as it differs form
 system to system). On most Linux systems you can do it like this:
 
@@ -149,9 +149,9 @@ message:
     Terminal is ready
 
 From now on, every character you type is sent to the serial port, and
-every character received from the serial port is sent ro your
+every character received from the serial port is sent to your
 terminal.  Including control and special characters. Assuming that
-there is nothing connected to the other end of your serial port, to
+there is nothing connected to the other end of your serial port to
 respond to the characters you send to it (e.g. echo them back to you),
 then nothing that you type in picocom will appear on your
 terminal. This is normal.
@@ -181,7 +181,7 @@ or (assuming you have installed the manual page to a suitable place):
 
     man picocom
 
-Thanks for using picocom
+Thanks for using picocom!
 
 ## Custom Bash completion
 
