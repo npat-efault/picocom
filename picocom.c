@@ -37,6 +37,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <limits.h>
+#include <time.h>
 #ifdef USE_FLOCK
 #include <sys/file.h>
 #endif
@@ -294,6 +295,8 @@ int tty_write_sz;
         if ( tty_write_sz < TTY_WRITE_SZ_MIN )          \
             tty_write_sz = TTY_WRITE_SZ_MIN;            \
     } while (0)
+
+struct timespec tty_sleep = { 0, 100000000 };
 
 /**********************************************************************/
 
@@ -1539,11 +1542,15 @@ loop(void)
         if ( FD_ISSET(tty_fd, &wrset) ) {
 
             /* write to port */
-
             int sz;
             sz = (tty_q.len < tty_write_sz) ? tty_q.len : tty_write_sz;
             do {
-                n = write(tty_fd, tty_q.buff, sz);
+                if (tty_sleep.tv_sec | tty_sleep.tv_nsec) {
+                    nanosleep(&tty_sleep, NULL);
+                    n = write(tty_fd, tty_q.buff, 1);
+                } else {
+                    n = write(tty_fd, tty_q.buff, sz);
+                }
             } while ( n < 0 && errno == EINTR );
             if ( n <= 0 )
                 fatal("write to port failed: %s", strerror(errno));
@@ -1718,6 +1725,7 @@ parse_args(int argc, char *argv[])
         {"raise-dtr", no_argument, 0, 4},
         {"quiet", no_argument, 0, 'q'},
         {"help", no_argument, 0, 'h'},
+        {"rate", required_argument, 0, 'R'},
         {0, 0, 0, 0}
     };
 
@@ -1731,7 +1739,7 @@ parse_args(int argc, char *argv[])
         /* no default error messages printed. */
         opterr = 0;
 
-        c = getopt_long(argc, argv, "hirulcqXnv:s:r:e:f:b:y:d:p:g:t:x:",
+        c = getopt_long(argc, argv, "hirulcqXnv:s:r:e:f:b:y:d:p:g:t:x:R:",
                         longOptions, &optionIndex);
 
         if (c < 0)
@@ -1813,6 +1821,25 @@ parse_args(int argc, char *argv[])
                 r = -1;
             }
             break;
+	case 'R':
+	    {
+                int rate = atoi(optarg);
+
+		if (rate < 0) {
+                    fprintf(stderr, "Invalid --rate: %d\n", rate);
+                    r = -1;
+		} else if (rate == 0) {
+		    tty_sleep.tv_sec = 0;
+		    tty_sleep.tv_nsec = 0;
+		} else if (rate == 1) {
+		    tty_sleep.tv_sec = 1;
+		    tty_sleep.tv_nsec = 0;
+		} else {
+		    tty_sleep.tv_sec = 0;
+		    tty_sleep.tv_nsec = 1000000000 / rate;
+                }
+            }
+	    break;
         case 'y':
             switch (optarg[0]) {
             case 'e':
