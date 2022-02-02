@@ -502,6 +502,13 @@ port, is system dependent.
 On most systems the signal is raised.
 .RE
 .TP
+.B \f[B]\-\-rate\f[] | \f[B]\-R\f[]
+Defines the rate (characters per second) at which the input buffer is
+copied to the serial\-port.
+This may help to avoid buffer overruns if no flow control is available.
+.RS
+.RE
+.TP
 .B \f[B]\-\-exit\-aftrer\f[] | \f[B]\-x\f[]
 Exit picocom if it remains idle for the specified time (in
 milliseconds).
