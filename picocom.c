@@ -1540,12 +1540,18 @@ loop(void)
         }
 
         if ( FD_ISSET(tty_fd, &wrset) ) {
+            int have_esc = 0;
+            int sz;
 
             /* write to port */
-            int sz;
             sz = (tty_q.len < tty_write_sz) ? tty_q.len : tty_write_sz;
             do {
-                if (tty_sleep.tv_sec | tty_sleep.tv_nsec) {
+
+                /* Escape sequences shall be delivered directly */
+                if (*tty_q.buff == '\x1b')
+                        have_esc = 1;
+
+                if (!have_esc && (tty_sleep.tv_sec | tty_sleep.tv_nsec)) {
                     nanosleep(&tty_sleep, NULL);
                     n = write(tty_fd, tty_q.buff, 1);
                 } else {
