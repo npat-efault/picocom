@@ -123,7 +123,9 @@ const char *flow_str[] = {
 #define M_LFHEX   (1 << 11) /* map LF --> hex */
 #define M_8BITHEX (1 << 12) /* map 8-bit chars --> hex */
 #define M_NRMHEX  (1 << 13) /* map normal ascii chars --> hex */
-#define M_NFLAGS 14
+#define M_UPPER   (1 << 14) /* map a-z -> A-Z */
+#define M_LOWER   (1 << 15) /* map map A-Z -> a-z */
+#define M_NFLAGS 16
 
 /* default character mappings */
 #define M_I_DFL 0
@@ -149,6 +151,8 @@ struct map_names_s {
     { "lfhex", M_LFHEX },
     { "8bithex", M_8BITHEX },
     { "nrmhex", M_NRMHEX },
+    { "upper", M_UPPER },
+    { "lower", M_LOWER },
     /* Sentinel */
     { NULL, 0 }
 };
@@ -812,6 +816,12 @@ do_map (char *b, int map, char c)
         if ( (unsigned char)c >= 0x20 && (unsigned char)c < 0x7f ) {
             n = map2hex(b,c);
         }
+    }
+    if ( n < 0 && map & M_UPPER ) {
+		b[0] = toupper(c); n = 1;
+    }
+    if ( n < 0 && map & M_LOWER ) {
+		b[0] = tolower(c); n = 1;
     }
     if ( n < 0 ) {
         b[0] = c; n = 1;
@@ -1674,6 +1684,8 @@ show_usage(char *name)
     printf("  lfhex : map LF --> hex\n");
     printf("  8bithex : map 8-bit chars --> hex\n");
     printf("  nrmhex : map normal ascii chars --> hex\n");
+    printf("  upper : map a-z --> A-Z\n");
+    printf("  lower : map A-Z --> a-z\n");
     printf("<?> indicates the equivalent short option.\n");
     printf("Short options are prefixed by \"-\" instead of by \"--\".\n");
 #else /* defined NO_HELP */
