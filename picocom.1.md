@@ -225,6 +225,15 @@ Picocom accepts the following command-line options.
 :   Defines the number of stop bits in every character. Must be one
     of: **1**, or **2**. (Default: **1**)
 
+**--line-delay** | **-L**
+
+:   Delays for the specified amount of time (in nanonseconds) after each
+    line sent. If you do not use any flow-control, this can help to
+    prevent lost characters due to buffer overruns when sending larger
+    blocks of data, e.g. when pasting text. Allowed range is from **0**
+    (disabling the feature) to **999999999** (nearly  1 second).
+    (Default: **0**)
+
 **--escape** | **-e**
 
 :   Defines the character that will make picocom enter command-mode
