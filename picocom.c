@@ -604,11 +604,11 @@ read_baud (void)
             fd_printf(STO, "*** Invalid baudrate!");
             baud = -1;
         }
+
+	if (baud >= 0 && baudstr != NULL)
+		add_history(baudstr);
         free(baudstr);
     } while (baud < 0);
-
-    if (baudstr != NULL)
-        add_history(baudstr);
 
     return baud;
 }
