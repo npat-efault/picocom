@@ -84,7 +84,7 @@ Makefile for it to work with your system's make(1) command.
 
 ## Using picocom
 
-If your computer is a PC and has the standard on-board RS-233 ports
+If your computer is a PC and has the standard on-board RS-232 ports
 (usually accessible as two male DB9 connectors at the back) then under
 Linux these are accessed through device nodes most likely named:
 `/dev/ttyS0` and `/dev/ttyS1`. If your computer has no on-board serial
