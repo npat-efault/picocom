@@ -81,8 +81,8 @@ tc2setattr(int fd, int optional_actions, const struct termios *tios)
     t2.c_cflag = tios->c_cflag;
     t2.c_lflag = tios->c_lflag;
     t2.c_line = tios->c_line;
-    t2.c_ispeed = tios->c_ispeed;
-    t2.c_ospeed = tios->c_ospeed;
+    t2.c_ispeed = TIOS_ISPEED(tios);
+    t2.c_ospeed = TIOS_OSPEED(tios);
     memcpy(&t2.c_cc[0], &tios->c_cc[0], K_NCCS * sizeof (cc_t));
 
     return ioctl(fd, cmd, &t2);
@@ -105,8 +105,8 @@ tc2getattr(int fd, struct termios *tios)
     tios->c_cflag = t2.c_cflag;
     tios->c_lflag = t2.c_lflag;
     tios->c_line = t2.c_line;
-    tios->c_ispeed = t2.c_ispeed;
-    tios->c_ospeed = t2.c_ospeed;
+    TIOS_ISPEED(tios) = t2.c_ispeed;
+    TIOS_OSPEED(tios) = t2.c_ospeed;
     memcpy(&tios->c_cc[0], &t2.c_cc[0], K_NCCS * sizeof (cc_t));
 
     for (i = K_NCCS; i < NCCS; i++)
@@ -137,7 +137,7 @@ cf2setispeed(struct termios *tios, speed_t speed)
         errno = EINVAL;
         return -1;
     }
-    tios->c_ispeed = speed;
+    TIOS_ISPEED(tios) = speed;
     tios->c_cflag &= ~((CBAUD | CBAUDEX) << IBSHIFT);
     tios->c_cflag |= (speed << IBSHIFT);
 
@@ -166,7 +166,7 @@ cf2setospeed_custom(struct termios *tios, int speed)
     }
     tios->c_cflag &= ~(CBAUD | CBAUDEX);
     tios->c_cflag |= BOTHER;
-    tios->c_ospeed = speed;
+    TIOS_OSPEED(tios) = speed;
 
     return 0;
 }
@@ -189,7 +189,7 @@ cf2setispeed_custom(struct termios *tios, int speed)
     } else {
         tios->c_cflag &= ~((CBAUD | CBAUDEX) << IBSHIFT);
         tios->c_cflag |= (BOTHER << IBSHIFT);
-        tios->c_ispeed = speed;
+        TIOS_ISPEED(tios) = speed;
     }
 
     return 0;

@@ -49,6 +49,18 @@
 #endif /* of arch */
 #endif /* of version */
 
+/* GLIBC (and bionic) name the speed fields of "struct termios"
+   "c_ispeed" / "c_ospeed". MUSL names them "__c_ispeed" /
+   "__c_ospeed" and provides no alias. Use these accessors (they are
+   lvalues) instead of naming the fields directly. */
+#if !defined (__GLIBC__) && !defined (__UCLIBC__) && !defined (__BIONIC__)
+#define TIOS_ISPEED(tiop) ((tiop)->__c_ispeed)
+#define TIOS_OSPEED(tiop) ((tiop)->__c_ospeed)
+#else
+#define TIOS_ISPEED(tiop) ((tiop)->c_ispeed)
+#define TIOS_OSPEED(tiop) ((tiop)->c_ospeed)
+#endif
+
 #elif defined (__APPLE__) && defined(__MACH__)
 
 #include <AvailabilityMacros.h>

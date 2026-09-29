@@ -28,6 +28,8 @@
 
 #include <termios.h>
 
+#include "custbaud.h"
+
 /* Replace termios functions, with termios2 functions */
 #define tcsetattr tc2setattr
 #define tcgetattr tc2getattr
@@ -37,8 +39,8 @@
 /* And define these new ones */
 #define cfsetospeed_custom cf2setospeed_custom
 #define cfsetispeed_custom cf2setispeed_custom
-#define cfgetospeed_custom(tiop) ((tiop)->c_ospeed)
-#define cfgetispeed_custom(tiop) ((tiop)->c_ispeed)
+#define cfgetospeed_custom(tiop) TIOS_OSPEED(tiop)
+#define cfgetispeed_custom(tiop) TIOS_ISPEED(tiop)
 
 /* Replacements for the standard tcsetattr(3), tcgetattr(3)
  * functions. Same user interface, but these use the new termios2

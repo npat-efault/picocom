@@ -33,6 +33,8 @@
 
 /* We need tcflag_t, cc_t, speed_t, CBAUDEX, etc */
 #include <termios.h>
+/* We need _IOR() / _IOW() to spell out the termios2 ioctl numbers */
+#include <sys/ioctl.h>
 
 /* These definitions must correspond to the kernel structures as
    defined in:
@@ -149,6 +151,33 @@ struct termios2 {
 #define IOCTL_GETS TCGETS2
 
 #endif /* of architectures */
+
+/* The termios2 ioctl numbers live in <asm/ioctls.h>, which GLIBC drags
+   in through <sys/ioctl.h> but MUSL does not. We can't include it
+   ourselves (it comes with the clashing kernel "struct termios"), so
+   spell them out. Same values as in:
+
+     <linux-kernel>/include/uapi/asm-generic/ioctls.h
+
+   which also holds for mips. The powerpc branch above computes its own,
+   so these are only fallbacks for everybody else. */
+#ifndef TCGETS2
+#define TCGETS2  _IOR('T', 0x2A, struct termios2)
+#endif
+#ifndef TCSETS2
+#define TCSETS2  _IOW('T', 0x2B, struct termios2)
+#endif
+#ifndef TCSETSW2
+#define TCSETSW2 _IOW('T', 0x2C, struct termios2)
+#endif
+#ifndef TCSETSF2
+#define TCSETSF2 _IOW('T', 0x2D, struct termios2)
+#endif
+
+/* Highest standard Bxxxx speed. GLIBC exports it, MUSL doesn't. */
+#ifndef __MAX_BAUD
+#define __MAX_BAUD B4000000
+#endif
 
 /***************************************************************************/
 
